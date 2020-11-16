@@ -13,6 +13,7 @@
 
 (deftest basic-history-pull-test
   (let [conn (u/empty-conn)]
+    (def conn conn)
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/info :one :string]
                                 [:m/address :one :ref :component]
@@ -63,17 +64,17 @@
             [5 :country/name "Norway" 1 true]
             [5 :country/region "West Europe" 1 true]
 
-            [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
             [2 :vedlegg/info "vedlegg 1: hei" 2 false]
+            [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
 
             [1 :m/address 4 3 false]
             [1 :m/address 6 3 true]
-            [1 :m/type :type/special 3 true]
             [1 :m/type :type/standard 3 false]
+            [1 :m/type :type/special 3 true]
             [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 3 false]
             [2 :vedlegg/info "vedlegg 1: oops!" 3 true]
-            [5 :country/region "Europe" 3 true]
             [5 :country/region "West Europe" 3 false]
+            [5 :country/region "Europe" 3 true]
             [6 :addr/country 5 3 true]]
            (u/simplify-eavtos (d/db conn)
                               (rh/pull-flat-history (d/db conn) [:m/id "id-1"]))))))

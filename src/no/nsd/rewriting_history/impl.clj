@@ -93,5 +93,11 @@
         tx-range (ref->tx-ranges db [eid-long a v 0 0])]
     (->> (eid->eavto-set db [tx-range] eid-long)
          (into [])
-         (sort-by (fn [[e a v t o]] [t e a v o]))
+         (sort-by (fn [[e a v t o]] [t e a o v]))
          (vec))))
+
+(defn history->transactions
+  [db eavtos]
+  (let [txes (partition-by (fn [[e a v t o]] t)
+                           eavtos)]
+    txes))
