@@ -75,8 +75,8 @@
   (let [eavtos (->> (d/q '[:find ?e ?a ?v ?t ?o
                            :in $ ?e
                            :where
-                           [?e ?a ?v ?t ?o]]
-                           ;[?aa :db/ident ?a]]
+                           [?e ?aid ?v ?t ?o]
+                           [?aid :db/ident ?a]]
                          (d/history db)
                          eid)
                     (filter (fn [[e a v t o]] (tx-range-contains? tx-ranges t))))

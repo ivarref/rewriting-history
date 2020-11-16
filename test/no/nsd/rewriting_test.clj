@@ -50,8 +50,6 @@
                                     {:country/name   "Norway"
                                      :country/region "West Europe"}}}])
 
-    (def fh (rh/pull-flat-history (d/db conn) [:m/id "id-1"]))
-
     @(d/transact conn [{:m/id      "id-1"
                         :m/vedlegg [{:vedlegg/id   "vedlegg-1"
                                      :vedlegg/info "vedlegg 1: XXX har syfilis"}]}])
@@ -62,4 +60,7 @@
                                      :vedlegg/info "vedlegg 1: oops!"}]
                         :m/address {:addr/country
                                     {:country/name "Norway"
-                                     :country/region "Europe"}}}])))
+                                     :country/region "Europe"}}}])
+
+    (def fh (rh/pull-flat-history (d/db conn) [:m/id "id-1"]))))
+    
