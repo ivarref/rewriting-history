@@ -3,29 +3,16 @@
             [datomic.api :as d]
             [datomic-schema.core :as ds]
             [no.nsd.rewriting-history :as rh]
-            [no.nsd.envelope :as envelope]))
+            [no.nsd.envelope :as envelope]
+            [no.nsd.utils :as u]))
 
 (envelope/init!
   {:min-level  [[#{"datomic.*" "com.datomic.*" "org.apache.*"} :warn]
                 [#{"*"} :info]]
    :log-to-elk false})
 
-(defn empty-conn []
-  (let [uri "datomic:mem://hello-world"]
-    (d/delete-database uri)
-    (d/create-database uri)
-    (let [conn (d/connect uri)]
-      conn)))
-
-(def fourth #(nth % 3))
-
-(defn simplify-eavtos [db eavtos]
-  (let [eid-map (zipmap (map first eavtos) (iterate inc 1))
-        tx-map (zipmap (map fourth eavtos) (iterate inc 1))]))
-
-(deftest asdf
-  (let [conn (empty-conn)]
-    (def c conn)
+(deftest basic-history-pull-test
+  (let [conn (u/empty-conn)]
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/info :one :string]
                                 [:m/address :one :ref :component]
@@ -59,8 +46,34 @@
                         :m/vedlegg [{:vedlegg/id   "vedlegg-1"
                                      :vedlegg/info "vedlegg 1: oops!"}]
                         :m/address {:addr/country
-                                    {:country/name "Norway"
+                                    {:country/name   "Norway"
                                      :country/region "Europe"}}}])
 
-    (def fh (rh/pull-flat-history (d/db conn) [:m/id "id-1"]))))
-    
+    (is (= [[1 :m/address 4 1 true]
+            [1 :m/id "id-1" 1 true]
+            [1 :m/info "hello world" 1 true]
+            [1 :m/type :type/standard 1 true]
+            [1 :m/vedlegg 2 1 true]
+            [1 :m/vedlegg 3 1 true]
+            [2 :vedlegg/id "vedlegg-1" 1 true]
+            [2 :vedlegg/info "vedlegg 1: hei" 1 true]
+            [3 :vedlegg/id "vedlegg-2" 1 true]
+            [3 :vedlegg/info "hei2" 1 true]
+            [4 :addr/country 5 1 true]
+            [5 :country/name "Norway" 1 true]
+            [5 :country/region "West Europe" 1 true]
+
+            [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
+            [2 :vedlegg/info "vedlegg 1: hei" 2 false]
+
+            [1 :m/address 4 3 false]
+            [1 :m/address 6 3 true]
+            [1 :m/type :type/special 3 true]
+            [1 :m/type :type/standard 3 false]
+            [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 3 false]
+            [2 :vedlegg/info "vedlegg 1: oops!" 3 true]
+            [5 :country/region "Europe" 3 true]
+            [5 :country/region "West Europe" 3 false]
+            [6 :addr/country 5 3 true]]
+           (u/simplify-eavtos (d/db conn)
+                              (rh/pull-flat-history (d/db conn) [:m/id "id-1"]))))))

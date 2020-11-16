@@ -93,5 +93,5 @@
         tx-range (ref->tx-ranges db [eid-long a v 0 0])]
     (->> (eid->eavto-set db [tx-range] eid-long)
          (into [])
-         (sort-by (fn [[e a v t o]] [t o e a v]))
+         (sort-by (fn [[e a v t o]] [t e a v o]))
          (vec))))
