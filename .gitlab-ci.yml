@@ -2,7 +2,7 @@ stages:
   - test
 
 variables:
-  CLOJURE_VERSION: "1.10.1.502"
+  CLOJURE_VERSION: "1.10.1.727"
 
 test:
   stage: test
@@ -21,4 +21,4 @@ test:
     - export GITLIBS=$PWD/.cache/gitlibs
     - export XDG_CACHE_HOME=$PWD/.cache
   script:
-    - clojure J-Dclojure.main.report=stderr -Mtest
+    - clojure -J-Dclojure.main.report=stderr -Mtest
