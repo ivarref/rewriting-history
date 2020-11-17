@@ -124,7 +124,7 @@
                                        value (if (is-regular-ref? db a v)
                                                (if (contains? prev-temp-ids (str v))
                                                  [:tempid (str v)]
-                                                 (str e))
+                                                 (str v))
                                                v)
                                        op (if o :db/add :db/retract)
                                        tx [op ent-id a value]]
@@ -154,8 +154,8 @@
       (let [new-txes (mapv (partial resolve-tempid prev-tempids) tx)]
         (pprint/pprint new-txes)
         (let [{:keys [tempids] :as res} @(d/transact conn new-txes)]
-          (println tempids)
-          (no.nsd.spy/spy)
+          ;(println tempids)
+          ;(no.nsd.spy/spy)
           (merge prev-tempids tempids))))
     {}
     txes))
