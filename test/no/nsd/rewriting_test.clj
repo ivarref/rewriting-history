@@ -6,6 +6,7 @@
             [no.nsd.envelope :as envelope]
             [no.nsd.utils :as u]
             [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.shorter-stacktrace]
             [no.nsd.spy :as sc]
             [clojure.pprint :as pprint]))
 
