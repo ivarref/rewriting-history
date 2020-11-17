@@ -1,7 +1,8 @@
 (ns no.nsd.rewriting-history.impl
   (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.pprint :as pprint]))
 
 ; private API, subject to change
 
@@ -121,12 +122,42 @@
                                                 [:tempid (str e)]
                                                 (str e))
                                        value (if (is-regular-ref? db a v)
-                                               (if (contains? self-temp-ids (str v))
-                                                 (str v)
-                                                 [:tempid (str v)])
+                                               (if (contains? prev-temp-ids (str v))
+                                                 [:tempid (str v)]
+                                                 (str e))
                                                v)
-                                       op (if o :db/add :db/retract)]
-                                   [op ent-id a value]))
+                                       op (if o :db/add :db/retract)
+                                       tx [op ent-id a value]]
+                                   tx))
                                tx))]))
               [#{} []]
               txes))))
+
+(defn maybe-resolve [tempids v]
+  (if (and (vector? v)
+           (= 2 (count v))
+           (= :tempid (first v)))
+    (let [new-value (get tempids (second v))]
+      (println "got" new-value "for" (second v))
+      new-value)
+    v))
+
+(defn resolve-tempid [tempids [op e a v]]
+  [op
+   (maybe-resolve tempids e)
+   a
+   (maybe-resolve tempids v)])
+
+(defn apply-txes! [conn txes]
+  (reduce
+    (fn [prev-tempids tx]
+      (let [new-txes (mapv (partial resolve-tempid prev-tempids) tx)]
+        (pprint/pprint new-txes)
+        (let [{:keys [tempids] :as res} @(d/transact conn new-txes)]
+          (println tempids)
+          (no.nsd.spy/spy)
+          (merge prev-tempids tempids))))
+    {}
+    txes))
+
+(defn rewrite-history! [conn db old-history new-history])
