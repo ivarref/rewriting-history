@@ -118,12 +118,12 @@
                    (conj txout
                          (mapv (fn [[e a v t o :as eavto]]
                                  (let [ent-id (if (contains? prev-temp-ids (str e))
-                                                [:temp-id (str e)]
+                                                [:tempid (str e)]
                                                 (str e))
                                        value (if (is-regular-ref? db a v)
                                                (if (contains? self-temp-ids (str v))
                                                  (str v)
-                                                 [:temp-id (str v)])
+                                                 [:tempid (str v)])
                                                v)
                                        op (if o :db/add :db/retract)]
                                    [op ent-id a value]))
