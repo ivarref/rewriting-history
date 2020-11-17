@@ -1,5 +1,6 @@
 (ns no.nsd.rewrite-hist-test
   (:require [clojure.test :refer :all]
+            [datomic-schema.core :as ds]
             [no.nsd.utils :as u]
             [no.nsd.envelope :as envelope]
             [no.nsd.spy :as sc]
@@ -59,5 +60,4 @@
     (impl/apply-txes! conn txes)
     (let [fh2 (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))]
       (is (= fh2 fh))
-      (sc/spy))
-    #_(pprint/pprint (impl/history->transactions (d/db conn) fh))))
+      (sc/spy!))))

@@ -37,3 +37,7 @@
 (defmacro defsc []
   `(->> (sc.api/defsc ~(sc.api/last-ep-id))
         (mapv (comp symbol name symbol))))
+
+(defmacro spy! []
+  `(do ~(sc.api/spy-emit my-spy-opts nil &env &form)
+       (eval '(defsc))))
