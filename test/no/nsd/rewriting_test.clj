@@ -98,19 +98,28 @@
                                 [:country/name :one :string :id]
                                 [:country/region :one :string]])
 
-    @(d/transact conn [{:m/id      "id-1"
-                        :m/type    :type/standard
-                        :m/address {:addr/country
-                                    {:country/name   "Norway"
-                                     :country/region "West Europe"}}}])
-
-    (let [db (d/db conn)
-          hist (impl/pull-flat-history db [:m/id "id-1"])]
-      (sc/spy)
-      (is (= [[[:db/add "1" :m/address "2"]
-               [:db/add "1" :m/id "id-1"]
-               [:db/add "1" :m/type :type/standard]
-               [:db/add "2" :addr/country "3"]
-               [:db/add "3" :country/name "Norway"]
-               [:db/add "3" :country/region "West Europe"]]]
-            (impl/history->transactions db (u/simplify-eavtos db hist)))))))
+    (let [entity (get-in @(d/transact conn [{:db/id     "entity"
+                                             :m/id      "id-1"
+                                             :m/type    :type/standard
+                                             :m/address {:addr/country
+                                                         {:country/name   "Norway"
+                                                          :country/region "West Europe"}}}])
+                         [:tempids "entity"])
+          db (d/db conn)
+          hist (impl/pull-flat-history db [:m/id "id-1"])
+          [tx] (impl/history->transactions db (u/simplify-eavtos db hist))]
+      (is (= [[:db/add "1" :m/address "2"]
+              [:db/add "1" :m/id "id-1"]
+              [:db/add "1" :m/type :type/standard]
+              [:db/add "2" :addr/country "3"]
+              [:db/add "3" :country/name "Norway"]
+              [:db/add "3" :country/region "West Europe"]]
+            tx))
+      @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
+      (is (not= entity
+                (-> @(d/transact conn tx)
+                    (get-in [:tempids "1"]))))
+      (let [new-db (d/db conn)]
+        (is (= (u/simplify-eavtos db hist)
+               (u/simplify-eavtos new-db (impl/pull-flat-history new-db [:m/id "id-1"]))))
+        (sc/spy)))))
