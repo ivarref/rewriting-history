@@ -127,8 +127,8 @@
                                                  (str v))
                                                v)
                                        op (if o :db/add :db/retract)
-                                       tx [op ent-id a value]]
-                                   tx))
+                                       add-or-retract [op ent-id a value]]
+                                   add-or-retract))
                                tx))]))
               [#{} []]
               txes))))
@@ -138,7 +138,6 @@
            (= 2 (count v))
            (= :tempid (first v)))
     (let [new-value (get tempids (second v))]
-      (println "got" new-value "for" (second v))
       new-value)
     v))
 
@@ -152,10 +151,7 @@
   (reduce
     (fn [prev-tempids tx]
       (let [new-txes (mapv (partial resolve-tempid prev-tempids) tx)]
-        (pprint/pprint new-txes)
-        (let [{:keys [tempids] :as res} @(d/transact conn new-txes)]
-          ;(println tempids)
-          ;(no.nsd.spy/spy)
+        (let [{:keys [tempids]} @(d/transact conn new-txes)]
           (merge prev-tempids tempids))))
     {}
     txes))

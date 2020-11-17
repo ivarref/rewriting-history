@@ -55,6 +55,9 @@
              [:db/add [:tempid "3"] :country/region "Europe"]
              [:db/add "4" :addr/country [:tempid "3"]]]]
            txes))
-    #_(impl/apply-txes! conn txes)
-    (sc/spy)
+    @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
+    (impl/apply-txes! conn txes)
+    (let [fh2 (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))]
+      (is (= fh2 fh))
+      (sc/spy))
     #_(pprint/pprint (impl/history->transactions (d/db conn) fh))))
