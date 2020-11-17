@@ -1,6 +1,7 @@
 (ns no.nsd.rewriting-history.impl
   (:require [datomic.api :as d]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [clojure.set :as set]))
 
 ; private API, subject to change
 
@@ -96,8 +97,35 @@
          (sort-by (fn [[e a v t o]] [t e a o v]))
          (vec))))
 
+(defn is-regular-ref? [db a v]
+  (and (= :db.type/ref (d/q '[:find ?type .
+                              :in $ ?attr
+                              :where
+                              [?attr :db/valueType ?t]
+                              [?t :db/ident ?type]]
+                            db a))
+       (not (keyword? v))))
+
 (defn history->transactions
   [db eavtos]
   (let [txes (partition-by (fn [[e a v t o]] t)
                            eavtos)]
-    txes))
+    (reduce (fn [[prev-temp-ids txout] tx]
+              (let [self-temp-ids (->> (mapv (comp str first) tx)
+                                       (into (sorted-set)))]
+                [(into (sorted-set) (set/union prev-temp-ids self-temp-ids))
+                 (conj txout
+                       (mapv (fn [[e a v t o :as eavto]]
+                               (let [ent-id (if (contains? prev-temp-ids (str e))
+                                              [:temp-id (str e)]
+                                              (str e))
+                                     value (if (is-regular-ref? db a v)
+                                             (if (contains? self-temp-ids (str v))
+                                               (str v)
+                                               [:temp-id (str v)])
+                                             v)
+                                     op (if o :db/add :db/retract)]
+                                 [op ent-id a value]))
+                             tx))]))
+            [#{} []]
+            txes)))

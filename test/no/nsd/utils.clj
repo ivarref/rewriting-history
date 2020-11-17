@@ -11,15 +11,6 @@
 
 (def tx #(nth % 3))
 
-(defn is-regular-ref? [db a v]
-  (and (= :db.type/ref (d/q '[:find ?type .
-                              :in $ ?attr
-                              :where
-                              [?attr :db/valueType ?t]
-                              [?t :db/ident ?type]]
-                            db a))
-       (nil? (impl/is-db-ident? db v))))
-
 (defn simplify-eavtos [db eavtos]
   (let [eid-map (zipmap (distinct (sort (map first eavtos))) (iterate inc 1))
         tx-map (zipmap (distinct (sort (map tx eavtos))) (iterate inc 1))]
@@ -27,7 +18,7 @@
          (mapv (fn [[e a v t o]]
                  [(get eid-map e)
                   a
-                  (if (is-regular-ref? db a v)
+                  (if (impl/is-regular-ref? db a v)
                     (get eid-map v)
                     v)
                   (get tx-map t)
