@@ -107,31 +107,34 @@
                             db a))
        (not (keyword? v))))
 
+(defn eavto->oeav-tx
+  [db tempids [e a v t o :as eavto]]
+  (let [ent-id (if (contains? tempids (str e))
+                 [:tempid (str e)]
+                 (str e))
+        value (if (is-regular-ref? db a v)
+                (if (contains? tempids (str v))
+                  [:tempid (str v)]
+                  (str v))
+                v)
+        op (if o :db/add :db/retract)]
+    [op ent-id a value]))
+
+(defn eavtos->transaction
+  [db [txout tempids] eavtos]
+  (let [oeavs (mapv (partial eavto->oeav-tx db tempids) eavtos)
+        self-tempids (->> oeavs
+                          (map second)
+                          (filter string?)
+                          (into #{}))]
+    [(conj txout oeavs)
+     (into (sorted-set) (set/union tempids self-tempids))]))
+
 (defn history->transactions
   [db eavtos]
-  (let [txes (partition-by (fn [[e a v t o]] t)
-                           eavtos)]
-    (second
-      (reduce (fn [[prev-temp-ids txout] tx]
-                (let [self-temp-ids (->> (mapv (comp str first) tx)
-                                         (into (sorted-set)))]
-                  [(into (sorted-set) (set/union prev-temp-ids self-temp-ids))
-                   (conj txout
-                         (mapv (fn [[e a v t o :as eavto]]
-                                 (let [ent-id (if (contains? prev-temp-ids (str e))
-                                                [:tempid (str e)]
-                                                (str e))
-                                       value (if (is-regular-ref? db a v)
-                                               (if (contains? prev-temp-ids (str v))
-                                                 [:tempid (str v)]
-                                                 (str v))
-                                               v)
-                                       op (if o :db/add :db/retract)
-                                       add-or-retract [op ent-id a value]]
-                                   add-or-retract))
-                               tx))]))
-              [#{} []]
-              txes))))
+  (let [txes (partition-by (fn [[e a v t o]] t) eavtos)]
+    (first
+      (reduce (partial eavtos->transaction db) [[] #{}] txes))))
 
 (defn maybe-resolve [tempids v]
   (if (and (vector? v)
