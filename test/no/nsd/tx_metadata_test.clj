@@ -39,6 +39,5 @@
                  [:db/add "2" :m/id "id"]
                  [:db/add "2" :m/info "hello world"]]]
         (is (= tx tx2))
-        @(d/transact conn tx2)
-        (sc/spy!)))))
+        @(d/transact conn tx2)))))
 
