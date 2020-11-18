@@ -122,8 +122,7 @@
                     (get-in [:tempids "1"]))))
       (let [new-db (d/db conn)]
         (is (= (u/simplify-eavtos db hist)
-               (u/simplify-eavtos new-db (impl/pull-flat-history new-db [:m/id "id-1"]))))
-        (sc/spy)))))
+               (u/simplify-eavtos new-db (impl/pull-flat-history new-db [:m/id "id-1"]))))))))
 
 (deftest history->txes-test-unsimplified
   (let [conn (u/empty-conn)]
@@ -157,5 +156,4 @@
               [2 :addr/country 3 1 true]
               [3 :country/name "Norway" 1 true]
               [3 :country/region "West Europe" 1 true]]
-             (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))))
-      (sc/spy))))
+             (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"])))))))

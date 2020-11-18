@@ -21,4 +21,4 @@ test:
     - export GITLIBS=$PWD/.cache/gitlibs
     - export XDG_CACHE_HOME=$PWD/.cache
   script:
-    - clojure -J-Dclojure.main.report=stderr -Mtest
+    - clojure -M:test

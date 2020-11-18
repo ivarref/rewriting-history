@@ -10,7 +10,8 @@
                                   io.rkn/conformity                    {:mvn/version "0.5.4"}
                                   ivarref/datomic-schema               {:mvn/version "0.2.0"}
                                   vvvvalvalval/scope-capture           {:mvn/version "0.3.2"}}
-                    :main-opts   ["--report" "stderr" "-m" "kaocha.runner"]}}
+                    :jvm-opts    ["-DDISABLE_SPY=true"]
+                    :main-opts   ["--report" "stderr" "-m" "kaocha.runner" "--no-capture-output"]}}
 
  :mvn/repos {"central"       {:url "https://nexus.nsd.no/repository/nsd-maven-public/"}
              "clojars"       {:url "https://nexus.nsd.no/repository/nsd-maven-public/"}
