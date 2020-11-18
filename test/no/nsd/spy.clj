@@ -36,7 +36,8 @@
 
 (defmacro defsc []
   `(->> (sc.api/defsc ~(sc.api/last-ep-id))
-        (mapv (comp symbol name symbol))))
+        (mapv (comp symbol name symbol))
+        (println "variables:")))
 
 (defmacro spy! []
   (if (= "true" (System/getProperty "DISABLE_SPY"))

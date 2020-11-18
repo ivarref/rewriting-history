@@ -16,7 +16,7 @@
                       db (first lookup-ref-or-eid) (second lookup-ref-or-eid))]
       eid
       (do (log/error "Could not find lookup ref" lookup-ref-or-eid)
-          nil))
+          (throw (ex-info "Could not find lookup ref" {:ref lookup-ref-or-eid}))))
     lookup-ref-or-eid))
 
 (declare eid->eavto-set)

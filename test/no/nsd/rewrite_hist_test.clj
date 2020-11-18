@@ -7,7 +7,8 @@
             [datomic.api :as d]
             [no.nsd.rewriting-history :as rh]
             [no.nsd.shorter-stacktrace]
-            [no.nsd.rewriting-history.impl :as impl]))
+            [no.nsd.rewriting-history.impl :as impl]
+            [taoensso.timbre :as timbre]))
 
 (envelope/init!
   {:min-level  [[#{"datomic.*" "com.datomic.*" "org.apache.*"} :warn]
@@ -57,7 +58,12 @@
              [:db/add "4" :addr/country [:tempid "3"]]]]
            txes))
     @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
+    (try
+      (timbre/with-merged-config {:min-level :fatal}
+        (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))
+      (assert false "should not get here")
+      (catch Exception e
+        (is (= "Could not find lookup ref" (.getMessage e)))))
     (impl/apply-txes! conn txes)
     (let [fh2 (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))]
-      (is (= fh2 fh))
-      (sc/spy!))))
+      (is (= fh2 fh)))))
