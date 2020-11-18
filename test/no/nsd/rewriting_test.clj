@@ -81,7 +81,6 @@
               [5 :country/region "Europe" 3 true]
               [6 :addr/country 5 3 true]]
              fh))
-      (sc/spy)
       #_(pprint/pprint (impl/history->transactions (d/db conn) fh)))))
 
 (deftest history->txes-test
