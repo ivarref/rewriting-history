@@ -53,7 +53,7 @@
                                     {:country/name   "Norway"
                                      :country/region "Europe"}}}])
     (let [db (d/db conn)
-          fh (u/simplify-eavtos db (rh/pull-flat-history db [:m/id "id-1"]))]
+          fh (impl/pull-flat-history-simple db [:m/id "id-1"])]
       (is (= [[1 :m/address 4 1 true]
               [1 :m/id "id-1" 1 true]
               [1 :m/info "hello world" 1 true]
@@ -83,7 +83,7 @@
              fh))
       @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
       (impl/apply-txes! conn (impl/history->transactions (d/db conn) fh))
-      (is (= fh (u/simplify-eavtos db (rh/pull-flat-history db [:m/id "id-1"])))))))
+      (is (= fh (impl/pull-flat-history-simple db [:m/id "id-1"]))))))
 
 (deftest history->txes-test
   (let [conn (u/empty-conn)]
@@ -108,8 +108,8 @@
                                                           :country/region "West Europe"}}}])
                          [:tempids "entity"])
           db (d/db conn)
-          hist (impl/pull-flat-history db [:m/id "id-1"])
-          [tx] (impl/history->transactions db (u/simplify-eavtos db hist))]
+          hist (impl/pull-flat-history-simple db [:m/id "id-1"])
+          [tx] (impl/history->transactions db hist)]
       (is (= [[:db/add "1" :m/address "2"]
               [:db/add "1" :m/id "id-1"]
               [:db/add "1" :m/type :type/standard]
@@ -122,8 +122,7 @@
                 (-> @(d/transact conn tx)
                     (get-in [:tempids "1"]))))
       (let [new-db (d/db conn)]
-        (is (= (u/simplify-eavtos db hist)
-               (u/simplify-eavtos new-db (impl/pull-flat-history new-db [:m/id "id-1"]))))))))
+        (is (= hist (impl/pull-flat-history-simple new-db [:m/id "id-1"])))))))
 
 (deftest history->txes-test-unsimplified
   (let [conn (u/empty-conn)]
@@ -157,4 +156,4 @@
               [2 :addr/country 3 1 true]
               [3 :country/name "Norway" 1 true]
               [3 :country/region "West Europe" 1 true]]
-             (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"])))))))
+             (impl/pull-flat-history-simple (d/db conn) [:m/id "id-1"]))))))

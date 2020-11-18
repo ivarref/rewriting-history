@@ -43,7 +43,7 @@
   (let [conn (u/empty-conn)
         _ (setup! conn)
         db (d/db conn)
-        fh (u/simplify-eavtos db (rh/pull-flat-history db [:m/id "id-1"]))
+        fh (impl/pull-flat-history-simple db [:m/id "id-1"])
         txes (impl/history->transactions db fh)]
     (is (= [[[:db/add "1" :m/address "2"]
              [:db/add "1" :m/id "id-1"]
@@ -65,5 +65,5 @@
       (catch Exception e
         (is (= "Could not find lookup ref" (.getMessage e)))))
     (impl/apply-txes! conn txes)
-    (let [fh2 (u/simplify-eavtos (d/db conn) (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))]
+    (let [fh2 (impl/pull-flat-history-simple (d/db conn) [:m/id "id-1"])]
       (is (= fh2 fh)))))

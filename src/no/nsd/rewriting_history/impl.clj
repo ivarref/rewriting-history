@@ -107,6 +107,25 @@
                             db a))
        (not (keyword? v))))
 
+(def get-t #(nth % 3))
+
+(defn simplify-eavtos [db eavtos]
+  (let [eid-map (zipmap (distinct (sort (map first eavtos))) (iterate inc 1))
+        tx-map (zipmap (distinct (sort (map get-t eavtos))) (iterate inc 1))]
+    (->> eavtos
+         (mapv (fn [[e a v t o]]
+                 [(get eid-map e)
+                  a
+                  (if (is-regular-ref? db a v)
+                    (get eid-map v)
+                    v)
+                  (get tx-map t)
+                  o])))))
+
+(defn pull-flat-history-simple [db lookup-ref]
+  (->> (pull-flat-history db lookup-ref)
+       (simplify-eavtos db)))
+
 (defn eavto->oeav-tx
   [db tempids [e a v t o :as eavto]]
   (let [ent-id (if (contains? tempids (str e))
