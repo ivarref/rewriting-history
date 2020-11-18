@@ -32,5 +32,13 @@
               [1 :tx/info "meta" 1 true]
               [2 :m/id "id" 1 true]
               [2 :m/info "hello world" 1 true]]
-             fh)))))
+             fh))
+      (let [[tx] (impl/history->transactions (d/db conn) fh)
+            tx2 [[:db/add "datomic.tx" :db/txInstant #inst "2000-01-01T00:00:00.000-00:00"]
+                 [:db/add "datomic.tx" :tx/info "meta"]
+                 [:db/add "2" :m/id "id"]
+                 [:db/add "2" :m/info "hello world"]]]
+        (is (= tx tx2))
+        @(d/transact conn tx2)
+        (sc/spy!)))))
 

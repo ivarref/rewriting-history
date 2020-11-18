@@ -136,8 +136,14 @@
 
 (defn eavto->oeav-tx
   [db tempids [e a v t o :as eavto]]
-  (let [ent-id (if (contains? tempids (str e))
+  (let [ent-id (cond
+                 (= e t)
+                 "datomic.tx"
+
+                 (contains? tempids (str e))
                  [:tempid (str e)]
+
+                 :else
                  (str e))
         value (if (is-regular-ref? db a v)
                 (if (contains? tempids (str v))
