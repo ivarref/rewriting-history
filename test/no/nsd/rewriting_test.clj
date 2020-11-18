@@ -81,7 +81,9 @@
               [5 :country/region "Europe" 3 true]
               [6 :addr/country 5 3 true]]
              fh))
-      #_(pprint/pprint (impl/history->transactions (d/db conn) fh)))))
+      @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
+      (impl/apply-txes! conn (impl/history->transactions (d/db conn) fh))
+      (is (= fh (u/simplify-eavtos db (rh/pull-flat-history db [:m/id "id-1"])))))))
 
 (deftest history->txes-test
   (let [conn (u/empty-conn)]
