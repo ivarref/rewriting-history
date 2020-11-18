@@ -28,10 +28,9 @@
                         :tx/info      "meta"}])
 
     (let [fh (impl/pull-flat-history-simple (d/db conn) [:m/id "id"])]
-      (is (= [[1 :db/txInstant #inst "2000-01-01T00:00:00.000-00:00" 1 true]
+      (is (= [[1 :db/txInstant #inst "2000" 1 true]
               [1 :tx/info "meta" 1 true]
               [2 :m/id "id" 1 true]
-              [2 :m/info "hello world" 1 true]
-              [2 :m/tx 1 1 true]]
+              [2 :m/info "hello world" 1 true]]
              fh)))))
 

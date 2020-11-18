@@ -90,10 +90,18 @@
           #{})
       expanded)))
 
+(def get-t #(nth % 3))
+
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (let [eid-long (resolve-lookup-ref db lookup-ref)
-        tx-range (ref->tx-ranges db [eid-long a v 0 0])]
-    (->> (eid->eavto-set db [tx-range] eid-long)
+        tx-range (ref->tx-ranges db [eid-long a v 0 0])
+        eavtos (eid->eavto-set db [tx-range] eid-long)
+        tx-ids (into #{} (map get-t eavtos))
+        tx-meta-eavtos (reduce (fn [o tx-id]
+                                 (set/union o (eid->eavto-set db [[[0 Long/MAX_VALUE]]] tx-id)))
+                               #{}
+                               tx-ids)]
+    (->> (set/union tx-meta-eavtos eavtos)
          (into [])
          (sort-by (fn [[e a v t o]] [t e a o v]))
          (vec))))
@@ -106,8 +114,6 @@
                               [?t :db/ident ?type]]
                             db a))
        (not (keyword? v))))
-
-(def get-t #(nth % 3))
 
 (defn simplify-eavtos [db eavtos]
   (let [eids (reduce into
