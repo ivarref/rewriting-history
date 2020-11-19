@@ -7,6 +7,11 @@
 
 ; private API, subject to change
 
+(defn to-db [db-or-conn]
+  (if (instance? Database db-or-conn)
+    db-or-conn
+    (d/db db-or-conn)))
+
 (defn resolve-lookup-ref
   "Returns eid of lookup ref"
   [db lookup-ref-or-eid]
@@ -113,7 +118,8 @@
             txes)))
 
 (defn pull-flat-history [db [a v :as lookup-ref]]
-  (let [eid-long (resolve-lookup-ref db lookup-ref)
+  (let [db (to-db db)
+        eid-long (resolve-lookup-ref db lookup-ref)
         tx-range (ref->tx-ranges db [eid-long a v 0 0])
         eavtos (eid->eavto-set db [tx-range] eid-long)
         tx-ids (into #{} (map get-t eavtos))
@@ -150,11 +156,6 @@
                     v)
                   (get eid-map t)
                   o])))))
-
-(defn to-db [db-or-conn]
-  (if (instance? Database db-or-conn)
-    db-or-conn
-    (d/db db-or-conn)))
 
 (defn pull-flat-history-simple [db lookup-ref]
   (let [db (to-db db)]

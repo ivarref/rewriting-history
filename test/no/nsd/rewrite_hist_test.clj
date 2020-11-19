@@ -48,10 +48,8 @@
 (deftest rewrite-hist-test
   (let [conn (u/empty-conn)
         _ (setup! conn)
-        db (d/db conn)
-        fh (impl/pull-flat-history-simple db [:m/id "id-1"])
-        txes (impl/history->transactions db fh)]
-    (sc/spy!)
+        fh (impl/pull-flat-history-simple conn [:m/id "id-1"])
+        txes (impl/history->transactions conn fh)]
     (is (= [[[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
              [:db/add "3" :m/address "4"]
              [:db/add "3" :m/id "id-1"]
@@ -69,10 +67,10 @@
     @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
     (try
       (timbre/with-merged-config {:min-level :fatal}
-                                 (impl/pull-flat-history (d/db conn) [:m/id "id-1"]))
+                                 (impl/pull-flat-history conn [:m/id "id-1"]))
       (assert false "should not get here")
       (catch Exception e
         (is (= "Could not find lookup ref" (.getMessage e)))))
     (impl/apply-txes! conn txes)
-    (let [fh2 (impl/pull-flat-history-simple (d/db conn) [:m/id "id-1"])]
+    (let [fh2 (impl/pull-flat-history-simple conn [:m/id "id-1"])]
       (is (= fh2 fh)))))
