@@ -167,7 +167,6 @@
           [tx] (impl/history->transactions conn hist)]
       @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
       @(d/transact conn tx)
-      (sc/spy!)
       (is (= [[1 :db/txInstant2 #inst"2000" 1 true]
               [2 :m/address 3 1 true]
               [2 :m/id "id-1" 1 true]
