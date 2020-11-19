@@ -2,7 +2,8 @@
   (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
             [clojure.set :as set]
-            [clojure.pprint :as pprint]))
+            [clojure.pprint :as pprint])
+  (:import (datomic Database)))
 
 ; private API, subject to change
 
@@ -90,7 +91,26 @@
           #{})
       expanded)))
 
+(def get-e #(nth % 0))
+(def get-a #(nth % 1))
+(def get-v #(nth % 2))
 (def get-t #(nth % 3))
+
+(defn only-txInstant2-eavtos [eavtos]
+  (let [attrs (into #{} (map get-a eavtos))]
+    (if (contains? attrs :db/txInstant2)
+      (remove #(= :db/txInstant (get-a %)) eavtos)
+      (map (fn [[e a v t o :as eavto]]
+             (if (= a :db/txInstant)
+               [e :db/txInstant2 v t o]
+               eavto))
+           eavtos))))
+
+(defn only-txInstant2 [eavtos]
+  (let [txes (partition-by (fn [[e a v t o]] t) eavtos)]
+    (reduce (fn [o tx] (set/union o (into #{}  (only-txInstant2-eavtos tx))))
+            #{}
+            txes)))
 
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (let [eid-long (resolve-lookup-ref db lookup-ref)
@@ -98,7 +118,7 @@
         eavtos (eid->eavto-set db [tx-range] eid-long)
         tx-ids (into #{} (map get-t eavtos))
         tx-meta-eavtos (reduce (fn [o tx-id]
-                                 (set/union o (eid->eavto-set db [[[0 Long/MAX_VALUE]]] tx-id)))
+                                 (set/union o (only-txInstant2 (eid->eavto-set db [[[0 Long/MAX_VALUE]]] tx-id))))
                                #{}
                                tx-ids)]
     (->> (set/union tx-meta-eavtos eavtos)
@@ -130,9 +150,15 @@
                   (get eid-map t)
                   o])))))
 
+(defn to-db [db-or-conn]
+  (if (instance? Database db-or-conn)
+    db-or-conn
+    (d/db db-or-conn)))
+
 (defn pull-flat-history-simple [db lookup-ref]
-  (->> (pull-flat-history db lookup-ref)
-       (simplify-eavtos db)))
+  (let [db (to-db db)]
+    (->> (pull-flat-history db lookup-ref)
+         (simplify-eavtos db))))
 
 (defn eavto->oeav-tx
   [db tempids [e a v t o :as eavto]]
@@ -166,7 +192,8 @@
 
 (defn history->transactions
   [db eavtos]
-  (let [txes (partition-by (fn [[e a v t o]] t) eavtos)]
+  (let [db (to-db db)
+        txes (partition-by (fn [[e a v t o]] t) eavtos)]
     (first
       (reduce (partial eavtos->transaction db) [[] #{}] txes))))
 

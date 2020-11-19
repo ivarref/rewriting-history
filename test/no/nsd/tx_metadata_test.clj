@@ -5,6 +5,7 @@
             [datomic.api :as d]
             [no.nsd.utils :as u]
             [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.shorter-stacktrace]
             [no.nsd.spy :as sc]
             [clojure.pprint :as pprint]))
 
@@ -27,50 +28,48 @@
                         :db/txInstant #inst"2000"
                         :tx/info      "meta"}])
 
-    (let [fh (impl/pull-flat-history-simple (d/db conn) [:m/id "id"])]
-      (is (= [[1 :db/txInstant #inst "2000" 1 true]
+    (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
+      (is (= [[1 :db/txInstant2 #inst "2000" 1 true]
               [1 :tx/info "meta" 1 true]
               [2 :m/id "id" 1 true]
               [2 :m/info "hello world" 1 true]]
              fh))
-      (let [[tx] (impl/history->transactions (d/db conn) fh)
-            tx2 [[:db/add "datomic.tx" :db/txInstant #inst "2000-01-01T00:00:00.000-00:00"]
+      (let [[tx] (impl/history->transactions conn fh)
+            tx2 [[:db/add "datomic.tx" :db/txInstant2 #inst "2000"]
                  [:db/add "datomic.tx" :tx/info "meta"]
                  [:db/add "2" :m/id "id"]
                  [:db/add "2" :m/info "hello world"]]]
         (is (= tx tx2))
-        @(d/transact conn tx2)))))
+        @(d/transact conn [[:db.fn/retractEntity [:m/id "id"]]])
+        @(d/transact conn tx2)
+        (let [fh2 (impl/pull-flat-history-simple conn [:m/id "id"])]
+          (is (= fh2 fh)))))))
+
 
 (deftest tx-meta-ref-test
   (let [conn (u/empty-conn)]
     @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
                                       [:m/info :one :string]
                                       [:m/ref :one :ref]
-                                      [:db/txInstant2 :one :instant]
                                       [:tx/info :one :string]]
                             {:db/id        "datomic.tx"
                              :db/txInstant #inst "1980"}))
 
     @(d/transact conn [{:m/id   "id"
-                        :m/info "hello world"}
+                        :m/info "hello world"
+                        :m/ref  "datomic.tx"}
                        {:db/id        "datomic.tx"
-                        :db/txInstant2 #inst"2010"
-                        :tx/info      "meta"}])
+                        :db/txInstant #inst"2000"
+                        :tx/info      "meta-1"}])
 
-    @(d/transact conn [{:m/id   "id-2"
-                        :m/info "hello world"}
-                       {:db/id        "datomic.tx"
-                        :db/txInstant2 #inst"2000"
-                        :tx/info      "meta"}])
-
-    #_(let [fh (impl/pull-flat-history-simple (d/db conn) [:m/id "id"])]
-        (is (= [[1 :db/txInstant #inst "2000" 1 true]
-                [1 :tx/info "meta" 1 true]
-                [2 :m/id "id" 1 true]
-                [2 :m/info "hello world" 1 true]
-                [2 :m/ref 1 1 true]]
-               fh))
-        (let [[tx] (impl/history->transactions (d/db conn) fh)
+    (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
+      (is (= [[1 :db/txInstant #inst "2000" 1 true]
+              [1 :tx/info "meta" 1 true]
+              [2 :m/id "id" 1 true]
+              [2 :m/info "hello world" 1 true]
+              [2 :m/ref 1 1 true]]
+             fh))
+      #_(let [[tx] (impl/history->transactions conn fh)
               tx2 [[:db/add "datomic.tx" :db/txInstant #inst "2000"]
                    [:db/add "datomic.tx" :tx/info "meta"]
                    [:db/add "2" :m/id "id"]
