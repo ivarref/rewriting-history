@@ -107,7 +107,7 @@
            eavtos))))
 
 (defn only-txInstant2 [eavtos]
-  (let [txes (partition-by (fn [[e a v t o]] t) eavtos)]
+  (let [txes (partition-by get-t eavtos)]
     (reduce (fn [o tx] (set/union o (into #{}  (only-txInstant2-eavtos tx))))
             #{}
             txes)))
@@ -193,7 +193,7 @@
 (defn history->transactions
   [db eavtos]
   (let [db (to-db db)
-        txes (partition-by (fn [[e a v t o]] t) eavtos)]
+        txes (partition-by get-t eavtos)]
     (first
       (reduce (partial eavtos->transaction db) [[] #{}] txes))))
 
