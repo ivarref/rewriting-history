@@ -41,6 +41,8 @@
 
 (defmacro spy! []
   (if (= "true" (System/getProperty "DISABLE_SPY"))
-    nil
+    (do (let [fm (meta &form)]
+          (println "WARNING: Spy called from test! File:" (str *file* ":" (:line fm)) ", col:" (:column fm)))
+        nil)
     `(do ~(sc.api/spy-emit my-spy-opts nil &env &form)
          (eval '(defsc)))))
