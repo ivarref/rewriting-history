@@ -29,7 +29,7 @@
                                       [:addr/country :one :ref :component]
                                       [:country/name :one :string :id]
                                       [:country/region :one :string]]
-                            {:db/id "datomic.tx"
+                            {:db/id        "datomic.tx"
                              :db/txInstant #inst"2000"}))
 
     @(d/transact conn [{:m/id      "id-1"
@@ -42,13 +42,13 @@
                         :m/address {:addr/country
                                     {:country/name   "Norway"
                                      :country/region "West Europe"}}}
-                       {:db/id "datomic.tx"
+                       {:db/id        "datomic.tx"
                         :db/txInstant #inst"2001"}])
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/vedlegg [{:vedlegg/id   "vedlegg-1"
                                      :vedlegg/info "vedlegg 1: XXX har syfilis"}]}
-                       {:db/id "datomic.tx"
+                       {:db/id        "datomic.tx"
                         :db/txInstant #inst"2002"}])
 
     @(d/transact conn [{:m/id      "id-1"
@@ -58,7 +58,7 @@
                         :m/address {:addr/country
                                     {:country/name   "Norway"
                                      :country/region "Europe"}}}
-                       {:db/id "datomic.tx"
+                       {:db/id        "datomic.tx"
                         :db/txInstant #inst"2003"}])
 
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id-1"])]
@@ -110,7 +110,7 @@
                                       [:addr/country :one :ref :component]
                                       [:country/name :one :string :id]
                                       [:country/region :one :string]]
-                            {:db/id "datomic.tx"
+                            {:db/id        "datomic.tx"
                              :db/txInstant #inst"1999"}))
 
     (let [entity (get-in @(d/transact conn [{:db/id     "entity"
@@ -119,7 +119,7 @@
                                              :m/address {:addr/country
                                                          {:country/name   "Norway"
                                                           :country/region "West Europe"}}}
-                                            {:db/id "datomic.tx"
+                                            {:db/id        "datomic.tx"
                                              :db/txInstant #inst"2000"}])
                          [:tempids "entity"])
           hist (impl/pull-flat-history-simple conn [:m/id "id-1"])
@@ -140,34 +140,39 @@
 
 (deftest history->txes-test-unsimplified
   (let [conn (u/empty-conn)]
-    @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                [:m/info :one :string]
-                                [:m/address :one :ref :component]
-                                [:m/vedlegg :many :ref :component]
-                                [:m/type :one :ref]
-                                [:type/standard :enum]
-                                [:type/special :enum]
-                                [:vedlegg/id :one :string :id]
-                                [:vedlegg/info :one :string]
-                                [:addr/country :one :ref :component]
-                                [:country/name :one :string :id]
-                                [:country/region :one :string]])
+    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
+                                      [:m/info :one :string]
+                                      [:m/address :one :ref :component]
+                                      [:m/vedlegg :many :ref :component]
+                                      [:m/type :one :ref]
+                                      [:type/standard :enum]
+                                      [:type/special :enum]
+                                      [:vedlegg/id :one :string :id]
+                                      [:vedlegg/info :one :string]
+                                      [:addr/country :one :ref :component]
+                                      [:country/name :one :string :id]
+                                      [:country/region :one :string]]
+                            {:db/id        "datomic.tx"
+                             :db/txInstant #inst"1999"}))
 
     @(d/transact conn [{:db/id     "entity"
                         :m/id      "id-1"
                         :m/type    :type/standard
                         :m/address {:addr/country
                                     {:country/name   "Norway"
-                                     :country/region "West Europe"}}}])
-
-    (let [hist (impl/pull-flat-history (d/db conn) [:m/id "id-1"])
-          [tx] (impl/history->transactions (d/db conn) hist)]
+                                     :country/region "West Europe"}}}
+                       {:db/id "datomic.tx"
+                        :db/txInstant #inst"2000"}])
+    (let [hist (impl/pull-flat-history conn [:m/id "id-1"])
+          [tx] (impl/history->transactions conn hist)]
       @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
       @(d/transact conn tx)
-      (is (= [[1 :m/address 2 1 true]
-              [1 :m/id "id-1" 1 true]
-              [1 :m/type :type/standard 1 true]
-              [2 :addr/country 3 1 true]
-              [3 :country/name "Norway" 1 true]
-              [3 :country/region "West Europe" 1 true]]
-             (impl/pull-flat-history-simple (d/db conn) [:m/id "id-1"]))))))
+      (sc/spy!)
+      (is (= [[1 :db/txInstant2 #inst"2000" 1 true]
+              [2 :m/address 3 1 true]
+              [2 :m/id "id-1" 1 true]
+              [2 :m/type :type/standard 1 true]
+              [3 :addr/country 4 1 true]
+              [4 :country/name "Norway" 1 true]
+              [4 :country/region "West Europe" 1 true]]
+             (impl/pull-flat-history-simple conn [:m/id "id-1"]))))))
