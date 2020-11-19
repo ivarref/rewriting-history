@@ -99,7 +99,7 @@
 (defn only-txInstant2-eavtos [eavtos]
   (let [attrs (into #{} (map get-a eavtos))]
     (if (contains? attrs :db/txInstant2)
-      (remove #(= :db/txInstant (get-a %)) eavtos)
+      eavtos
       (map (fn [[e a v t o :as eavto]]
              (if (= a :db/txInstant)
                [e :db/txInstant2 v t o]
@@ -122,6 +122,7 @@
                                #{}
                                tx-ids)]
     (->> (set/union tx-meta-eavtos eavtos)
+         (remove #(= :db/txInstant (get-a %)))
          (into [])
          (sort-by (fn [[e a v t o]] [t e a o v]))
          (vec))))

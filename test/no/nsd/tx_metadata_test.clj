@@ -60,24 +60,24 @@
                         :m/ref  "datomic.tx"}
                        {:db/id        "datomic.tx"
                         :db/txInstant #inst"2000"
-                        :tx/info      "meta-1"}])
+                        :tx/info      "meta"}])
+
+    @(d/transact conn [{:m/id "id2"} {:db/id "datomic.tx" :db/txInstant #inst"2001"}])
 
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
-      (is (= [[1 :db/txInstant #inst "2000" 1 true]
+      (is (= [[1 :db/txInstant2 #inst "2000" 1 true]
               [1 :tx/info "meta" 1 true]
               [2 :m/id "id" 1 true]
               [2 :m/info "hello world" 1 true]
               [2 :m/ref 1 1 true]]
              fh))
-      #_(let [[tx] (impl/history->transactions conn fh)
-              tx2 [[:db/add "datomic.tx" :db/txInstant #inst "2000"]
-                   [:db/add "datomic.tx" :tx/info "meta"]
-                   [:db/add "2" :m/id "id"]
-                   [:db/add "2" :m/info "hello world"]
-                   [:db/add "2" :m/ref "datomic.tx"]]]
-          (is (= tx tx2))
-          @(d/transact conn [[:db.fn/retractEntity [:m/id "id"]]
-                             [:db/add "datomic.tx" :db/txInstant]])
-          @(d/transact conn tx)
-          #_@(d/transact conn tx2)
-          (sc/spy!)))))
+      (let [[tx] (impl/history->transactions conn fh)
+            tx2 [[:db/add "datomic.tx" :db/txInstant2 #inst "2000"]
+                 [:db/add "datomic.tx" :tx/info "meta"]
+                 [:db/add "2" :m/id "id"]
+                 [:db/add "2" :m/info "hello world"]
+                 [:db/add "2" :m/ref "datomic.tx"]]]
+        (is (= tx tx2))
+        @(d/transact conn [[:db.fn/retractEntity [:m/id "id"]]])
+        @(d/transact conn tx)
+        (is (= fh (impl/pull-flat-history-simple conn [:m/id "id"])))))))
