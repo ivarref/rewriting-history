@@ -98,42 +98,45 @@
 
 (deftest history->txes-test
   (let [conn (u/empty-conn)]
-    @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                [:m/info :one :string]
-                                [:m/address :one :ref :component]
-                                [:m/vedlegg :many :ref :component]
-                                [:m/type :one :ref]
-                                [:type/standard :enum]
-                                [:type/special :enum]
-                                [:vedlegg/id :one :string :id]
-                                [:vedlegg/info :one :string]
-                                [:addr/country :one :ref :component]
-                                [:country/name :one :string :id]
-                                [:country/region :one :string]])
+    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
+                                      [:m/info :one :string]
+                                      [:m/address :one :ref :component]
+                                      [:m/vedlegg :many :ref :component]
+                                      [:m/type :one :ref]
+                                      [:type/standard :enum]
+                                      [:type/special :enum]
+                                      [:vedlegg/id :one :string :id]
+                                      [:vedlegg/info :one :string]
+                                      [:addr/country :one :ref :component]
+                                      [:country/name :one :string :id]
+                                      [:country/region :one :string]]
+                            {:db/id "datomic.tx"
+                             :db/txInstant #inst"1999"}))
 
     (let [entity (get-in @(d/transact conn [{:db/id     "entity"
                                              :m/id      "id-1"
                                              :m/type    :type/standard
                                              :m/address {:addr/country
                                                          {:country/name   "Norway"
-                                                          :country/region "West Europe"}}}])
+                                                          :country/region "West Europe"}}}
+                                            {:db/id "datomic.tx"
+                                             :db/txInstant #inst"2000"}])
                          [:tempids "entity"])
-          db (d/db conn)
-          hist (impl/pull-flat-history-simple db [:m/id "id-1"])
-          [tx] (impl/history->transactions db hist)]
-      (is (= [[:db/add "1" :m/address "2"]
-              [:db/add "1" :m/id "id-1"]
-              [:db/add "1" :m/type :type/standard]
-              [:db/add "2" :addr/country "3"]
-              [:db/add "3" :country/name "Norway"]
-              [:db/add "3" :country/region "West Europe"]]
+          hist (impl/pull-flat-history-simple conn [:m/id "id-1"])
+          [tx] (impl/history->transactions conn hist)]
+      (is (= [[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
+              [:db/add "2" :m/address "3"]
+              [:db/add "2" :m/id "id-1"]
+              [:db/add "2" :m/type :type/standard]
+              [:db/add "3" :addr/country "4"]
+              [:db/add "4" :country/name "Norway"]
+              [:db/add "4" :country/region "West Europe"]]
              tx))
       @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
       (is (not= entity
                 (-> @(d/transact conn tx)
                     (get-in [:tempids "1"]))))
-      (let [new-db (d/db conn)]
-        (is (= hist (impl/pull-flat-history-simple new-db [:m/id "id-1"])))))))
+      (is (= hist (impl/pull-flat-history-simple conn [:m/id "id-1"]))))))
 
 (deftest history->txes-test-unsimplified
   (let [conn (u/empty-conn)]
