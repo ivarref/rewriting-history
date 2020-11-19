@@ -17,18 +17,20 @@
 
 (deftest basic-history-pull-test
   (let [conn (u/empty-conn)]
-    @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                [:m/info :one :string]
-                                [:m/address :one :ref :component]
-                                [:m/vedlegg :many :ref :component]
-                                [:m/type :one :ref]
-                                [:type/standard :enum]
-                                [:type/special :enum]
-                                [:vedlegg/id :one :string :id]
-                                [:vedlegg/info :one :string]
-                                [:addr/country :one :ref :component]
-                                [:country/name :one :string :id]
-                                [:country/region :one :string]])
+    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
+                                      [:m/info :one :string]
+                                      [:m/address :one :ref :component]
+                                      [:m/vedlegg :many :ref :component]
+                                      [:m/type :one :ref]
+                                      [:type/standard :enum]
+                                      [:type/special :enum]
+                                      [:vedlegg/id :one :string :id]
+                                      [:vedlegg/info :one :string]
+                                      [:addr/country :one :ref :component]
+                                      [:country/name :one :string :id]
+                                      [:country/region :one :string]]
+                            {:db/id "datomic.tx"
+                             :db/txInstant #inst"2000"}))
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/info    "hello world"
@@ -39,11 +41,15 @@
                                      :vedlegg/info "hei2"}]
                         :m/address {:addr/country
                                     {:country/name   "Norway"
-                                     :country/region "West Europe"}}}])
+                                     :country/region "West Europe"}}}
+                       {:db/id "datomic.tx"
+                        :db/txInstant #inst"2001"}])
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/vedlegg [{:vedlegg/id   "vedlegg-1"
-                                     :vedlegg/info "vedlegg 1: XXX har syfilis"}]}])
+                                     :vedlegg/info "vedlegg 1: XXX har syfilis"}]}
+                       {:db/id "datomic.tx"
+                        :db/txInstant #inst"2002"}])
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/type    :type/special
@@ -51,39 +57,44 @@
                                      :vedlegg/info "vedlegg 1: oops!"}]
                         :m/address {:addr/country
                                     {:country/name   "Norway"
-                                     :country/region "Europe"}}}])
-    (let [db (d/db conn)
-          fh (impl/pull-flat-history-simple db [:m/id "id-1"])]
-      (is (= [[1 :m/address 4 1 true]
-              [1 :m/id "id-1" 1 true]
-              [1 :m/info "hello world" 1 true]
-              [1 :m/type :type/standard 1 true]
-              [1 :m/vedlegg 2 1 true]
-              [1 :m/vedlegg 3 1 true]
-              [2 :vedlegg/id "vedlegg-1" 1 true]
-              [2 :vedlegg/info "vedlegg 1: hei" 1 true]
-              [3 :vedlegg/id "vedlegg-2" 1 true]
-              [3 :vedlegg/info "hei2" 1 true]
-              [4 :addr/country 5 1 true]
-              [5 :country/name "Norway" 1 true]
-              [5 :country/region "West Europe" 1 true]
+                                     :country/region "Europe"}}}
+                       {:db/id "datomic.tx"
+                        :db/txInstant #inst"2003"}])
 
-              [2 :vedlegg/info "vedlegg 1: hei" 2 false]
-              [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
+    (let [fh (impl/pull-flat-history-simple conn [:m/id "id-1"])]
+      (is (= [[1 :db/txInstant2 #inst "2001" 1 true]
+              [4 :m/address 7 1 true]
+              [4 :m/id "id-1" 1 true]
+              [4 :m/info "hello world" 1 true]
+              [4 :m/type :type/standard 1 true]
+              [4 :m/vedlegg 5 1 true]
+              [4 :m/vedlegg 6 1 true]
+              [5 :vedlegg/id "vedlegg-1" 1 true]
+              [5 :vedlegg/info "vedlegg 1: hei" 1 true]
+              [6 :vedlegg/id "vedlegg-2" 1 true]
+              [6 :vedlegg/info "hei2" 1 true]
+              [7 :addr/country 8 1 true]
+              [8 :country/name "Norway" 1 true]
+              [8 :country/region "West Europe" 1 true]
 
-              [1 :m/address 4 3 false]
-              [1 :m/address 6 3 true]
-              [1 :m/type :type/standard 3 false]
-              [1 :m/type :type/special 3 true]
-              [2 :vedlegg/info "vedlegg 1: XXX har syfilis" 3 false]
-              [2 :vedlegg/info "vedlegg 1: oops!" 3 true]
-              [5 :country/region "West Europe" 3 false]
-              [5 :country/region "Europe" 3 true]
-              [6 :addr/country 5 3 true]]
+              [2 :db/txInstant2 #inst "2002" 2 true]
+              [5 :vedlegg/info "vedlegg 1: hei" 2 false]
+              [5 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
+
+              [3 :db/txInstant2 #inst "2003" 3 true]
+              [4 :m/address 7 3 false]
+              [4 :m/address 9 3 true]
+              [4 :m/type :type/standard 3 false]
+              [4 :m/type :type/special 3 true]
+              [5 :vedlegg/info "vedlegg 1: XXX har syfilis" 3 false]
+              [5 :vedlegg/info "vedlegg 1: oops!" 3 true]
+              [8 :country/region "West Europe" 3 false]
+              [8 :country/region "Europe" 3 true]
+              [9 :addr/country 8 3 true]]
              fh))
       @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
-      (impl/apply-txes! conn (impl/history->transactions (d/db conn) fh))
-      (is (= fh (impl/pull-flat-history-simple db [:m/id "id-1"]))))))
+      (impl/apply-txes! conn (impl/history->transactions conn fh))
+      (is (= fh (impl/pull-flat-history-simple conn [:m/id "id-1"]))))))
 
 (deftest history->txes-test
   (let [conn (u/empty-conn)]
