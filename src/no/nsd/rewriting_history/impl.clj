@@ -84,36 +84,36 @@
               [?t :db/ident ?type]]
             db eid)))
 
-(defn expand-refs [seen-eids db tx-ranges [e a v t o :as eavto]]
-  (cond (and (is-ref? db a) (db-ident db v))
-        [[e a (db-ident db v) t o]]
-
-        (and o (is-ref? db a))
-        (into [eavto] (eid->eavto-set seen-eids db (into tx-ranges [(ref->tx-ranges db eavto)]) v))
-
-        :else
-        [eavto]))
-
-(defn eid->eavto-set [seen-eids db tx-ranges eid]
-  (if (contains? @seen-eids eid)
-    #{}
+(defn expand-refs [seen db tx-ranges [e a v t o :as eavto]]
+  (if (@seen eavto)
+    [eavto]
     (do
-      (swap! seen-eids conj eid)
-      (let [eavtos (->> (d/q '[:find ?e ?a ?v ?t ?o
-                               :in $ ?e
-                               :where
-                               [?e ?aid ?v ?t ?o]
-                               [?aid :db/ident ?a]]
-                             (d/history db)
-                             eid)
-                        (filter (fn [[e a v t o]] (tx-range-contains? tx-ranges t))))
-            expanded (->> eavtos
-                          (mapcat (partial expand-refs seen-eids db tx-ranges))
-                          (into #{}))]
-        (if (empty? eavtos)
-          (do (log/warn "Could not find eid" eid)
-              #{})
-          expanded)))))
+      (swap! seen conj eavto)
+      (cond (and (is-ref? db a) (db-ident db v))
+            [[e a (db-ident db v) t o]]
+
+            (and o (is-ref? db a))
+            (into [eavto] (eid->eavto-set seen db (into tx-ranges [(ref->tx-ranges db eavto)]) v))
+
+            :else
+            [eavto]))))
+
+(defn eid->eavto-set [seen db tx-ranges eid]
+  (let [eavtos (->> (d/q '[:find ?e ?a ?v ?t ?o
+                           :in $ ?e
+                           :where
+                           [?e ?aid ?v ?t ?o]
+                           [?aid :db/ident ?a]]
+                         (d/history db)
+                         eid)
+                    (filter (fn [[e a v t o]] (tx-range-contains? tx-ranges t))))
+        expanded (->> eavtos
+                      (mapcat (partial expand-refs seen db tx-ranges))
+                      (into #{}))]
+    (if (empty? eavtos)
+      (do (log/warn "Could not find eid" eid)
+          #{})
+      expanded)))
 
 (def get-e #(nth % 0))
 (def get-a #(nth % 1))
@@ -137,14 +137,14 @@
             txes)))
 
 (defn pull-flat-history [db [a v :as lookup-ref]]
-  (let [seen-eids (atom #{})
+  (let [seen (atom #{})
         db (to-db db)
         eid-long (resolve-lookup-ref db lookup-ref)
         tx-range (ref->tx-ranges db [eid-long a v 0 true])
-        eavtos (eid->eavto-set seen-eids db [tx-range] eid-long)
+        eavtos (eid->eavto-set seen db [tx-range] eid-long)
         tx-ids (into #{} (map get-t eavtos))
         tx-meta-eavtos (reduce (fn [o tx-id]
-                                 (set/union o (only-txInstant2 (eid->eavto-set seen-eids db [[[0 Long/MAX_VALUE]]] tx-id))))
+                                 (set/union o (only-txInstant2 (eid->eavto-set seen db [[[0 Long/MAX_VALUE]]] tx-id))))
                                #{}
                                tx-ids)]
     (->> (set/union tx-meta-eavtos eavtos)
