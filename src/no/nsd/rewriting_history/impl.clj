@@ -74,6 +74,16 @@
             [?t :db/ident ?type]]
           db eid)))
 
+#_(defn is-component-ref? [db eid]
+    (= :db.type/ref
+       (d/q '[:find ?type .
+              :in $ ?e
+              :where
+              [?e :db/valueType ?t]
+              [?e :db/isComponent true]
+              [?t :db/ident ?type]]
+            db eid)))
+
 (defn expand-refs [db tx-ranges [e a v t o :as eavto]]
   (cond (and (is-ref? db a) (is-db-ident? db v))
         [[e a (is-db-ident? db v) t o]]
@@ -118,7 +128,7 @@
 
 (defn only-txInstant2 [eavtos]
   (let [txes (partition-by get-t eavtos)]
-    (reduce (fn [o tx] (set/union o (into #{}  (only-txInstant2-eavtos tx))))
+    (reduce (fn [o tx] (set/union o (into #{} (only-txInstant2-eavtos tx))))
             #{}
             txes)))
 
