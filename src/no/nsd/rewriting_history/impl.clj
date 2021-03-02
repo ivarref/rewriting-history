@@ -65,19 +65,24 @@
          [?e :db/ident ?ident]]
        db eid))
 
+(defn is-ref? [db eid]
+  (= :db.type/ref
+     (d/q '[:find ?type .
+            :in $ ?e
+            :where
+            [?e :db/valueType ?t]
+            [?t :db/ident ?type]]
+          db eid)))
+
 (defn expand-refs [db tx-ranges [e a v t o :as eavto]]
-  (if (= :db.type/ref (d/q '[:find ?type .
-                             :in $ ?attr
-                             :where
-                             [?attr :db/valueType ?t]
-                             [?t :db/ident ?type]]
-                           db a))
-    (if-let [ident (is-db-ident? db v)]
-      [[e a ident t o]]
-      (if o
+  (cond (and (is-ref? db a) (is-db-ident? db v))
+        [[e a (is-db-ident? db v) t o]]
+
+        (and o (is-ref? db a))
         (into [eavto] (eid->eavto-set db (into tx-ranges [(ref->tx-ranges db eavto)]) v))
+
+        :else
         [eavto]))
-    [eavto]))
 
 (defn eid->eavto-set [db tx-ranges eid]
   (let [eavtos (->> (d/q '[:find ?e ?a ?v ?t ?o
@@ -120,7 +125,7 @@
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (let [db (to-db db)
         eid-long (resolve-lookup-ref db lookup-ref)
-        tx-range (ref->tx-ranges db [eid-long a v 0 0])
+        tx-range (ref->tx-ranges db [eid-long a v 0 true])
         eavtos (eid->eavto-set db [tx-range] eid-long)
         tx-ids (into #{} (map get-t eavtos))
         tx-meta-eavtos (reduce (fn [o tx-id]
