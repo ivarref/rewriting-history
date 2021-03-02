@@ -15,39 +15,42 @@
                 [#{"*"} :info]]
    :log-to-elk false})
 
-(defn setup! [conn]
-  @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
-                                    [:m/info :one :string]
-                                    [:m/address :one :ref :component]
-                                    [:m/vedlegg :many :ref :component]
-                                    [:m/type :one :ref]
-                                    [:type/standard :enum]
-                                    [:type/special :enum]
-                                    [:vedlegg/id :one :string :id]
-                                    [:vedlegg/info :one :string]
-                                    [:addr/country :one :ref :component]
-                                    [:country/name :one :string :id]
-                                    [:country/region :one :string]]
-                          {:db/id        "datomic.tx"
-                           :db/txInstant #inst"1999"}))
+(defn empty-conn []
+  (let [conn (u/empty-conn)]
+    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
+                                      [:m/info :one :string]
+                                      [:m/address :one :ref :component]
+                                      [:m/vedlegg :many :ref :component]
+                                      [:m/type :one :ref]
+                                      [:type/standard :enum]
+                                      [:type/special :enum]
+                                      [:vedlegg/id :one :string :id]
+                                      [:vedlegg/info :one :string]
+                                      [:addr/country :one :ref :component]
+                                      [:country/name :one :string :id]
+                                      [:country/region :one :string]]
+                            {:db/id        "datomic.tx"
+                             :db/txInstant #inst"1999"}))
 
-  @(d/transact conn [{:m/id      "id-1"
-                      :m/address {:addr/country
-                                  {:country/name   "Norway"
-                                   :country/region "West Europe"}}}
-                     {:db/id        "datomic.tx"
-                      :db/txInstant #inst"2000"}])
+    @(d/transact conn [{:m/id      "id-1"
+                        :m/address {:addr/country
+                                    {:country/name   "Norway"
+                                     :country/region "West Europe"}}}
+                       {:db/id        "datomic.tx"
+                        :db/txInstant #inst"2000"}])
 
-  @(d/transact conn [{:m/id      "id-1"
-                      :m/address {:addr/country
-                                  {:country/name   "Norway"
-                                   :country/region "Europe"}}}
-                     {:db/id        "datomic.tx"
-                      :db/txInstant #inst"2001"}]))
+    @(d/transact conn [{:m/id      "id-1"
+                        :m/address {:addr/country
+                                    {:country/name   "Norway"
+                                     :country/region "Europe"}}}
+                       {:db/id        "datomic.tx"
+                        :db/txInstant #inst"2001"}])
+
+    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
+    conn))
 
 (deftest rewrite-hist-test
-  (let [conn (u/empty-conn)
-        _ (setup! conn)
+  (let [conn (empty-conn)
         fh (impl/pull-flat-history-simple conn [:m/id "id-1"])
         txes (impl/history->transactions conn fh)]
     (is (= [[[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
@@ -70,7 +73,7 @@
                                  (impl/pull-flat-history conn [:m/id "id-1"]))
       (assert false "should not get here")
       (catch Exception e
-        (is (= "Could not find lookup ref" (.getMessage e)))))
+        (is (= "Could not find lookup ref" (ex-message e)))))
     (impl/apply-txes! conn txes)
     (let [fh2 (impl/pull-flat-history-simple conn [:m/id "id-1"])]
       (is (= fh2 fh)))))
