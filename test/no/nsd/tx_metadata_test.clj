@@ -28,6 +28,8 @@
                         :db/txInstant #inst"2000"
                         :tx/info      "meta"}])
 
+    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
+
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
       (is (= [[1 :db/txInstant2 #inst "2000" 1 true]
               [1 :tx/info "meta" 1 true]
@@ -63,6 +65,8 @@
                         :tx/info      "meta"}])
 
     @(d/transact conn [{:m/id "id2"} {:db/id "datomic.tx" :db/txInstant #inst"2001"}])
+
+    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
 
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
       (is (= [[1 :db/txInstant2 #inst "2000" 1 true]

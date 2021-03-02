@@ -60,6 +60,7 @@
                                      :country/region "Europe"}}}
                        {:db/id        "datomic.tx"
                         :db/txInstant #inst"2003"}])
+    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
 
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id-1"])]
       (is (= [[1 :db/txInstant2 #inst "2001" 1 true]
@@ -122,6 +123,7 @@
                                             {:db/id        "datomic.tx"
                                              :db/txInstant #inst"2000"}])
                          [:tempids "entity"])
+          _ @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
           hist (impl/pull-flat-history-simple conn [:m/id "id-1"])
           [tx] (impl/history->transactions conn hist)]
       (is (= [[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
@@ -163,6 +165,8 @@
                                      :country/region "West Europe"}}}
                        {:db/id "datomic.tx"
                         :db/txInstant #inst"2000"}])
+    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
+
     (let [hist (impl/pull-flat-history conn [:m/id "id-1"])
           [tx] (impl/history->transactions conn hist)]
       @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
