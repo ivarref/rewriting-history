@@ -15,7 +15,7 @@
                 [#{"*"} :info]]
    :log-to-elk false})
 
-(defn empty-conn []
+(defn setup-conn []
   (let [conn (u/empty-conn)]
     @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
                                       [:m/info :one :string]
@@ -50,7 +50,7 @@
     conn))
 
 (deftest rewrite-hist-test
-  (let [conn (empty-conn)
+  (let [conn (setup-conn)
         fh (impl/pull-flat-history-simple conn [:m/id "id-1"])
         txes (impl/history->transactions conn fh)]
     (is (= [[[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
