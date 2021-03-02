@@ -4,17 +4,10 @@
             [clojure.pprint :as pprint])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
-           (java.util Date UUID)))
+           (java.util Date)))
 
 (defn empty-conn []
   (let [uri "datomic:mem://hello-world"]
-    (d/delete-database uri)
-    (d/create-database uri)
-    (let [conn (d/connect uri)]
-      conn)))
-
-(defn empty-conn-unique []
-  (let [uri (str "datomic:mem://hello-world" (UUID/randomUUID))]
     (d/delete-database uri)
     (d/create-database uri)
     (let [conn (d/connect uri)]

@@ -16,7 +16,7 @@
    :log-to-elk false})
 
 (defn setup-conn []
-  (let [conn (u/empty-conn-unique)]
+  (let [conn (u/empty-conn)]
     @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
                                       [:m/info :one :string]
                                       [:m/address :one :ref :component]
@@ -67,7 +67,6 @@
              [:db/add [:tempid "5"] :country/region "Europe"]
              [:db/add "6" :addr/country [:tempid "5"]]]]
            txes))
-
     @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
     (try
       (timbre/with-merged-config {:min-level :fatal}
@@ -75,23 +74,6 @@
       (assert false "should not get here")
       (catch Exception e
         (is (= "Could not find lookup ref" (ex-message e)))))
-
-    (let [conn2 (u/empty-conn-unique)]
-      @(d/transact conn2 (conj #d/schema[[:m/id :one :string :id]
-                                         [:m/info :one :string]
-                                         [:m/address :one :ref :component]
-                                         [:m/vedlegg :many :ref :component]
-                                         [:m/type :one :ref]
-                                         [:type/standard :enum]
-                                         [:type/special :enum]
-                                         [:vedlegg/id :one :string :id]
-                                         [:vedlegg/info :one :string]
-                                         [:addr/country :one :ref :component]
-                                         [:country/name :one :string :id]
-                                         [:country/region :one :string]]
-                               {:db/id        "datomic.tx"
-                                :db/txInstant #inst"1999"}))
-      @(d/transact conn2 #d/schema[[:db/txInstant2 :one :instant]])
-      (impl/apply-txes! conn2 txes)
-      (let [fh2 (impl/pull-flat-history-simple conn2 [:m/id "id-1"])]
-        (is (= fh2 fh))))))
+    (impl/apply-txes! conn txes)
+    (let [fh2 (impl/pull-flat-history-simple conn [:m/id "id-1"])]
+      (is (= fh2 fh)))))
