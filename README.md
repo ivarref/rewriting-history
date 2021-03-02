@@ -8,5 +8,3 @@ That is to say: no other datom is dependent on its existence.
 
 This is important because the rewriting will cause the entity ID of the top level
 datom and its children to change.
-
-Graph structures or loops is not supported. The entity must be a tree.
