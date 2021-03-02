@@ -3,7 +3,6 @@
             [no.nsd.utils :as u]
             [datomic.api :as d]
             [no.nsd.rewriting-history :as rh]
-            [clojure.pprint :refer [pprint]]
             [datomic-schema.core]))
 
 (deftest regular-ref-test
@@ -21,4 +20,4 @@
                           :db/txInstant #inst"2000"}])
       @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
 
-      (is (thrown? Throwable (rh/pull-flat-history conn [:m/id "id"]))))))
+      (is (thrown? Throwable (u/pprint (rh/pull-flat-history conn [:m/id "id"])))))))
