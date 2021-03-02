@@ -4,7 +4,7 @@
 ; public API
 
 (defn pull-flat-history [db [a v :as lookup-ref]]
-  (impl/pull-flat-history db lookup-ref))
+  (impl/pull-flat-history-simple db lookup-ref))
 
 (defn rewrite-history! [conn db old-history new-history]
   (impl/rewrite-history! conn db old-history new-history))
