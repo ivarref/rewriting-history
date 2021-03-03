@@ -17,6 +17,7 @@
                           (d/history (d/db conn)))))
 
 (deftest integration-test
+  (is (= 1 1))
   (when-let [conn (u/empty-stage-conn "rewriting-history-integration-test-1")]
     (let [tx! (u/tx-fn! conn)]
       (tx! #d/schema[[:m/id :one :string :id]
