@@ -29,3 +29,9 @@ as she/he likes.
 * Regular references, not just component references, is supported.
 
 * :db/idents will not be excised during history rewriting and is thus considered permanent.
+
+## Limitations
+
+Re-playing the transaction history must use several transactions. It's not possible to
+both excise and re-play the entire history in one go. Thus this is a potential source
+of bugs.
