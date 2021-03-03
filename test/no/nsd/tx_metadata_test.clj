@@ -21,8 +21,7 @@
                                [:db/txInstant2 :one :instant]]
                      {:db/id        "datomic.tx"
                       :db/txInstant #inst "1980"})
-        conn (u/empty-conn)]
-    @(d/transact conn schema)
+        conn (u/empty-conn schema)]
     @(d/transact conn [{:m/id   "id"
                         :m/info "hello world"}
                        {:db/id        "datomic.tx"
