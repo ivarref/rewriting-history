@@ -13,7 +13,7 @@
                             :in $
                             :where
                             [?e :m/id "id" _ _ _]
-                            [?e _ ?v _ _]]
+                            [?e :m/info ?v _ _]]
                           (d/history (d/db conn)))))
 
 (deftest integration-test
@@ -27,9 +27,7 @@
       (tx! [{:m/id "id" :m/info "good-data"}])
 
       ; Verify that all expected data is present in the database:
-      (is (contains? (db-values-set conn) "original-data"))
-      (is (contains? (db-values-set conn) "bad-data"))
-      (is (contains? (db-values-set conn) "good-data"))
+      (is (= #{"original-data" "bad-data" "good-data"} (db-values-set conn)))
 
       (let [org-history (rh/pull-flat-history conn [:m/id "id"])
             new-history (mapv (fn [[e a v t op]]
@@ -60,15 +58,16 @@
             (assert false "original eids not found!")))
 
         ; Verify that the database is empty after excision:
-        (is (false? (contains? (db-values-set conn) "original-data")))
-        (is (false? (contains? (db-values-set conn) "bad-data")))
-        (is (false? (contains? (db-values-set conn) "good-data")))
+        (is (= #{} (db-values-set conn)))
 
         ; Replay new history:
         (impl/apply-txes! conn (impl/history->transactions conn new-history))
 
         ; Verify that the database is correct after replay of history:
-        (is (contains? (db-values-set conn) "original-data"))
         ; Notice that now 'nice-data' is here:
-        (is (contains? (db-values-set conn) "nice-data"))
-        (is (contains? (db-values-set conn) "good-data"))))))
+        (is (= #{"original-data" "nice-data" "good-data"} (db-values-set conn)))
+
+        ; The new history is identical to what we put in:
+        (is (= new-history
+               (rh/pull-flat-history conn [:m/id "id"])))))))
+
