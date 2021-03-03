@@ -1,11 +1,12 @@
-(ns no.nsd.stage-integration-tst
+(ns no.nsd.stage-integration-test
   (:require [clojure.test :refer :all]
             [no.nsd.utils :as u]
             [clojure.tools.logging :as log]
             [datomic.api :as d]
             [datomic-schema.core]
             [no.nsd.rewriting-history :as rh]
-            [no.nsd.shorter-stacktrace]))
+            [no.nsd.shorter-stacktrace]
+            [no.nsd.rewriting-history.impl :as impl]))
 
 (defn db-values-set [conn]
   (into (sorted-set) (d/q '[:find [?v ...]
@@ -59,9 +60,19 @@
               (log/info "excising" (count eids) "eids ... OK!")))
           (do
             (log/error "original eids not found!")
-            (assert false "original eids not found!")))))))
+            (assert false "original eids not found!")))
+
+        ; Verify that the database is empty after excision:
+        (is (false? (contains? (db-values-set conn) "original-data")))
+        (is (false? (contains? (db-values-set conn) "bad-data")))
+        (is (false? (contains? (db-values-set conn) "good-data")))
 
         ; Replay new history:
+        (impl/apply-txes! conn (impl/history->transactions conn new-history))
 
+        ; Verify that the database is correct after replay of history:
+        (is (contains? (db-values-set conn) "original-data"))
 
-
+        ; Notice that now 'nice-data' is here:
+        (is (contains? (db-values-set conn) "nice-data"))
+        (is (contains? (db-values-set conn) "good-data"))))))
