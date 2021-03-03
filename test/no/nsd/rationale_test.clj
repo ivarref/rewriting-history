@@ -11,7 +11,7 @@
                             :in $
                             :where
                             [?e :m/id "id" _ _ _]
-                            [?e _ ?v _ _]]
+                            [?e :m/info ?v _ _]]
                           (d/history (d/db conn)))))
 
 (defn demo-rationale [conn]
@@ -22,9 +22,7 @@
   @(d/transact conn [{:m/id "id" :m/info "good-data"}])
 
   ; Verify that all expected data is present in the database:
-  (is (contains? (db-values-set conn) "original-data"))
-  (is (contains? (db-values-set conn) "bad-data"))
-  (is (contains? (db-values-set conn) "good-data"))
+  (is (= #{"original-data" "bad-data" "good-data"} (db-values-set conn)))
 
   ; Excise database up to (but not including) the good data.
   ; Find entity id and exicision point:
