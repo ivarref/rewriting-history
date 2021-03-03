@@ -53,11 +53,8 @@
 
         ; Excise original data:
         (if-let [eids (some->> org-history (meta) :original-eids not-empty)]
-          (do
-            (log/info "excising" (count eids) "eids ...")
-            (let [{:keys [db-after]} @(d/transact conn (mapv (fn [eid] {:db/excise eid}) eids))]
-              @(d/sync-excise conn (d/basis-t db-after))
-              (log/info "excising" (count eids) "eids ... OK!")))
+          (let [{:keys [db-after]} @(d/transact conn (mapv (fn [eid] {:db/excise eid}) eids))]
+            @(d/sync-excise conn (d/basis-t db-after)))
           (do
             (log/error "original eids not found!")
             (assert false "original eids not found!")))
