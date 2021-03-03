@@ -15,22 +15,25 @@
                 [#{"*"} :info]]
    :log-to-elk false})
 
+(def schema1 (conj #d/schema[[:m/id :one :string :id]
+                             [:m/info :one :string]
+                             [:m/address :one :ref :component]
+                             [:m/vedlegg :many :ref :component]
+                             [:m/type :one :ref]
+                             [:type/standard :enum]
+                             [:type/special :enum]
+                             [:vedlegg/id :one :string :id]
+                             [:vedlegg/info :one :string]
+                             [:addr/country :one :ref :component]
+                             [:country/name :one :string :id]
+                             [:country/region :one :string]
+                             [:db/txInstant2 :one :instant]]
+                   {:db/id        "datomic.tx"
+                    :db/txInstant #inst"2000"}))
+
 (deftest basic-history-pull-test
   (let [conn (u/empty-conn)]
-    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
-                                      [:m/info :one :string]
-                                      [:m/address :one :ref :component]
-                                      [:m/vedlegg :many :ref :component]
-                                      [:m/type :one :ref]
-                                      [:type/standard :enum]
-                                      [:type/special :enum]
-                                      [:vedlegg/id :one :string :id]
-                                      [:vedlegg/info :one :string]
-                                      [:addr/country :one :ref :component]
-                                      [:country/name :one :string :id]
-                                      [:country/region :one :string]]
-                            {:db/id        "datomic.tx"
-                             :db/txInstant #inst"2000"}))
+    @(d/transact conn schema1)
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/info    "hello world"
@@ -60,7 +63,6 @@
                                      :country/region "Europe"}}}
                        {:db/id        "datomic.tx"
                         :db/txInstant #inst"2003"}])
-    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
 
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id-1"])]
       (is (= [[1 :db/txInstant2 #inst "2001" 1 true]
@@ -93,9 +95,11 @@
               [8 :country/region "Europe" 3 true]
               [9 :addr/country 8 3 true]]
              fh))
-      @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
-      (impl/apply-txes! conn (impl/history->transactions conn fh))
-      (is (= fh (impl/pull-flat-history-simple conn [:m/id "id-1"]))))))
+      (let [txes (impl/history->transactions conn fh)
+            conn (u/empty-conn)]
+        @(d/transact conn schema1)
+        (impl/apply-txes! conn txes)
+        (is (= fh (impl/pull-flat-history-simple conn [:m/id "id-1"])))))))
 
 (deftest history->txes-test
   (let [conn (u/empty-conn)]
