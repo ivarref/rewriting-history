@@ -1,0 +1,67 @@
+(ns no.nsd.stage-integration-tst
+  (:require [clojure.test :refer :all]
+            [no.nsd.utils :as u]
+            [clojure.tools.logging :as log]
+            [datomic.api :as d]
+            [datomic-schema.core]
+            [no.nsd.rewriting-history :as rh]
+            [no.nsd.shorter-stacktrace]))
+
+(defn db-values-set [conn]
+  (into (sorted-set) (d/q '[:find [?v ...]
+                            :in $
+                            :where
+                            [?e :m/id "id" _ _ _]
+                            [?e _ ?v _ _]]
+                          (d/history (d/db conn)))))
+
+(deftest integration-test
+  (when-let [conn (u/empty-stage-conn "rewriting-history-integration-test-1")]
+    (let [tx! (u/tx-fn! conn)]
+      (tx! #d/schema[[:m/id :one :string :id]
+                     [:m/info :one :string]
+                     [:db/txInstant2 :one :instant]])
+      (tx! [{:m/id "id" :m/info "original-data"}])
+      (tx! [{:m/id "id" :m/info "bad-data"}])
+      (tx! [{:m/id "id" :m/info "good-data"}])
+
+      ; Verify that all expected data is present in the database:
+      (is (contains? (db-values-set conn) "original-data"))
+      (is (contains? (db-values-set conn) "bad-data"))
+      (is (contains? (db-values-set conn) "good-data"))
+
+      (let [org-history (rh/pull-flat-history conn [:m/id "id"])
+            new-history (mapv (fn [[e a v t op]]
+                                [e a (if (= v "bad-data")
+                                       "nice-data"
+                                       v)
+                                 t op])
+                              org-history)]
+
+        ; Original history looks like this:
+        (is (= org-history
+               [[1 :db/txInstant2 #inst "1972-01-01T00:00:00.000-00:00" 1 true]
+                [4 :m/id "id" 1 true]
+                [4 :m/info "original-data" 1 true]
+                [2 :db/txInstant2 #inst "1973-01-01T00:00:00.000-00:00" 2 true]
+                [4 :m/info "original-data" 2 false]
+                [4 :m/info "bad-data" 2 true]
+                [3 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 3 true]
+                [4 :m/info "bad-data" 3 false]
+                [4 :m/info "good-data" 3 true]]))
+
+        ; Excise original data:
+        (if-let [eids (some->> org-history (meta) :original-eids not-empty)]
+          (do
+            (log/info "excising" (count eids) "eids ...")
+            (let [{:keys [db-after]} @(d/transact conn (mapv (fn [eid] {:db/excise eid}) eids))]
+              @(d/sync-excise conn (d/basis-t db-after))
+              (log/info "excising" (count eids) "eids ... OK!")))
+          (do
+            (log/error "original eids not found!")
+            (assert false "original eids not found!")))))))
+
+        ; Replay new history:
+
+
+
