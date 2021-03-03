@@ -1,7 +1,9 @@
 (ns no.nsd.utils
   (:require [datomic.api :as d]
             [datomic-schema.core]
-            [clojure.pprint :as pprint])
+            [clojure.pprint :as pprint]
+            [clojure.java.io :as io]
+            [clojure.string :as str])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
            (java.util Date)))
@@ -28,3 +30,14 @@
 (defn pprint [x]
   (pprint/pprint x)
   x)
+
+(defn empty-stage-conn [db-name]
+  (assert (string? db-name))
+  (assert (str/includes? db-name "-test"))
+  (when (.exists (io/file ".stage-url.txt"))
+    (let [jdbc-uri (str/trim (slurp (io/file ".stage-url.txt")))]
+      (assert (str/starts-with? jdbc-uri "jdbc:"))
+      (let [uri (str "datomic:sql://" db-name "?" jdbc-uri)]
+        (d/delete-database uri)
+        (d/create-database uri)
+        (d/connect uri)))))

@@ -14,9 +14,10 @@ datom and its children to change.
 
 Regular Datomic excision does not remove retractions of non-existent entities 
 that are part of the first transaction in the new history.
+This means that sensitive data can be left in the history database as retractions.
+
 See [rationale_test.clj](test/no/nsd/rationale_test.clj) for a demonstration
 of this problem.
-This means that sensitive data can be left in the history database as retractions.
 
 This library intends to solve this problem, and leave the user free to rewrite the history
 as she/he likes.

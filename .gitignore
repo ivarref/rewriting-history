@@ -6,4 +6,4 @@ target/
 .connkey
 tree.txt
 .db.url
-.pvo-stage-url.txt
+.stage-url.txt
