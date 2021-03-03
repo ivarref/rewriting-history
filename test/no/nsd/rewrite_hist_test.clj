@@ -25,12 +25,12 @@
                                             :country/region "West Europe"}}}
                               {:db/id        "datomic.tx"
                                :db/txInstant #inst"2000"}])
-        _@(d/transact conn [{:m/id      "id"
-                             :m/address {:addr/country
-                                         {:country/name   "Norway"
-                                          :country/region "Europe"}}}
-                            {:db/id        "datomic.tx"
-                             :db/txInstant #inst"2001"}])
+        _ @(d/transact conn [{:m/id      "id"
+                              :m/address {:addr/country
+                                          {:country/name   "Norway"
+                                           :country/region "Europe"}}}
+                             {:db/id        "datomic.tx"
+                              :db/txInstant #inst"2001"}])
         fh (rh/pull-flat-history conn [:m/id "id"])
         txes (impl/history->transactions conn fh)]
     (is (= [[[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
