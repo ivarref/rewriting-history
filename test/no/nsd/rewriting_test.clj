@@ -92,25 +92,23 @@
         (impl/apply-txes! conn txes)
         (is (= fh (rh/pull-flat-history conn [:m/id "id-1"])))))))
 
-(def schema2 (conj #d/schema[[:m/id :one :string :id]
-                             [:m/info :one :string]
-                             [:m/address :one :ref :component]
-                             [:m/vedlegg :many :ref :component]
-                             [:m/type :one :ref]
-                             [:type/standard :enum]
-                             [:type/special :enum]
-                             [:vedlegg/id :one :string :id]
-                             [:vedlegg/info :one :string]
-                             [:addr/country :one :ref :component]
-                             [:country/name :one :string :id]
-                             [:country/region :one :string]
-                             [:db/txInstant2 :one :instant]]
-                   {:db/id        "datomic.tx"
-                    :db/txInstant #inst"1999"}))
-
 (deftest history->txes-test
-  (let [conn (u/empty-conn)]
-    @(d/transact conn schema2)
+  (let [schema (conj #d/schema[[:m/id :one :string :id]
+                               [:m/info :one :string]
+                               [:m/address :one :ref :component]
+                               [:m/vedlegg :many :ref :component]
+                               [:m/type :one :ref]
+                               [:type/standard :enum]
+                               [:type/special :enum]
+                               [:vedlegg/id :one :string :id]
+                               [:vedlegg/info :one :string]
+                               [:addr/country :one :ref :component]
+                               [:country/name :one :string :id]
+                               [:country/region :one :string]
+                               [:db/txInstant2 :one :instant]]
+                     {:db/id        "datomic.tx"
+                      :db/txInstant #inst"1999"})
+        conn (u/empty-conn schema)]
     @(d/transact conn [{:db/id     "entity"
                         :m/id      "id-1"
                         :m/type    :type/standard
