@@ -37,8 +37,8 @@
           tx-range))
 
 (defn tx-range-contains? [tx-ranges tx]
-  (every? (fn [tx-range] (single-tx-range-contains? tx-range tx))
-          tx-ranges))
+  true #_(every? (fn [tx-range] (single-tx-range-contains? tx-range tx))
+                 tx-ranges))
 
 (defn ref->tx-ranges [db [e a v t o :as eavto]]
   (let [starts (d/q '[:find [?t ...]
