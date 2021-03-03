@@ -8,12 +8,17 @@
            (java.time LocalDate ZoneId)
            (java.util Date)))
 
-(defn empty-conn []
-  (let [uri "datomic:mem://hello-world"]
-    (d/delete-database uri)
-    (d/create-database uri)
-    (let [conn (d/connect uri)]
-      conn)))
+(defn empty-conn
+  ([]
+   (let [uri "datomic:mem://hello-world"]
+     (d/delete-database uri)
+     (d/create-database uri)
+     (let [conn (d/connect uri)]
+       conn)))
+  ([schema]
+   (let [conn (empty-conn)]
+     @(d/transact conn schema)
+     conn)))
 
 (defn year->Date [yr]
   (Date/from
