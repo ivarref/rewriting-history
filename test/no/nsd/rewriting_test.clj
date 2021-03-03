@@ -101,34 +101,35 @@
         (impl/apply-txes! conn txes)
         (is (= fh (impl/pull-flat-history-simple conn [:m/id "id-1"])))))))
 
+(def schema2 (conj #d/schema[[:m/id :one :string :id]
+                             [:m/info :one :string]
+                             [:m/address :one :ref :component]
+                             [:m/vedlegg :many :ref :component]
+                             [:m/type :one :ref]
+                             [:type/standard :enum]
+                             [:type/special :enum]
+                             [:vedlegg/id :one :string :id]
+                             [:vedlegg/info :one :string]
+                             [:addr/country :one :ref :component]
+                             [:country/name :one :string :id]
+                             [:country/region :one :string]
+                             [:db/txInstant2 :one :instant]]
+                   {:db/id        "datomic.tx"
+                    :db/txInstant #inst"1999"}))
+
 (deftest history->txes-test
   (let [conn (u/empty-conn)]
-    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
-                                      [:m/info :one :string]
-                                      [:m/address :one :ref :component]
-                                      [:m/vedlegg :many :ref :component]
-                                      [:m/type :one :ref]
-                                      [:type/standard :enum]
-                                      [:type/special :enum]
-                                      [:vedlegg/id :one :string :id]
-                                      [:vedlegg/info :one :string]
-                                      [:addr/country :one :ref :component]
-                                      [:country/name :one :string :id]
-                                      [:country/region :one :string]]
-                            {:db/id        "datomic.tx"
-                             :db/txInstant #inst"1999"}))
-
-    (let [entity (get-in @(d/transact conn [{:db/id     "entity"
-                                             :m/id      "id-1"
-                                             :m/type    :type/standard
-                                             :m/address {:addr/country
-                                                         {:country/name   "Norway"
-                                                          :country/region "West Europe"}}}
-                                            {:db/id        "datomic.tx"
-                                             :db/txInstant #inst"2000"}])
-                         [:tempids "entity"])
-          _ @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
-          hist (impl/pull-flat-history-simple conn [:m/id "id-1"])
+    @(d/transact conn schema2)
+    (get-in @(d/transact conn [{:db/id     "entity"
+                                :m/id      "id-1"
+                                :m/type    :type/standard
+                                :m/address {:addr/country
+                                            {:country/name   "Norway"
+                                             :country/region "West Europe"}}}
+                               {:db/id        "datomic.tx"
+                                :db/txInstant #inst"2000"}])
+            [:tempids "entity"])
+    (let [hist (impl/pull-flat-history-simple conn [:m/id "id-1"])
           [tx] (impl/history->transactions conn hist)]
       (is (= [[:db/add "datomic.tx" :db/txInstant2 #inst"2000"]
               [:db/add "2" :m/address "3"]
@@ -138,11 +139,10 @@
               [:db/add "4" :country/name "Norway"]
               [:db/add "4" :country/region "West Europe"]]
              tx))
-      @(d/transact conn [[:db.fn/retractEntity [:m/id "id-1"]]])
-      (is (not= entity
-                (-> @(d/transact conn tx)
-                    (get-in [:tempids "1"]))))
-      (is (= hist (impl/pull-flat-history-simple conn [:m/id "id-1"]))))))
+      (let [conn (u/empty-conn)]
+        @(d/transact conn schema2)
+        @(d/transact conn tx)
+        (is (= hist (impl/pull-flat-history-simple conn [:m/id "id-1"])))))))
 
 (deftest history->txes-test-unsimplified
   (let [conn (u/empty-conn)]
