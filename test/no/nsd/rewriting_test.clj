@@ -6,27 +6,26 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.log-init]
             [no.nsd.shorter-stacktrace]
-            [clojure.pprint :as pprint]))
-
-(def schema1 (conj #d/schema[[:m/id :one :string :id]
-                             [:m/info :one :string]
-                             [:m/address :one :ref :component]
-                             [:m/vedlegg :many :ref :component]
-                             [:m/type :one :ref]
-                             [:type/standard :enum]
-                             [:type/special :enum]
-                             [:vedlegg/id :one :string :id]
-                             [:vedlegg/info :one :string]
-                             [:addr/country :one :ref :component]
-                             [:country/name :one :string :id]
-                             [:country/region :one :string]
-                             [:db/txInstant2 :one :instant]]
-                   {:db/id        "datomic.tx"
-                    :db/txInstant #inst"2000"}))
+            [clojure.pprint :as pprint]
+            [no.nsd.rewriting-history :as rh]))
 
 (deftest basic-history-pull-test
-  (let [conn (u/empty-conn)]
-    @(d/transact conn schema1)
+  (let [schema (conj #d/schema[[:m/id :one :string :id]
+                               [:m/info :one :string]
+                               [:m/address :one :ref :component]
+                               [:m/vedlegg :many :ref :component]
+                               [:m/type :one :ref]
+                               [:type/standard :enum]
+                               [:type/special :enum]
+                               [:vedlegg/id :one :string :id]
+                               [:vedlegg/info :one :string]
+                               [:addr/country :one :ref :component]
+                               [:country/name :one :string :id]
+                               [:country/region :one :string]
+                               [:db/txInstant2 :one :instant]]
+                     {:db/id        "datomic.tx"
+                      :db/txInstant #inst"2000"})
+        conn (u/empty-conn schema)]
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/info    "hello world"
@@ -57,7 +56,7 @@
                        {:db/id        "datomic.tx"
                         :db/txInstant #inst"2003"}])
 
-    (let [fh (impl/pull-flat-history-simple conn [:m/id "id-1"])]
+    (let [fh (rh/pull-flat-history conn [:m/id "id-1"])]
       (is (= [[1 :db/txInstant2 #inst "2001" 1 true]
               [4 :m/address 7 1 true]
               [4 :m/id "id-1" 1 true]
@@ -89,10 +88,9 @@
               [9 :addr/country 8 3 true]]
              fh))
       (let [txes (impl/history->transactions conn fh)
-            conn (u/empty-conn)]
-        @(d/transact conn schema1)
+            conn (u/empty-conn schema)]
         (impl/apply-txes! conn txes)
-        (is (= fh (impl/pull-flat-history-simple conn [:m/id "id-1"])))))))
+        (is (= fh (rh/pull-flat-history conn [:m/id "id-1"])))))))
 
 (def schema2 (conj #d/schema[[:m/id :one :string :id]
                              [:m/info :one :string]
