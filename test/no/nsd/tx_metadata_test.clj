@@ -46,24 +46,21 @@
 
 
 (deftest tx-meta-ref-test
-  (let [conn (u/empty-conn)]
-    @(d/transact conn (conj #d/schema[[:m/id :one :string :id]
-                                      [:m/info :one :string]
-                                      [:m/ref :one :ref]
-                                      [:tx/info :one :string]]
-                            {:db/id        "datomic.tx"
-                             :db/txInstant #inst "1980"}))
-
+  (let [schema (conj #d/schema[[:m/id :one :string :id]
+                               [:m/info :one :string]
+                               [:m/ref :one :ref]
+                               [:tx/info :one :string]
+                               [:db/txInstant2 :one :instant]]
+                     {:db/id        "datomic.tx"
+                      :db/txInstant #inst "1980"})
+        conn (u/empty-conn schema)]
     @(d/transact conn [{:m/id   "id"
                         :m/info "hello world"
                         :m/ref  "datomic.tx"}
                        {:db/id        "datomic.tx"
                         :db/txInstant #inst"2000"
                         :tx/info      "meta"}])
-
     @(d/transact conn [{:m/id "id2"} {:db/id "datomic.tx" :db/txInstant #inst"2001"}])
-
-    @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
 
     (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
       (is (= [[1 :db/txInstant2 #inst "2000" 1 true]
@@ -72,13 +69,13 @@
               [2 :m/info "hello world" 1 true]
               [2 :m/ref 1 1 true]]
              fh))
-      (let [[tx] (impl/history->transactions conn fh)
-            tx2 [[:db/add "datomic.tx" :db/txInstant2 #inst "2000"]
-                 [:db/add "datomic.tx" :tx/info "meta"]
-                 [:db/add "2" :m/id "id"]
-                 [:db/add "2" :m/info "hello world"]
-                 [:db/add "2" :m/ref "datomic.tx"]]]
-        (is (= tx tx2))
-        @(d/transact conn [[:db.fn/retractEntity [:m/id "id"]]])
-        @(d/transact conn tx)
-        (is (= fh (impl/pull-flat-history-simple conn [:m/id "id"])))))))
+      (let [[tx] (impl/history->transactions conn fh)]
+        (is (= tx
+               [[:db/add "datomic.tx" :db/txInstant2 #inst "2000"]
+                [:db/add "datomic.tx" :tx/info "meta"]
+                [:db/add "2" :m/id "id"]
+                [:db/add "2" :m/info "hello world"]
+                [:db/add "2" :m/ref "datomic.tx"]]))
+        (let [conn (u/empty-conn schema)]
+          @(d/transact conn tx)
+          (is (= fh (impl/pull-flat-history-simple conn [:m/id "id"]))))))))
