@@ -69,7 +69,6 @@
 
         ; Verify that the database is correct after replay of history:
         (is (contains? (db-values-set conn) "original-data"))
-
         ; Notice that now 'nice-data' is here:
         (is (contains? (db-values-set conn) "nice-data"))
         (is (contains? (db-values-set conn) "good-data"))))))
