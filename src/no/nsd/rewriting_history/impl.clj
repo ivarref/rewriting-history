@@ -204,4 +204,4 @@
     {}
     txes))
 
-(defn rewrite-history! [conn db old-history new-history])
+(defn rewrite-history! [conn old-history new-history])
