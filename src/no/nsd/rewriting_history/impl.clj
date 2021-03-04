@@ -146,22 +146,28 @@
 
 (defn eavto->oeav-tx
   [db tempids [e a v t o :as eavto]]
-  (let [ent-id (cond
-                 (= e t)
-                 "datomic.tx"
-                 (contains? tempids (str e))
-                 [:tempid (str e)]
-                 :else
-                 (str e))
+  (let [op (if o :db/add :db/retract)
+
+        ent-id (cond (= e t)
+                     "datomic.tx"
+
+                     (contains? tempids (str e))
+                     [:tempid (str e)]
+
+                     :else
+                     (str e))
+
         value (cond (not (is-regular-ref? db a v))
                     v
+
                     (= v t)
                     "datomic.tx"
+
                     (contains? tempids (str v))
                     [:tempid (str v)]
+
                     :else
-                    (str v))
-        op (if o :db/add :db/retract)]
+                    (str v))]
     [op ent-id a value]))
 
 (defn eavtos->transaction
