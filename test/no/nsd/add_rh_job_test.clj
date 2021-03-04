@@ -79,7 +79,6 @@
        job-id))
 
 (defn job-init! [conn job-id]
-  (log/debug "job-init! running")
   (let [eids-to-excise (d/q '[:find [?eid ...]
                               :in $ ?job-id
                               :where
@@ -92,6 +91,7 @@
                    {:db/id [:rh/id job-id] :rh/tx-index 0}]
                   (mapv (fn [eid] {:db/excise eid}) eids-to-excise))
                 vec)]
+    (log/info "deleting initial eids:" eids-to-excise)
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after)))))
 
@@ -114,13 +114,16 @@
 
 (deftest add-rewrite-job-test
   (testing "Store eavtos to a job"
-    (let [conn (u/empty-conn)
+    (let [conn (u/empty-stage-conn "add-rewrite-job-test")
           tx! (u/tx-fn! conn)]
       (setup-schema! tx!)
       (create-job! conn tx!)
+      (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
+        (job-init! conn "job")
+        (is (= (get-new-history conn "job")
+               org-history))
+        #_(is (= :init (process-job-step! conn "job")))
+        #_(process-job-step! conn "job")))))
 
-      (process-job-step! conn "job")
-      (process-job-step! conn "job")
-      (is (= (get-new-history conn "job") (rh/pull-flat-history conn [:m/id "id"]))))))
 
 
