@@ -35,25 +35,6 @@
   (tx! #d/schema[[:m/id :one :string :id]
                  [:m/info :one :string]]))
 
-(defn create-job! [conn tx!]
-  ; Test case:
-  (tx! [{:m/id "id" :m/info "original-data"}])
-  (tx! [{:m/id "id" :m/info "bad-data"}])
-  (tx! [{:m/id "id" :m/info "good-data"}])
-
-  (let [org-history (rh/pull-flat-history conn [:m/id "id"])
-        org-history-set (->> org-history
-                             (map #(mapv pr-str %))
-                             (mapv (partial zipmap [:rh/e :rh/a :rh/v :rh/t :rh/o]))
-                             (into #{}))
-        tx (into []
-                 [{:rh/id          "job"
-                   :rh/state       :init
-                   :rh/eid         (into #{} (-> org-history meta :original-eids))
-                   :rh/org-history org-history-set
-                   :rh/new-history org-history-set}])]
-    (tx! tx)))
-
 (defn get-new-history [conn job-id]
   (->> (d/q '[:find ?e ?a ?v ?t ?o
               :in $ ?ee
@@ -92,7 +73,7 @@
                   [[:db/cas [:rh/id job-id] :rh/state :init :rewrite-history]]
                   (mapv (fn [eid] {:db/excise eid}) eids-to-excise))
                 vec)]
-    (log/info "deleting initial eids:" eids-to-excise)
+    (log/debug "deleting initial eids:" eids-to-excise)
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after)))))
 
@@ -141,7 +122,7 @@
                            {:db/id [:rh/id job-id] :rh/done (Date.)}])
                         new-hist-tx)
                 vec)]
-    (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
+    (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
     @(d/transact conn tx)))
 
 (defn process-job-step! [conn job-id]
