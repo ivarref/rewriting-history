@@ -161,17 +161,20 @@
 
 (deftest replay-history-job-test
   (testing "Replay history job works"
-    (let [conn (u/empty-stage-conn "replay-job-test")
-          tx! (u/tx-fn! conn)]
-      (setup-schema! tx!)
-      (create-job! conn tx!)
-      (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
+    (let [conn1 (u/empty-conn)
+          conn2 (u/empty-conn)
+          tx1! (u/tx-fn! conn1)
+          tx2! (u/tx-fn! conn2)]
+      (setup-schema! tx1!)
+      (setup-schema! tx2!)
+      (create-job! conn1 tx1!)
+      (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
         ; This will wipe the existing data:
-        (job-init! conn "job")
+        (job-init! conn1 "job")
 
-        (is (= (get-new-history conn "job") org-history))
+        (is (= (get-new-history conn1 "job") org-history))
 
-        (while (not= :done (job-state conn "job"))
-          (process-job-step! conn "job"))
+        (while (not= :done (job-state conn1 "job"))
+          (process-job-step! conn1 "job"))
 
-        (is (= org-history (rh/pull-flat-history conn [:m/id "id"])))))))
+        (is (= org-history (rh/pull-flat-history conn1 [:m/id "id"])))))))
