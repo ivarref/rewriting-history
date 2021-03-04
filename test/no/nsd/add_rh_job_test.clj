@@ -8,7 +8,8 @@
             [clojure.tools.logging :as log]
             [datomic.api :as d]
             [clojure.edn :as edn]
-            [no.nsd.rewriting-history.impl :as impl]))
+            [no.nsd.rewriting-history.impl :as impl])
+  (:import (java.util Date)))
 
 (defn setup-schema! [tx!]
   (tx! #d/schema[[:db/txInstant2 :one :instant]])
@@ -19,6 +20,7 @@
                  [:rh/org-history :many :ref :component]
                  [:rh/new-history :many :ref :component]
                  [:rh/state :one :keyword]
+                 [:rh/done :one :instant]
                  [:rh/tx-index :one :long]
                  [:rh/tempids :many :ref :component]
                  [:rh/tempid-str :one :string]
@@ -136,12 +138,12 @@
         tx (->> (concat [[:db/cas [:rh/id job-id] :rh/tx-index tx-index (inc tx-index)]
                          {:db/id [:rh/id job-id] :rh/tempids save-tempids}]
                         (when done?
-                          [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :done]])
+                          [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :done]
+                           {:db/id [:rh/id job-id] :rh/done (Date.)}])
                         new-hist-tx)
                 vec)]
     (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
     @(d/transact conn tx)))
-
 
 (defn process-job-step! [conn job-id]
   (let [state (job-state conn "job")]
