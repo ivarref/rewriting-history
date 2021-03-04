@@ -48,3 +48,7 @@
         (d/delete-database uri)
         (d/create-database uri)
         (d/connect uri)))))
+
+(defn clear []
+  (.print System/out "\033[H\033[2J")
+  (.flush System/out))

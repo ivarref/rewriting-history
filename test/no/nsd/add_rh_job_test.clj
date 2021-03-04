@@ -167,14 +167,31 @@
           tx2! (u/tx-fn! conn2)]
       (setup-schema! tx1!)
       (setup-schema! tx2!)
-      (create-job! conn1 tx1!)
+
+      (tx1! [{:m/id "id" :m/info "original-data"}])
+      (tx1! [{:m/id "id" :m/info "bad-data"}])
+      (tx1! [{:m/id "id" :m/info "good-data"}])
+
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
+        (is (= org-history
+               [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+                [4 :m/id "id" 1 true]
+                [4 :m/info "original-data" 1 true]
+                [2 :db/txInstant2 #inst "1975-01-01T00:00:00.000-00:00" 2 true]
+                [4 :m/info "original-data" 2 false]
+                [4 :m/info "bad-data" 2 true]
+                [3 :db/txInstant2 #inst "1976-01-01T00:00:00.000-00:00" 3 true]
+                [4 :m/info "bad-data" 3 false]
+                [4 :m/info "good-data" 3 true]]))
+
+        (impl/add-rewrite-job! conn2 "job" org-history org-history)
+
         ; This will wipe the existing data:
-        (job-init! conn1 "job")
+        #_(job-init! conn1 "job")))))
 
-        (is (= (get-new-history conn1 "job") org-history))
-
-        (while (not= :done (job-state conn1 "job"))
-          (process-job-step! conn1 "job"))
-
-        (is (= org-history (rh/pull-flat-history conn1 [:m/id "id"])))))))
+        ;(is (= (get-new-history conn1 "job") org-history))
+        ;
+        ;(while (not= :done (job-state conn1 "job"))
+        ;  (process-job-step! conn1 "job"))
+        ;
+        ;(is (= org-history (rh/pull-flat-history conn1 [:m/id "id"]))))))))
