@@ -113,27 +113,31 @@
                         [?e :rh/tx-index ?tx-index]]
                       (d/db conn)
                       job-id)
-        new-hist-tx (nth txes tx-index)
+        new-hist-tx (->> (nth txes tx-index)
+                         (mapv (fn [[o e a v :as oeav]]
+                                 (if (vector? e)
+                                   (let [[tempid tempid-str] e]
+                                     (assert (and (string? tempid-str) (= :tempid tempid)))
+                                     [o (d/q '[:find ?tempid-ref .
+                                               :in $ ?job-id ?tempid-str
+                                               :where
+                                               [?e :rh/id ?job-id]
+                                               [?e :rh/tempids ?tmpid]
+                                               [?tmpid :rh/tempid-str ?tempid-str]
+                                               [?tmpid :rh/tempid-ref ?tempid-ref]]
+                                             (d/db conn)
+                                             job-id
+                                             tempid-str)
+                                      a v])
+                                   oeav))))
         save-tempids (save-tempids-metadata new-hist-tx)
         tx (->> (concat [[:db/cas [:rh/id job-id] :rh/tx-index tx-index (inc tx-index)]
                          {:db/id [:rh/id job-id] :rh/tempids save-tempids}]
                         new-hist-tx)
                 vec)]
+    #_(u/pprint new-hist-tx)
     (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
-    (u/pprint tx)
-    (def t tx)
     @(d/transact conn tx)))
-
-
-
-(comment
-  (save-tempids-metadata
-    [[:db/add
-      "datomic.tx"
-      :db/txInstant2
-      #inst "1974-01-01T00:00:00.000-00:00"]
-     [:db/add "4" :m/id "id"]
-     [:db/add "4" :m/info "original-data"]]))
 
 
 (defn process-job-step! [conn job-id]
@@ -158,10 +162,14 @@
       (create-job! conn tx!)
       (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
         (job-init! conn "job")
+
         (is (= (get-new-history conn "job") org-history))
 
         (rewrite-history! conn "job")
         (rewrite-history! conn "job")
+        (rewrite-history! conn "job")
+
+        (is (= org-history (rh/pull-flat-history conn [:m/id "id"])))
         ;(rewrite-history! conn "job")
         #_(is (= :init (process-job-step! conn "job")))
         #_(process-job-step! conn "job")))))
