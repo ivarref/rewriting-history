@@ -95,8 +95,46 @@
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after)))))
 
+(defn save-tempids-metadata [tx]
+  (->> tx
+       (map second)
+       (filter string?)
+       (map (fn [tempid] {:rh/tempid-str tempid
+                          :rh/tempid-ref tempid}))
+       (into #{})))
+
 (defn rewrite-history! [conn job-id]
-  (log/debug "rewrite-history! running"))
+  (let [new-history (get-new-history conn job-id)
+        txes (impl/history->transactions conn new-history)
+        tx-index (d/q '[:find ?tx-index .
+                        :in $ ?job-id
+                        :where
+                        [?e :rh/id ?job-id]
+                        [?e :rh/tx-index ?tx-index]]
+                      (d/db conn)
+                      job-id)
+        new-hist-tx (nth txes tx-index)
+        save-tempids (save-tempids-metadata new-hist-tx)
+        tx (->> (concat [[:db/cas [:rh/id job-id] :rh/tx-index tx-index (inc tx-index)]
+                         {:db/id [:rh/id job-id] :rh/tempids save-tempids}]
+                        new-hist-tx)
+                vec)]
+    (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
+    (u/pprint tx)
+    (def t tx)
+    @(d/transact conn tx)))
+
+
+
+(comment
+  (save-tempids-metadata
+    [[:db/add
+      "datomic.tx"
+      :db/txInstant2
+      #inst "1974-01-01T00:00:00.000-00:00"]
+     [:db/add "4" :m/id "id"]
+     [:db/add "4" :m/info "original-data"]]))
+
 
 (defn process-job-step! [conn job-id]
   (let [state (job-state conn "job")]
@@ -120,8 +158,11 @@
       (create-job! conn tx!)
       (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
         (job-init! conn "job")
-        (is (= (get-new-history conn "job")
-               org-history))
+        (is (= (get-new-history conn "job") org-history))
+
+        (rewrite-history! conn "job")
+        (rewrite-history! conn "job")
+        ;(rewrite-history! conn "job")
         #_(is (= :init (process-job-step! conn "job")))
         #_(process-job-step! conn "job")))))
 
