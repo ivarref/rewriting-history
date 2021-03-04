@@ -181,6 +181,10 @@
      (into (sorted-set) (set/union tempids self-tempids))]))
 
 (defn history->transactions
+  "history->transactions creates transactions based on eavtos and a database.
+
+  It is only dependent on the database as far as looking up schema definitions,
+  thus it does not matter if this function is called before or after initial excision."
   [db eavtos]
   (let [db (to-db db)
         txes (partition-by get-t eavtos)]
