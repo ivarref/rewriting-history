@@ -228,6 +228,7 @@
   (assert (vector? new-history))
   (let [tx [{:rh/id          job-id
              :rh/state       :init
+             :rh/tx-index    0
              :rh/eid         (into #{} (-> org-history meta :original-eids))
              :rh/org-history (history->set org-history)
              :rh/new-history (history->set new-history)}]]
