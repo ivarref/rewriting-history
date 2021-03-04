@@ -48,7 +48,7 @@
     (tx! tx)))
 
 (defn get-new-history [conn lookup-ref]
-  (->> (d/q '[:find ?n ?e ?a ?v ?t ?o
+  (->> (d/q '[:find ?e ?a ?v ?t ?o
               :in $ ?ee
               :where
               [?ee :rh/new-history ?n]
@@ -60,14 +60,7 @@
             (d/db conn)
             (impl/resolve-lookup-ref (d/db conn) lookup-ref))
        (vec)
-       (mapv (fn [[n e a v t o]]
-               (with-meta
-                 [(read-string e)
-                  (read-string a)
-                  (read-string v)
-                  (read-string t)
-                  (read-string o)]
-                 {:eid n})))
+       (mapv (partial mapv read-string))
        (sort-by (fn [[e a v t o]] [t e a o v]))
        (vec)))
 
