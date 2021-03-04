@@ -157,25 +157,19 @@
         (log/error "unhandled job state:" state)
         nil #_(throw (ex-info "unhandled job state" {:state state}))))))
 
-(deftest add-rewrite-job-test
-  (testing "Store eavtos to a job"
-    (let [conn (u/empty-stage-conn "add-rewrite-job-test")
+(deftest replay-history-job-test
+  (testing "Replay history job works"
+    (let [conn (u/empty-stage-conn "replay-job-test")
           tx! (u/tx-fn! conn)]
       (setup-schema! tx!)
       (create-job! conn tx!)
       (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
+        ; This will wipe the existing data:
         (job-init! conn "job")
 
         (is (= (get-new-history conn "job") org-history))
 
-        (rewrite-history! conn "job")
-        (rewrite-history! conn "job")
-        (rewrite-history! conn "job")
+        (while (not= :done (job-state conn "job"))
+          (process-job-step! conn "job"))
 
-        (is (= org-history (rh/pull-flat-history conn [:m/id "id"])))
-        ;(rewrite-history! conn "job")
-        #_(is (= :init (process-job-step! conn "job")))
-        #_(process-job-step! conn "job")))))
-
-
-
+        (is (= org-history (rh/pull-flat-history conn [:m/id "id"])))))))
