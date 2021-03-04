@@ -6,15 +6,17 @@
             [clojure.string :as str])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
-           (java.util Date)))
+           (java.util Date UUID)))
+
+(defn- empty-conn-for-uri [uri]
+  (d/delete-database uri)
+  (d/create-database uri)
+  (let [conn (d/connect uri)]
+    conn))
 
 (defn empty-conn
   ([]
-   (let [uri "datomic:mem://hello-world"]
-     (d/delete-database uri)
-     (d/create-database uri)
-     (let [conn (d/connect uri)]
-       conn)))
+   (empty-conn-for-uri (str "datomic:mem://hello-world-" (UUID/randomUUID))))
   ([schema]
    (let [conn (empty-conn)]
      @(d/transact conn schema)
