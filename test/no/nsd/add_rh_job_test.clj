@@ -7,7 +7,6 @@
             [no.nsd.rewriting-history :as rh]
             [clojure.tools.logging :as log]
             [datomic.api :as d]
-            [clojure.edn :as edn]
             [no.nsd.rewriting-history.impl :as impl])
   (:import (java.util Date)))
 
