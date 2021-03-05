@@ -58,5 +58,11 @@
               {:db/id [:rh/id job-id] :rh/done (Date.)}]
              [[:db/cas [:rh/id job-id] :rh/state :verify :error]
               {:db/id [:rh/id job-id] :rh/error (Date.)}])]
-    (log/info "ok-replay?" ok-replay?)
-    @(d/transact conn tx)))
+    (if ok-replay?
+      (do
+        @(d/transact conn tx))
+      (do
+        (log/error "replay of history for lookup ref" lookup-ref "got something wrong")
+        (log/error "expected history:" expected-history)
+        @(d/transact conn tx)))))
+

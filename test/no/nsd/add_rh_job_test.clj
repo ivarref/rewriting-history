@@ -70,7 +70,7 @@
        (into #{})))
 
 (defn rewrite-history! [conn job-id]
-  (let [new-history (get-new-history conn job-id)
+  (let [new-history (replay/get-new-history conn job-id)
         txes (impl/history->transactions conn new-history)
         tx-index (d/q '[:find ?tx-index .
                         :in $ ?job-id
