@@ -144,15 +144,17 @@
         (log/error "actual history:" actual-history)
         @(d/transact conn [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :error]
                            {:db/id [:rh/id job-id] :rh/error (Date.)}])
-        (throw (ex-info "expected history differs from actual history"
-                        {:expected-history (history-take-tx new-history tx-index)
-                         :actual-history   actual-history}))))))
+        {:expected-history (history-take-tx new-history tx-index)}))))
 
 
 (defn verify-history! [conn job-id]
   (let [lookup-ref (job->lookup-ref conn job-id)
         expected-history (get-new-history conn job-id)
-        current-history (impl/pull-flat-history-simple (d/db conn) lookup-ref)
+        current-history (some->>
+                          (impl/pull-flat-history-simple (d/db conn) lookup-ref)
+                          (take (count expected-history))
+                          (vec)
+                          (impl/simplify-eavtos conn lookup-ref))
         ok-replay? (= expected-history current-history)
         tx (if ok-replay?
              [[:db/cas [:rh/id job-id] :rh/state :verify :done]

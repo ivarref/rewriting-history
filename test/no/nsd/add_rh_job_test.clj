@@ -99,18 +99,39 @@
         @(d/transact conn2 [{:m/id   "id"
                              :m/info "oh no somebody wrote data in the middle of a re-write!"}])
 
-        (let [{:keys [expected-history]
-               :as   exd}
-              (try
-                (timbre/with-level :fatal
-                  (replay/rewrite-history! conn2 "job"))
-                nil
-                (catch Exception e
-                  (log/debug (ex-message e))
-                  (ex-data e)))]
-          (is (some? exd))
+        (let [{:keys [expected-history]}
+              (timbre/with-level
+                :fatal
+                (replay/rewrite-history! conn2 "job"))]
           (is (= expected-history
                  [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
                   [4 :m/id "id" 1 true]
                   [4 :m/info "original-data" 1 true]]))
           (is (= :error (replay/job-state conn2 "job"))))))))
+
+(deftest verify-replay-history-job-test
+  (testing "Verify is fine with writes just after last re-write has occurred"
+    (let [conn1 (u/empty-conn)
+          conn2 (u/empty-conn)]
+      (setup-schema! conn1)
+      (setup-schema! conn2)
+
+      @(d/transact conn1 [{:m/id "id" :m/info "original-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "bad-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "good-data"}])
+
+      (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
+        ; Add job
+        (replay/add-rewrite-job! conn2 "job" org-history org-history)
+
+        ; Fake excision
+        @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
+
+        (replay/process-until-state conn2 "job" :verify)
+
+        @(d/transact conn2 [{:m/id   "id"
+                             :m/info "somebody wrote data just after re-writing was finished (but not verified)!"}])
+
+        (replay/process-job-step! conn2 "job")
+
+        (is (= :done (replay/job-state conn2 "job")))))))
