@@ -16,27 +16,24 @@
 
 (deftest tx-meta-test
   (testing "Verify that transaction metadata is included in history"
-    (let [schema (conj #d/schema[[:m/id :one :string :id]
-                                 [:m/info :one :string]
-                                 [:tx/info :one :string]
-                                 [:db/txInstant2 :one :instant]]
-                       {:db/id        "datomic.tx"
-                        :db/txInstant #inst "1980"})
+    (let [schema #d/schema[[:m/id :one :string :id]
+                           [:m/info :one :string]
+                           [:tx/info :one :string]
+                           [:db/txInstant2 :one :instant]]
           conn (u/empty-conn schema)]
       @(d/transact conn [{:m/id   "id"
                           :m/info "hello world"}
                          {:db/id        "datomic.tx"
-                          :db/txInstant #inst"2000"
                           :tx/info      "meta"}])
       (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
-        (is (= [[1 :db/txInstant2 #inst "2000" 1 true]
+        (is (= [[1 :db/txInstant2 #inst "1972" 1 true]
                 [1 :tx/info "meta" 1 true]
                 [2 :m/id "id" 1 true]
                 [2 :m/info "hello world" 1 true]]
                fh))
         (let [[tx] (impl/history->transactions conn fh)]
           (is (= tx
-                 [[:db/add "datomic.tx" :db/txInstant2 #inst "2000"]
+                 [[:db/add "datomic.tx" :db/txInstant2 #inst "1972"]
                   [:db/add "datomic.tx" :tx/info "meta"]
                   [:db/add "2" :m/id "id"]
                   [:db/add "2" :m/info "hello world"]]))
@@ -48,24 +45,21 @@
 
 (deftest tx-meta-ref-test
   (testing "Verify that :ent/ref 'datomic.tx' works"
-    (let [schema (conj #d/schema[[:m/id :one :string :id]
-                                 [:m/info :one :string]
-                                 [:m/ref :one :ref]
-                                 [:tx/info :one :string]
-                                 [:db/txInstant2 :one :instant]]
-                       {:db/id        "datomic.tx"
-                        :db/txInstant #inst "1980"})
+    (let [schema #d/schema[[:m/id :one :string :id]
+                           [:m/info :one :string]
+                           [:m/ref :one :ref]
+                           [:tx/info :one :string]
+                           [:db/txInstant2 :one :instant]]
           conn (u/empty-conn schema)]
       @(d/transact conn [{:m/id   "id"
                           :m/info "hello world"
                           :m/ref  "datomic.tx"}
                          {:db/id        "datomic.tx"
-                          :db/txInstant #inst"2000"
                           :tx/info      "meta"}])
-      @(d/transact conn [{:m/id "id2"} {:db/id "datomic.tx" :db/txInstant #inst"2001"}])
+      @(d/transact conn [{:m/id "id2"}])
 
       (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
-        (is (= [[1 :db/txInstant2 #inst "2000" 1 true]
+        (is (= [[1 :db/txInstant2 #inst "1972" 1 true]
                 [1 :tx/info "meta" 1 true]
                 [2 :m/id "id" 1 true]
                 [2 :m/info "hello world" 1 true]
@@ -73,7 +67,7 @@
                fh))
         (let [[tx] (impl/history->transactions conn fh)]
           (is (= tx
-                 [[:db/add "datomic.tx" :db/txInstant2 #inst "2000"]
+                 [[:db/add "datomic.tx" :db/txInstant2 #inst "1972"]
                   [:db/add "datomic.tx" :tx/info "meta"]
                   [:db/add "2" :m/id "id"]
                   [:db/add "2" :m/info "hello world"]
