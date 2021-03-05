@@ -40,6 +40,31 @@
        (sort-by (fn [[e a v t o]] [t e a o v]))
        (vec)))
 
+(defn history-take-tx [history tx]
+  (let [tx-max (->> history
+                    (mapv (fn [[e a v t o]] t))
+                    (distinct)
+                    (sort)
+                    (take tx)
+                    (last))]
+    (when tx-max
+      (->> history
+           (take-while (fn [[e a v t o]] (<= t tx-max)))
+           (vec)))))
+
+(comment
+  (history-take-tx
+    [[1 :db/txInstant2 #inst"1974-01-01T00:00:00.000-00:00" 1 true]
+     [4 :m/id "id" 1 true]
+     [4 :m/info "original-data" 1 true]
+     [2 :db/txInstant2 #inst"1975-01-01T00:00:00.000-00:00" 2 true]
+     [4 :m/info "original-data" 2 false]
+     [4 :m/info "bad-data" 2 true]
+     [3 :db/txInstant2 #inst"1976-01-01T00:00:00.000-00:00" 3 true]
+     [4 :m/info "bad-data" 3 false]
+     [4 :m/info "good-data" 3 true]]
+    2))
+
 (defn job-state [conn job-id]
   (d/q '[:find ?state .
          :in $ ?job-id
@@ -64,6 +89,16 @@
     (log/debug "deleting initial eids:" eids-to-excise)
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after)))))
+
+(defn job->lookup-ref [conn job-id]
+  (->> (d/q '[:find ?lookup-ref .
+              :in $ ?job-id
+              :where
+              [?e :rh/id ?job-id]
+              [?e :rh/lookup-ref ?lookup-ref]]
+            (d/db conn)
+            job-id)
+       (edn/read-string)))
 
 (defn save-tempids-metadata [tx]
   (->> tx
@@ -98,6 +133,8 @@
                         [?e :rh/tx-index ?tx-index]]
                       (d/db conn)
                       job-id)
+        expected-history-so-far (history-take-tx new-history tx-index)
+        history-so-far (impl/pull-flat-history-simple conn (job->lookup-ref conn job-id))
         new-hist-tx (->> (nth txes tx-index)
                          (mapv (fn [[o e a v :as oeav]]
                                  (if (vector? e)
@@ -111,19 +148,21 @@
                           [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :verify]])
                         new-hist-tx)
                 vec)]
-    (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
-    @(d/transact conn tx)))
+    (if (= expected-history-so-far history-so-far)
+      (do
+        (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
+        @(d/transact conn tx))
+      (do
+        (log/error "expected history differs from actual history so far:")
+        (log/error "expected history:" expected-history-so-far)
+        (log/error "history-so-far:" history-so-far)
+        (throw (ex-info "expected history differs from actual history"
+                        {:expected-history expected-history-so-far
+                         :actual-history history-so-far}))))))
 
 
 (defn verify-history! [conn job-id]
-  (let [lookup-ref (->> (d/q '[:find ?lookup-ref .
-                               :in $ ?job-id
-                               :where
-                               [?e :rh/id ?job-id]
-                               [?e :rh/lookup-ref ?lookup-ref]]
-                             (d/db conn)
-                             job-id)
-                        (edn/read-string))
+  (let [lookup-ref (job->lookup-ref conn job-id)
         expected-history (get-new-history conn job-id)
         current-history (impl/pull-flat-history-simple (d/db conn) lookup-ref)
         ok-replay? (= expected-history current-history)

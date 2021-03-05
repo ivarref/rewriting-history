@@ -22,8 +22,9 @@
                         :where [?e ?a ?v]]
                       db (first lookup-ref-or-eid) (second lookup-ref-or-eid))]
       eid
-      (do (log/error "Could not find lookup ref" lookup-ref-or-eid)
-          (throw (ex-info "Could not find lookup ref" {:ref lookup-ref-or-eid}))))
+      (do (log/debug "Could not find lookup ref" lookup-ref-or-eid)
+          nil
+          #_(throw (ex-info "Could not find lookup ref" {:ref lookup-ref-or-eid}))))
     lookup-ref-or-eid))
 
 (declare eid->eavto-set)
@@ -96,20 +97,20 @@
             txes)))
 
 (defn pull-flat-history [db [a v :as lookup-ref]]
-  (let [seen (atom #{})
-        db (to-db db)
-        eid-long (resolve-lookup-ref db lookup-ref)
-        eavtos (eid->eavto-set seen db eid-long)
-        tx-ids (into #{} (map get-t eavtos))
-        tx-meta-eavtos (reduce (fn [o tx-id]
-                                 (set/union o (only-txInstant2 (eid->eavto-set seen db tx-id))))
-                               #{}
-                               tx-ids)]
-    (->> (set/union tx-meta-eavtos eavtos)
-         (remove #(= :db/txInstant (get-a %)))
-         (into [])
-         (sort-by (fn [[e a v t o]] [t e a o v]))
-         (vec))))
+  (when-let [eid-long (resolve-lookup-ref db lookup-ref)]
+    (let [seen (atom #{})
+          db (to-db db)
+          eavtos (eid->eavto-set seen db eid-long)
+          tx-ids (into #{} (map get-t eavtos))
+          tx-meta-eavtos (reduce (fn [o tx-id]
+                                   (set/union o (only-txInstant2 (eid->eavto-set seen db tx-id))))
+                                 #{}
+                                 tx-ids)]
+      (->> (set/union tx-meta-eavtos eavtos)
+           (remove #(= :db/txInstant (get-a %)))
+           (into [])
+           (sort-by (fn [[e a v t o]] [t e a o v]))
+           (vec)))))
 
 (defn is-regular-ref? [db a v]
   (and (= :db.type/ref (d/q '[:find ?type .
@@ -143,8 +144,8 @@
 
 (defn pull-flat-history-simple [db lookup-ref]
   (let [db (to-db db)]
-    (->> (pull-flat-history db lookup-ref)
-         (simplify-eavtos db lookup-ref))))
+    (some->> (pull-flat-history db lookup-ref)
+             (simplify-eavtos db lookup-ref))))
 
 (defn eavto->oeav-tx
   [db tempids [e a v t o :as eavto]]

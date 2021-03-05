@@ -8,7 +8,8 @@
             [clojure.tools.logging :as log]
             [datomic.api :as d]
             [no.nsd.rewriting-history.impl :as impl]
-            [no.nsd.rewriting-history.replay-impl :as replay]))
+            [no.nsd.rewriting-history.replay-impl :as replay]
+            [taoensso.timbre :as timbre]))
 
 (defn setup-schema! [conn]
   @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
@@ -95,12 +96,22 @@
                 [2 :m/id "id" 1 true]
                 [2 :m/info "original-data" 1 true]]))
 
-        @(d/transact conn2 [{:m/id "id"
+        @(d/transact conn2 [{:m/id   "id"
                              :m/info "oh no somebody wrote data in the middle of a re-write!"}])
 
-        (log/info "*************************")
+        (let [{:keys [expected-history]} (try
+                                           (timbre/with-level
+                                             :fatal
+                                             (replay/process-job-step! conn2 "job"))
+                                           nil
+                                           (catch Exception e
+                                             (ex-data e)))]
+          (u/pprint expected-history)
+          (is (= expected-history
+                 [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+                  [2 :m/id "id" 1 true]
+                  [2 :m/info "original-data" 1 true]])))
 
-        (replay/process-job-step! conn2 "job")
 
         #_@(d/transact conn2 [{:rh/id "job" :m/info "oops unexpected write!"}
                               {:db/id "datomic.tx" :db/txInstant #inst"2100"}])
