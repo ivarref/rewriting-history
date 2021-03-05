@@ -51,7 +51,8 @@
      conn)))
 
 (defn pprint [x]
-  (pprint/pprint x)
+  (binding [pprint/*print-right-margin* 120]
+    (pprint/pprint x))
   x)
 
 (defn empty-stage-conn [db-name]

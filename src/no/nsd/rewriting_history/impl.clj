@@ -126,14 +126,21 @@
         reg-eids (set/difference (into #{} (map first eavtos))
                                  tx-eids)
         eid-map (merge
-                  (zipmap (sort tx-eids) (iterate inc 1))
-                  (zipmap (sort reg-eids) (iterate inc 1000000000)))]
+                  (zipmap (sort tx-eids) (map (partial str "t_") (iterate inc 1)))
+                  (zipmap (sort reg-eids) (map (partial str "e_") (iterate inc 1))))
+        eids (->> (reduce into
+                          []
+                          [(map first eavtos) (map get-t eavtos)])
+                  (sort)
+                  (distinct)
+                  (vec))
+        eid-map (zipmap eids (iterate inc 1))]
     (with-meta
       (->> eavtos
            (mapv (fn [[e a v t o]]
                    [(get eid-map e)
                     a
-                    (if (is-regular-ref? db a v)
+                    (if (is-regular-ref? (to-db db) a v)
                       (get eid-map v)
                       v)
                     (get eid-map t)
