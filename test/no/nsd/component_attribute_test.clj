@@ -10,22 +10,16 @@
 
 (deftest component-attribute-test
   (testing "Verify component attribute gets new entity id if we do not specify :db/id"
-    (let [schema (conj #d/schema[[:m/id :one :string :id]
-                                 [:m/address :one :ref :component]
-                                 [:m/country :one :ref :component]
-                                 [:country/name :one :string :id]
-                                 [:db/txInstant2 :one :instant]]
-                       {:db/id        "datomic.tx"
-                        :db/txInstant #inst"1999"})
+    (let [schema #d/schema[[:m/id :one :string :id]
+                           [:m/address :one :ref :component]
+                           [:m/country :one :ref :component]
+                           [:country/name :one :string :id]
+                           [:db/txInstant2 :one :instant]]
           conn (u/empty-conn schema)
           _ @(d/transact conn [{:m/id      "id"
-                                :m/address {:m/country {:country/name "Norway"}}}
-                               {:db/id        "datomic.tx"
-                                :db/txInstant #inst"2000"}])
+                                :m/address {:m/country {:country/name "Norway"}}}])
           _ @(d/transact conn [{:m/id      "id"
-                                :m/address {:m/country {:country/name "Norway"}}}
-                               {:db/id        "datomic.tx"
-                                :db/txInstant #inst"2001"}])
+                                :m/address {:m/country {:country/name "Norway"}}}])
           fh (rh/pull-flat-history conn [:m/id "id"])]
       (is (= (->> fh
                   (filterv #(= :m/address (second %)))
