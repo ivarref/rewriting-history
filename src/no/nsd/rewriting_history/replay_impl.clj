@@ -119,7 +119,7 @@
         expected-history (some->>
                            (history-take-tx new-history tx-index)
                            (impl/simplify-eavtos conn lookup-ref))
-        history-so-far (impl/pull-flat-history-simple conn lookup-ref)
+        actual-history (impl/pull-flat-history-simple conn lookup-ref)
         new-hist-tx (->> (nth txes tx-index)
                          (mapv (fn [[o e a v :as oeav]]
                                  (if (vector? e)
@@ -134,18 +134,19 @@
                         new-hist-tx)
                 vec)]
     (log/debug "expected-history:" expected-history)
-    (if (= expected-history history-so-far)
+    (if (= expected-history actual-history)
       (do
         (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
         @(d/transact conn tx))
       (do
         (log/error "expected history differs from actual history so far:")
         (log/error "expected history:" expected-history)
-        (log/error "history-so-far:" history-so-far)
-        @(d/transact conn [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :conflict]])
+        (log/error "actual history:" actual-history)
+        @(d/transact conn [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :error]
+                           {:db/id [:rh/id job-id] :rh/error (Date.)}])
         (throw (ex-info "expected history differs from actual history"
-                        {:expected-history expected-history
-                         :actual-history   history-so-far}))))))
+                        {:expected-history (history-take-tx new-history tx-index)
+                         :actual-history   actual-history}))))))
 
 
 (defn verify-history! [conn job-id]
