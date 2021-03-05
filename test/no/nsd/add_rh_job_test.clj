@@ -13,24 +13,7 @@
 (defn setup-schema! [tx!]
   (tx! #d/schema[[:db/txInstant2 :one :instant]])
 
-  ; Setup schema for persisting of history-rewrites:
-  (tx! #d/schema[[:rh/id :one :string :id]
-                 [:rh/lookup-ref :one :string]
-                 [:rh/eid :many :long]
-                 [:rh/org-history :many :ref :component]
-                 [:rh/new-history :many :ref :component]
-                 [:rh/state :one :keyword]
-                 [:rh/done :one :instant]
-                 [:rh/error :one :instant]
-                 [:rh/tx-index :one :long]
-                 [:rh/tempids :many :ref :component]
-                 [:rh/tempid-str :one :string]
-                 [:rh/tempid-ref :one :ref]
-                 [:rh/e :one :string]
-                 [:rh/a :one :string]
-                 [:rh/v :one :string]
-                 [:rh/t :one :string]
-                 [:rh/o :one :string]])
+  (tx! impl/schema)
 
   ; Setup application schema:
   (tx! #d/schema[[:m/id :one :string :id]

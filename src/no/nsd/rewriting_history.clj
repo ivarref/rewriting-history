@@ -4,6 +4,9 @@
 
 ; public API
 
+(defn init-schema! [conn]
+  (impl/init-schema! conn))
+
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (impl/pull-flat-history-simple db lookup-ref))
 

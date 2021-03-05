@@ -2,7 +2,8 @@
   (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
             [clojure.set :as set]
-            [clojure.pprint :as pprint])
+            [clojure.pprint :as pprint]
+            [datomic-schema.core])
   (:import (datomic Database)))
 
 ; private API, subject to change
@@ -235,3 +236,27 @@
              :rh/org-history (history->set org-history)
              :rh/new-history (history->set new-history)}]]
     @(d/transact conn tx)))
+
+(def schema
+  #d/schema[[:rh/id :one :string :id]
+            [:rh/lookup-ref :one :string]
+            [:rh/eid :many :long]
+            [:rh/org-history :many :ref :component]
+            [:rh/new-history :many :ref :component]
+            [:rh/state :one :keyword]
+            [:rh/done :one :instant]
+            [:rh/error :one :instant]
+            [:rh/tx-index :one :long]
+            [:rh/tempids :many :ref :component]
+            [:rh/tempid-str :one :string]
+            [:rh/tempid-ref :one :ref]
+            [:rh/e :one :string]
+            [:rh/a :one :string]
+            [:rh/v :one :string]
+            [:rh/t :one :string]
+            [:rh/o :one :string]])
+
+(defn init-schema! [conn]
+  ; Setup schema for persisting of history-rewrites:
+  @(d/transact conn schema))
+
