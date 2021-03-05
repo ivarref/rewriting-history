@@ -6,13 +6,39 @@
             [clojure.string :as str])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
-           (java.util Date UUID)))
+           (java.util Date UUID)
+           (datomic Connection)))
 
-(defn- empty-conn-for-uri [uri]
+(defn year->Date [yr]
+  (Date/from
+    (-> (LocalDate/parse (str yr "-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))
+        (.atStartOfDay (ZoneId/of "UTC"))
+        (.toInstant))))
+
+(defn empty-conn-for-uri [uri]
   (d/delete-database uri)
   (d/create-database uri)
-  (let [conn (d/connect uri)]
-    conn))
+  (let [yr (atom 1970)
+        conn (d/connect uri)]
+    (reify Connection
+      (requestIndex [_] (.requestIndex conn))
+      (db [_] (.db conn))
+      (log [_] (.log conn))
+      (sync [_] (.sync conn))
+      (sync [_ var1] (.sync conn var1))
+      (syncIndex [_ var1] (.syncIndex conn var1))
+      (syncSchema [_ var1] (.syncSchema conn var1))
+      (syncExcise [_ var1] (.syncExcise conn var1))
+      (transact [_ var1] (.transact conn (conj var1
+                                               {:db/id        "datomic.tx"
+                                                :db/txInstant (year->Date (swap! yr inc))})))
+      (transactAsync [_ var1] (.transactAsync conn (conj var1
+                                                         {:db/id        "datomic.tx"
+                                                          :db/txInstant (year->Date (swap! yr inc))})))
+      (txReportQueue [_] (.txReportQueue conn))
+      (removeTxReportQueue [_] (.removeTxReportQueue conn))
+      (gcStorage [_ var1] (.gcStorage conn var1))
+      (release [_] (.release conn)))))
 
 (defn empty-conn
   ([]
@@ -22,16 +48,10 @@
      @(d/transact conn schema)
      conn)))
 
-(defn year->Date [yr]
-  (Date/from
-    (-> (LocalDate/parse (str yr "-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))
-        (.atStartOfDay (ZoneId/of "UTC"))
-        (.toInstant))))
-
 (defn tx-fn! [conn]
   (let [yr (atom 1970)]
     (fn [data]
-      @(d/transact conn (conj data {:db/id "datomic.tx"
+      @(d/transact conn (conj data {:db/id        "datomic.tx"
                                     :db/txInstant (year->Date (swap! yr inc))})))))
 
 (defn pprint [x]

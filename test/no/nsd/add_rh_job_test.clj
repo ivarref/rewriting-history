@@ -10,17 +10,57 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]))
 
-(defn setup-schema! [tx!]
-  (tx! #d/schema[[:db/txInstant2 :one :instant]])
+(defn setup-schema! [conn]
+  @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
 
-  (tx! impl/schema)
+  @(d/transact conn impl/schema)
 
   ; Setup application schema:
-  (tx! #d/schema[[:m/id :one :string :id]
-                 [:m/info :one :string]]))
+  @(d/transact conn #d/schema[[:m/id :one :string :id]
+                              [:m/info :one :string]]))
 
 (deftest replay-history-job-test
   (testing "Replay history job works"
+    (let [conn1 (u/empty-conn)
+          conn2 (u/empty-conn)]
+      (setup-schema! conn1)
+      (setup-schema! conn2)
+
+      @(d/transact conn1 [{:m/id "id" :m/info "original-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "bad-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "good-data"}])
+
+      (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
+        (is (= org-history
+               [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+                [4 :m/id "id" 1 true]
+                [4 :m/info "original-data" 1 true]
+                [2 :db/txInstant2 #inst "1975-01-01T00:00:00.000-00:00" 2 true]
+                [4 :m/info "original-data" 2 false]
+                [4 :m/info "bad-data" 2 true]
+                [3 :db/txInstant2 #inst "1976-01-01T00:00:00.000-00:00" 3 true]
+                [4 :m/info "bad-data" 3 false]
+                [4 :m/info "good-data" 3 true]]))
+
+        (replay/add-rewrite-job! conn1 "job" org-history org-history)
+        (replay/add-rewrite-job! conn2 "job" org-history org-history)
+
+        ; This will wipe the existing data:
+        (replay/job-init! conn1 "job")
+
+        ; Fake excision is done for conn2:
+        @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
+
+        (is (= (replay/get-new-history conn1 "job") org-history))
+        (is (= (replay/get-new-history conn2 "job") org-history))
+
+        (replay/process-until-state conn2 "job" :done)
+
+        (is (= (rh/pull-flat-history conn2 [:m/id "id"])
+               org-history))))))
+
+(deftest error-replay-history-job-test
+  (testing "Replay history job detects error if unexpected write occurs"
     (let [conn1 (u/empty-conn)
           conn2 (u/empty-conn)
           tx1! (u/tx-fn! conn1)
@@ -44,19 +84,22 @@
                 [4 :m/info "bad-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))
 
-        (impl/add-rewrite-job! conn1 "job" org-history org-history)
-        (impl/add-rewrite-job! conn2 "job" org-history org-history)
+        #_(replay/add-rewrite-job! conn2 "job" org-history org-history)
 
-        ; This will wipe the existing data:
-        (replay/job-init! conn1 "job")
+        ; Fake excision is:
+        #_(tx2! [{:rh/id "job" :rh/state :rewrite-history}])
 
-        ; Fake excision is done for conn2:
-        @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
+        #_(replay/process-job-step! conn2 "job")
 
-        (is (= (replay/get-new-history conn1 "job") org-history))
-        (is (= (replay/get-new-history conn2 "job") org-history))
+        #_(is (= (rh/pull-flat-history conn2 [:m/id "id"])
+                 [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+                  [2 :m/id "id" 1 true]
+                  [2 :m/info "original-data" 1 true]]))
+        #_@(d/transact conn2 [{:rh/id "job" :m/info "oops unexpected write!"}
+                              {:db/id "datomic.tx" :db/txInstant #inst"2100"}])
 
-        (replay/process-until-state conn2 "job" :done)
 
-        (is (= (rh/pull-flat-history conn2 [:m/id "id"])
-               org-history))))))
+        #_(replay/process-until-state conn2 "job" :done)
+
+        #_(is (= (rh/pull-flat-history conn2 [:m/id "id"])
+                 org-history))))))
