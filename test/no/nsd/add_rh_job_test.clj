@@ -62,15 +62,13 @@
 (deftest error-replay-history-job-test
   (testing "Replay history job detects error if unexpected write occurs"
     (let [conn1 (u/empty-conn)
-          conn2 (u/empty-conn)
-          tx1! (u/tx-fn! conn1)
-          tx2! (u/tx-fn! conn2)]
-      (setup-schema! tx1!)
-      (setup-schema! tx2!)
+          conn2 (u/empty-conn)]
+      (setup-schema! conn1)
+      (setup-schema! conn2)
 
-      (tx1! [{:m/id "id" :m/info "original-data"}])
-      (tx1! [{:m/id "id" :m/info "bad-data"}])
-      (tx1! [{:m/id "id" :m/info "good-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "original-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "bad-data"}])
+      @(d/transact conn1 [{:m/id "id" :m/info "good-data"}])
 
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
         (is (= org-history
