@@ -7,19 +7,21 @@
             [no.nsd.rewriting-history :as rh]
             [clojure.tools.logging :as log]
             [datomic.api :as d]
-            [no.nsd.rewriting-history.impl :as impl])
-  (:import (java.util Date)))
+            [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.rewriting-history.replay-impl :as replay]))
 
 (defn setup-schema! [tx!]
   (tx! #d/schema[[:db/txInstant2 :one :instant]])
 
   ; Setup schema for persisting of history-rewrites:
   (tx! #d/schema[[:rh/id :one :string :id]
+                 [:rh/lookup-ref :one :string]
                  [:rh/eid :many :long]
                  [:rh/org-history :many :ref :component]
                  [:rh/new-history :many :ref :component]
                  [:rh/state :one :keyword]
                  [:rh/done :one :instant]
+                 [:rh/error :one :instant]
                  [:rh/tx-index :one :long]
                  [:rh/tempids :many :ref :component]
                  [:rh/tempid-str :one :string]
@@ -33,23 +35,6 @@
   ; Setup application schema:
   (tx! #d/schema[[:m/id :one :string :id]
                  [:m/info :one :string]]))
-
-(defn get-new-history [conn job-id]
-  (->> (d/q '[:find ?e ?a ?v ?t ?o
-              :in $ ?ee
-              :where
-              [?ee :rh/new-history ?n]
-              [?n :rh/e ?e]
-              [?n :rh/a ?a]
-              [?n :rh/v ?v]
-              [?n :rh/t ?t]
-              [?n :rh/o ?o]]
-            (d/db conn)
-            (impl/resolve-lookup-ref (d/db conn) [:rh/id job-id]))
-       (vec)
-       (mapv (partial mapv read-string))
-       (sort-by (fn [[e a v t o]] [t e a o v]))
-       (vec)))
 
 (defn job-state [conn job-id]
   (d/q '[:find ?state .
@@ -117,8 +102,8 @@
         tx (->> (concat [[:db/cas [:rh/id job-id] :rh/tx-index tx-index (inc tx-index)]
                          {:db/id [:rh/id job-id] :rh/tempids save-tempids}]
                         (when done?
-                          [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :done]
-                           {:db/id [:rh/id job-id] :rh/done (Date.)}])
+                          [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :verify]
+                           #_{:db/id [:rh/id job-id] :rh/done (Date.)}])
                         new-hist-tx)
                 vec)]
     (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
@@ -132,6 +117,9 @@
 
       (= :rewrite-history state)
       (rewrite-history! conn job-id)
+
+      (= :verify state)
+      (rh/verify-history! conn job-id)
 
       :else
       (do
@@ -172,8 +160,8 @@
         ; Fake excision is done for conn2:
         @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
 
-        (is (= (get-new-history conn1 "job") org-history))
-        (is (= (get-new-history conn2 "job") org-history))
+        (is (= (replay/get-new-history conn1 "job") org-history))
+        (is (= (replay/get-new-history conn2 "job") org-history))
 
         (while (not= :done (job-state conn2 "job"))
           (process-job-step! conn2 "job"))

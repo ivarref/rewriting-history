@@ -119,7 +119,7 @@
                             db a))
        (not (keyword? v))))
 
-(defn simplify-eavtos [db eavtos]
+(defn simplify-eavtos [db lookup-ref eavtos]
   (let [eids (->> (reduce into
                           []
                           [(map first eavtos) (map get-t eavtos)])
@@ -137,12 +137,13 @@
                       v)
                     (get eid-map t)
                     o])))
-      {:original-eids eids})))
+      {:original-eids eids
+       :lookup-ref lookup-ref})))
 
 (defn pull-flat-history-simple [db lookup-ref]
   (let [db (to-db db)]
     (->> (pull-flat-history db lookup-ref)
-         (simplify-eavtos db))))
+         (simplify-eavtos db lookup-ref))))
 
 (defn eavto->oeav-tx
   [db tempids [e a v t o :as eavto]]
@@ -230,6 +231,7 @@
              :rh/state       :init
              :rh/tx-index    0
              :rh/eid         (into #{} (-> org-history meta :original-eids))
+             :rh/lookup-ref  (pr-str (-> org-history meta :lookup-ref))
              :rh/org-history (history->set org-history)
              :rh/new-history (history->set new-history)}]]
     @(d/transact conn tx)))
