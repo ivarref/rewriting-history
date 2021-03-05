@@ -189,8 +189,15 @@
 (defn process-until-state [conn job-id desired-state]
   (loop []
     (process-job-step! conn job-id)
-    (when (not= desired-state (job-state conn job-id))
-      (recur))))
+    (let [new-state (job-state conn job-id)]
+      (cond (= new-state :error)
+            :error
+
+            (not= desired-state new-state)
+            (recur)
+
+            :else
+            new-state))))
 
 (defn history->set [hist]
   (->> hist
