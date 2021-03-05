@@ -124,6 +124,7 @@
    a v])
 
 (defn rewrite-history! [conn job-id]
+  (log/info "start rewrite-history ...")
   (let [new-history (get-new-history conn job-id)
         txes (impl/history->transactions conn new-history)
         tx-index (d/q '[:find ?tx-index .
@@ -133,8 +134,11 @@
                         [?e :rh/tx-index ?tx-index]]
                       (d/db conn)
                       job-id)
-        expected-history-so-far (history-take-tx new-history tx-index)
-        history-so-far (impl/pull-flat-history-simple conn (job->lookup-ref conn job-id))
+        lookup-ref (job->lookup-ref conn job-id)
+        expected-history (some->>
+                           (history-take-tx new-history tx-index)
+                           (impl/simplify-eavtos conn lookup-ref))
+        history-so-far (impl/pull-flat-history-simple conn lookup-ref)
         new-hist-tx (->> (nth txes tx-index)
                          (mapv (fn [[o e a v :as oeav]]
                                  (if (vector? e)
@@ -148,17 +152,18 @@
                           [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :verify]])
                         new-hist-tx)
                 vec)]
-    (if (= expected-history-so-far history-so-far)
+    (log/info "expected-history:" expected-history)
+    (if (= expected-history history-so-far)
       (do
-        (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
+        (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
         @(d/transact conn tx))
       (do
         (log/error "expected history differs from actual history so far:")
-        (log/error "expected history:" expected-history-so-far)
+        (log/error "expected history:" expected-history)
         (log/error "history-so-far:" history-so-far)
         (throw (ex-info "expected history differs from actual history"
-                        {:expected-history expected-history-so-far
-                         :actual-history history-so-far}))))))
+                        {:expected-history expected-history
+                         :actual-history   history-so-far}))))))
 
 
 (defn verify-history! [conn job-id]

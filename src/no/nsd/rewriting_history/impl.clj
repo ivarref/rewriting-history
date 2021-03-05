@@ -122,13 +122,12 @@
        (not (keyword? v))))
 
 (defn simplify-eavtos [db lookup-ref eavtos]
-  (let [eids (->> (reduce into
-                          []
-                          [(map first eavtos) (map get-t eavtos)])
-                  (sort)
-                  (distinct)
-                  (vec))
-        eid-map (zipmap eids (iterate inc 1))]
+  (let [tx-eids (into #{} (distinct (map get-t eavtos)))
+        reg-eids (set/difference (into #{} (map first eavtos))
+                                 tx-eids)
+        eid-map (merge
+                  (zipmap (sort tx-eids) (iterate inc 1))
+                  (zipmap (sort reg-eids) (iterate inc 1000000000)))]
     (with-meta
       (->> eavtos
            (mapv (fn [[e a v t o]]
@@ -139,8 +138,8 @@
                       v)
                     (get eid-map t)
                     o])))
-      {:original-eids eids
-       :lookup-ref lookup-ref})))
+      {:original-eids (vec (sort (vec (set/union tx-eids reg-eids))))
+       :lookup-ref    lookup-ref})))
 
 (defn pull-flat-history-simple [db lookup-ref]
   (let [db (to-db db)]
