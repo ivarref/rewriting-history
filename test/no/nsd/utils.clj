@@ -15,11 +15,8 @@
         (.atStartOfDay (ZoneId/of "UTC"))
         (.toInstant))))
 
-(defn empty-conn-for-uri [uri]
-  (d/delete-database uri)
-  (d/create-database uri)
-  (let [yr (atom 1970)
-        conn (d/connect uri)]
+(defn conn-with-fake-tx-time [conn]
+  (let [yr (atom 1970)]
     (reify Connection
       (requestIndex [_] (.requestIndex conn))
       (db [_] (.db conn))
@@ -39,6 +36,11 @@
       (removeTxReportQueue [_] (.removeTxReportQueue conn))
       (gcStorage [_ var1] (.gcStorage conn var1))
       (release [_] (.release conn)))))
+
+(defn empty-conn-for-uri [uri]
+  (d/delete-database uri)
+  (d/create-database uri)
+  (conn-with-fake-tx-time (d/connect uri)))
 
 (defn empty-conn
   ([]
@@ -67,7 +69,7 @@
       (let [uri (str "datomic:sql://" db-name "?" jdbc-uri)]
         (d/delete-database uri)
         (d/create-database uri)
-        (d/connect uri)))))
+        (conn-with-fake-tx-time (d/connect uri))))))
 
 (defn clear []
   (.print System/out "\033[H\033[2J")
