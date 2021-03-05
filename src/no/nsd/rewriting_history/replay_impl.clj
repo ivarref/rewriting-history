@@ -73,6 +73,21 @@
                           :rh/tempid-ref tempid}))
        (into #{})))
 
+(defn resolve-tempid [conn job-id [o [tempid tempid-str] a v]]
+  (assert (and (string? tempid-str) (= :tempid tempid)))
+  [o
+   (d/q '[:find ?tempid-ref .
+          :in $ ?job-id ?tempid-str
+          :where
+          [?e :rh/id ?job-id]
+          [?e :rh/tempids ?tmpid]
+          [?tmpid :rh/tempid-str ?tempid-str]
+          [?tmpid :rh/tempid-ref ?tempid-ref]]
+        (d/db conn)
+        job-id
+        tempid-str)
+   a v])
+
 (defn rewrite-history! [conn job-id]
   (let [new-history (get-new-history conn job-id)
         txes (impl/history->transactions conn new-history)
@@ -83,31 +98,17 @@
                         [?e :rh/tx-index ?tx-index]]
                       (d/db conn)
                       job-id)
-        lookup-tempid (fn [[o [tempid tempid-str] a v]]
-                        (assert (and (string? tempid-str) (= :tempid tempid)))
-                        [o (d/q '[:find ?tempid-ref .
-                                  :in $ ?job-id ?tempid-str
-                                  :where
-                                  [?e :rh/id ?job-id]
-                                  [?e :rh/tempids ?tmpid]
-                                  [?tmpid :rh/tempid-str ?tempid-str]
-                                  [?tmpid :rh/tempid-ref ?tempid-ref]]
-                                (d/db conn)
-                                job-id
-                                tempid-str)
-                         a v])
         new-hist-tx (->> (nth txes tx-index)
                          (mapv (fn [[o e a v :as oeav]]
                                  (if (vector? e)
-                                   (lookup-tempid oeav)
+                                   (resolve-tempid conn job-id oeav)
                                    oeav))))
         save-tempids (save-tempids-metadata new-hist-tx)
         tx-done? (= (inc tx-index) (count txes))
         tx (->> (concat [[:db/cas [:rh/id job-id] :rh/tx-index tx-index (inc tx-index)]
                          {:db/id [:rh/id job-id] :rh/tempids save-tempids}]
                         (when tx-done?
-                          [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :verify]
-                           #_{:db/id [:rh/id job-id] :rh/done (Date.)}])
+                          [[:db/cas [:rh/id job-id] :rh/state :rewrite-history :verify]])
                         new-hist-tx)
                 vec)]
     (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
