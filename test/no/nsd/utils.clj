@@ -50,12 +50,6 @@
      @(d/transact conn schema)
      conn)))
 
-(defn tx-fn! [conn]
-  (let [yr (atom 1970)]
-    (fn [data]
-      @(d/transact conn (conj data {:db/id        "datomic.tx"
-                                    :db/txInstant (year->Date (swap! yr inc))})))))
-
 (defn pprint [x]
   (pprint/pprint x)
   x)
