@@ -82,17 +82,26 @@
                 [4 :m/info "bad-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))
 
-        #_(replay/add-rewrite-job! conn2 "job" org-history org-history)
+        ; Add job
+        (replay/add-rewrite-job! conn2 "job" org-history org-history)
 
-        ; Fake excision is:
-        #_(tx2! [{:rh/id "job" :rh/state :rewrite-history}])
+        ; Fake excision
+        @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
 
-        #_(replay/process-job-step! conn2 "job")
+        (replay/process-job-step! conn2 "job")
 
-        #_(is (= (rh/pull-flat-history conn2 [:m/id "id"])
-                 [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
-                  [2 :m/id "id" 1 true]
-                  [2 :m/info "original-data" 1 true]]))
+        (is (= (rh/pull-flat-history conn2 [:m/id "id"])
+               [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+                [2 :m/id "id" 1 true]
+                [2 :m/info "original-data" 1 true]]))
+
+        @(d/transact conn2 [{:m/id "id"
+                             :m/info "oh no somebody wrote data in the middle of a re-write!"}])
+
+        (log/info "*************************")
+
+        (replay/process-job-step! conn2 "job")
+
         #_@(d/transact conn2 [{:rh/id "job" :m/info "oops unexpected write!"}
                               {:db/id "datomic.tx" :db/txInstant #inst"2100"}])
 
