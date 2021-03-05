@@ -48,7 +48,7 @@
         (impl/add-rewrite-job! conn2 "job" org-history org-history)
 
         ; This will wipe the existing data:
-        (job-init! conn1 "job")
+        (replay/job-init! conn1 "job")
 
         ; Fake excision is done for conn2:
         @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
@@ -56,8 +56,7 @@
         (is (= (replay/get-new-history conn1 "job") org-history))
         (is (= (replay/get-new-history conn2 "job") org-history))
 
-        (while (not= :done (replay/job-state conn2 "job"))
-          (replay/process-job-step! conn2 "job"))
+        (replay/process-until-state conn2 "job" :done)
 
         (is (= (rh/pull-flat-history conn2 [:m/id "id"])
                org-history))))))

@@ -155,3 +155,9 @@
       (do
         (log/error "unhandled job state:" state)
         nil #_(throw (ex-info "unhandled job state" {:state state}))))))
+
+(defn process-until-state [conn job-id desired-state]
+  (loop []
+    (process-job-step! conn job-id)
+    (when (not= desired-state (job-state conn job-id))
+      (recur))))
