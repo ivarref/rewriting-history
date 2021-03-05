@@ -10,21 +10,19 @@
             [no.nsd.rewriting-history :as rh]))
 
 (deftest basic-history-pull-test
-  (let [schema (conj #d/schema[[:m/id :one :string :id]
-                               [:m/info :one :string]
-                               [:m/address :one :ref :component]
-                               [:m/vedlegg :many :ref :component]
-                               [:m/type :one :ref]
-                               [:type/standard :enum]
-                               [:type/special :enum]
-                               [:vedlegg/id :one :string :id]
-                               [:vedlegg/info :one :string]
-                               [:addr/country :one :ref :component]
-                               [:country/name :one :string :id]
-                               [:country/region :one :string]
-                               [:db/txInstant2 :one :instant]]
-                     {:db/id        "datomic.tx"
-                      :db/txInstant #inst"2000"})
+  (let [schema #d/schema[[:m/id :one :string :id]
+                         [:m/info :one :string]
+                         [:m/address :one :ref :component]
+                         [:m/vedlegg :many :ref :component]
+                         [:m/type :one :ref]
+                         [:type/standard :enum]
+                         [:type/special :enum]
+                         [:vedlegg/id :one :string :id]
+                         [:vedlegg/info :one :string]
+                         [:addr/country :one :ref :component]
+                         [:country/name :one :string :id]
+                         [:country/region :one :string]
+                         [:db/txInstant2 :one :instant]]
         conn (u/empty-conn schema)]
 
     @(d/transact conn [{:m/id      "id-1"
@@ -36,15 +34,11 @@
                                      :vedlegg/info "hei2"}]
                         :m/address {:addr/country
                                     {:country/name   "Norway"
-                                     :country/region "West Europe"}}}
-                       {:db/id        "datomic.tx"
-                        :db/txInstant #inst"2001"}])
+                                     :country/region "West Europe"}}}])
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/vedlegg [{:vedlegg/id   "vedlegg-1"
-                                     :vedlegg/info "vedlegg 1: XXX har syfilis"}]}
-                       {:db/id        "datomic.tx"
-                        :db/txInstant #inst"2002"}])
+                                     :vedlegg/info "vedlegg 1: XXX har syfilis"}]}])
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/type    :type/special
@@ -52,12 +46,10 @@
                                      :vedlegg/info "vedlegg 1: oops!"}]
                         :m/address {:addr/country
                                     {:country/name   "Norway"
-                                     :country/region "Europe"}}}
-                       {:db/id        "datomic.tx"
-                        :db/txInstant #inst"2003"}])
+                                     :country/region "Europe"}}}])
 
     (let [fh (rh/pull-flat-history conn [:m/id "id-1"])]
-      (is (= [[1 :db/txInstant2 #inst "2001" 1 true]
+      (is (= [[1 :db/txInstant2 #inst "1972" 1 true]
               [4 :m/address 7 1 true]
               [4 :m/id "id-1" 1 true]
               [4 :m/info "hello world" 1 true]
@@ -72,11 +64,11 @@
               [8 :country/name "Norway" 1 true]
               [8 :country/region "West Europe" 1 true]
 
-              [2 :db/txInstant2 #inst "2002" 2 true]
+              [2 :db/txInstant2 #inst "1973" 2 true]
               [5 :vedlegg/info "vedlegg 1: hei" 2 false]
               [5 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
 
-              [3 :db/txInstant2 #inst "2003" 3 true]
+              [3 :db/txInstant2 #inst "1974" 3 true]
               [4 :m/address 7 3 false]
               [4 :m/address 9 3 true]
               [4 :m/type :type/standard 3 false]
