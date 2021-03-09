@@ -33,44 +33,46 @@
     (require '[rewrite-clj.zip :as z])
     (require '[clojure.edn :as edn])
     (require '[rewrite-clj.node :as n])
-    (let [reqs (-> (z/of-file *file*)
-                   (z/find-value z/next 'ns)
-                   (z/find-value z/next :require)
-                   (z/up)
-                   (z/child-sexprs))
-          ident (-> (z/of-file *file*)
-                    (z/find-value z/next 'defn)
-                    (z/right)
-                    (z/sexpr)
-                    (str)
-                    (str/replace "--" "/")
-                    (keyword))
-          params (-> (z/of-file *file*)
+    (defn generate-function []
+      (let [reqs (-> (z/of-file *file*)
+                     (z/find-value z/next 'ns)
+                     (z/find-value z/next :require)
+                     (z/up)
+                     (z/child-sexprs))
+            ident (-> (z/of-file *file*)
+                      (z/find-value z/next 'defn)
+                      (z/right)
+                      (z/sexpr)
+                      (str)
+                      (str/replace "--" "/")
+                      (keyword))
+            params (-> (z/of-file *file*)
+                       (z/find-value z/next 'defn)
+                       (z/right)
+                       (z/right)
+                       (z/sexpr))
+            code (-> (z/of-file *file*)
                      (z/find-value z/next 'defn)
                      (z/right)
                      (z/right)
+                     (z/right)
                      (z/sexpr))
-          code (-> (z/of-file *file*)
-                   (z/find-value z/next 'defn)
-                   (z/right)
-                   (z/right)
-                   (z/right)
-                   (z/sexpr))
-          out-file (str/replace *file* ".clj" ".edn")
-          out-str (str "{:db/ident " ident "\n"
-                       " :db/fn #db/fn \n"
-                       (pr-str {:lang     "clojure"
-                                :params   params
-                                :requires (vec (drop 1 reqs))
-                                :code     code})
-                       "\n"
-                       "}")]
-      (spit *file* (-> (z/of-file *file*)
-                       (z/find-value z/next 'clojure.edn/read-string)
-                       (z/right)
-                       (z/right)
-                       (z/replace out-str)
-                       (z/root)
-                       (n/string))))))
+            out-file (str/replace *file* ".clj" ".edn")
+            out-str (str "{:db/ident " ident "\n"
+                         " :db/fn #db/fn \n"
+                         (pr-str {:lang     "clojure"
+                                  :params   params
+                                  :requires (vec (drop 1 reqs))
+                                  :code     code})
+                         "\n"
+                         "}")]
+        (spit *file* (-> (z/of-file *file*)
+                         (z/find-value z/next 'clojure.edn/read-string)
+                         (z/right)
+                         (z/right)
+                         (z/replace out-str)
+                         (z/root)
+                         (n/string)))))
+    (generate-function)))
 
 
