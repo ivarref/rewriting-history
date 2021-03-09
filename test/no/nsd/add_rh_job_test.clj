@@ -12,7 +12,7 @@
             [taoensso.timbre :as timbre]))
 
 (defn setup-schema! [conn]
-  @(d/transact conn #d/schema[[:db/txInstant2 :one :instant]])
+  @(d/transact conn #d/schema[[:tx/txInstant :one :instant]])
 
   @(d/transact conn impl/schema)
 
@@ -33,13 +33,13 @@
 
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
         (is (= org-history
-               [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+               [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
                 [4 :m/id "id" 1 true]
                 [4 :m/info "original-data" 1 true]
-                [2 :db/txInstant2 #inst "1975-01-01T00:00:00.000-00:00" 2 true]
+                [2 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 2 true]
                 [4 :m/info "original-data" 2 false]
                 [4 :m/info "bad-data" 2 true]
-                [3 :db/txInstant2 #inst "1976-01-01T00:00:00.000-00:00" 3 true]
+                [3 :tx/txInstant #inst "1976-01-01T00:00:00.000-00:00" 3 true]
                 [4 :m/info "bad-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))
 
@@ -73,13 +73,13 @@
 
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
         (is (= org-history
-               [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+               [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
                 [4 :m/id "id" 1 true]
                 [4 :m/info "original-data" 1 true]
-                [2 :db/txInstant2 #inst "1975-01-01T00:00:00.000-00:00" 2 true]
+                [2 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 2 true]
                 [4 :m/info "original-data" 2 false]
                 [4 :m/info "bad-data" 2 true]
-                [3 :db/txInstant2 #inst "1976-01-01T00:00:00.000-00:00" 3 true]
+                [3 :tx/txInstant #inst "1976-01-01T00:00:00.000-00:00" 3 true]
                 [4 :m/info "bad-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))
 
@@ -92,7 +92,7 @@
         (replay/process-job-step! conn2 "job")
 
         (is (= (rh/pull-flat-history conn2 [:m/id "id"])
-               [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+               [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
                 [2 :m/id "id" 1 true]
                 [2 :m/info "original-data" 1 true]]))
 
@@ -104,7 +104,7 @@
                 :fatal
                 (replay/rewrite-history! conn2 "job"))]
           (is (= expected-history
-                 [[1 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 1 true]
+                 [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
                   [4 :m/id "id" 1 true]
                   [4 :m/info "original-data" 1 true]]))
           (is (= :error (replay/job-state conn2 "job"))))))))

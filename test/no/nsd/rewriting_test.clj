@@ -22,7 +22,7 @@
                          [:addr/country :one :ref :component]
                          [:country/name :one :string :id]
                          [:country/region :one :string]
-                         [:db/txInstant2 :one :instant]]
+                         [:tx/txInstant :one :instant]]
         conn (u/empty-conn schema)]
 
     @(d/transact conn [{:m/id      "id-1"
@@ -49,7 +49,7 @@
                                      :country/region "Europe"}}}])
 
     (let [fh (rh/pull-flat-history conn [:m/id "id-1"])]
-      (is (= [[1 :db/txInstant2 #inst "1972" 1 true]
+      (is (= [[1 :tx/txInstant #inst "1972" 1 true]
               [4 :m/address 7 1 true]
               [4 :m/id "id-1" 1 true]
               [4 :m/info "hello world" 1 true]
@@ -64,11 +64,11 @@
               [8 :country/name "Norway" 1 true]
               [8 :country/region "West Europe" 1 true]
 
-              [2 :db/txInstant2 #inst "1973" 2 true]
+              [2 :tx/txInstant #inst "1973" 2 true]
               [5 :vedlegg/info "vedlegg 1: hei" 2 false]
               [5 :vedlegg/info "vedlegg 1: XXX har syfilis" 2 true]
 
-              [3 :db/txInstant2 #inst "1974" 3 true]
+              [3 :tx/txInstant #inst "1974" 3 true]
               [4 :m/address 7 3 false]
               [4 :m/address 9 3 true]
               [4 :m/type :type/standard 3 false]

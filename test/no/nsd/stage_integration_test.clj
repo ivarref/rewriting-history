@@ -21,7 +21,7 @@
   (when-let [conn (u/empty-stage-conn "rewriting-history-integration-test-1")]
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/info :one :string]
-                                [:db/txInstant2 :one :instant]])
+                                [:tx/txInstant :one :instant]])
     @(d/transact conn [{:m/id "id" :m/info "original-data"}])
     @(d/transact conn [{:m/id "id" :m/info "bad-data"}])
     @(d/transact conn [{:m/id "id" :m/info "good-data"}])
@@ -39,13 +39,13 @@
 
       ; Original history looks like this:
       (is (= org-history
-             [[1 :db/txInstant2 #inst "1972-01-01T00:00:00.000-00:00" 1 true]
+             [[1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" 1 true]
               [4 :m/id "id" 1 true]
               [4 :m/info "original-data" 1 true]
-              [2 :db/txInstant2 #inst "1973-01-01T00:00:00.000-00:00" 2 true]
+              [2 :tx/txInstant #inst "1973-01-01T00:00:00.000-00:00" 2 true]
               [4 :m/info "original-data" 2 false]
               [4 :m/info "bad-data" 2 true]
-              [3 :db/txInstant2 #inst "1974-01-01T00:00:00.000-00:00" 3 true]
+              [3 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 3 true]
               [4 :m/info "bad-data" 3 false]
               [4 :m/info "good-data" 3 true]]))
 

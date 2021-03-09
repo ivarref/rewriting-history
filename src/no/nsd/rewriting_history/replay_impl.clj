@@ -36,13 +36,13 @@
 
 (comment
   (history-take-tx
-    [[1 :db/txInstant2 #inst"1974-01-01T00:00:00.000-00:00" 1 true]
+    [[1 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 1 true]
      [4 :m/id "id" 1 true]
      [4 :m/info "original-data" 1 true]
-     [2 :db/txInstant2 #inst"1975-01-01T00:00:00.000-00:00" 2 true]
+     [2 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 2 true]
      [4 :m/info "original-data" 2 false]
      [4 :m/info "bad-data" 2 true]
-     [3 :db/txInstant2 #inst"1976-01-01T00:00:00.000-00:00" 3 true]
+     [3 :tx/txInstant #inst"1976-01-01T00:00:00.000-00:00" 3 true]
      [4 :m/info "bad-data" 3 false]
      [4 :m/info "good-data" 3 true]]
     2))

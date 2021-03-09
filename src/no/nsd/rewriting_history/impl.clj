@@ -80,19 +80,19 @@
 (def get-v #(nth % 2))
 (def get-t #(nth % 3))
 
-(defn only-txInstant2-eavtos [eavtos]
+(defn only-txInstant-eavtos [eavtos]
   (let [attrs (into #{} (map get-a eavtos))]
-    (if (contains? attrs :db/txInstant2)
+    (if (contains? attrs :tx/txInstant)
       eavtos
       (map (fn [[e a v t o :as eavto]]
              (if (= a :db/txInstant)
-               [e :db/txInstant2 v t o]
+               [e :tx/txInstant v t o]
                eavto))
            eavtos))))
 
-(defn only-txInstant2 [eavtos]
+(defn only-txInstant [eavtos]
   (let [txes (partition-by get-t eavtos)]
-    (reduce (fn [o tx] (set/union o (into #{} (only-txInstant2-eavtos tx))))
+    (reduce (fn [o tx] (set/union o (into #{} (only-txInstant-eavtos tx))))
             #{}
             txes)))
 
@@ -103,7 +103,7 @@
           eavtos (eid->eavto-set seen db eid-long)
           tx-ids (into #{} (map get-t eavtos))
           tx-meta-eavtos (reduce (fn [o tx-id]
-                                   (set/union o (only-txInstant2 (eid->eavto-set seen db tx-id))))
+                                   (set/union o (only-txInstant (eid->eavto-set seen db tx-id))))
                                  #{}
                                  tx-ids)]
       (->> (set/union tx-meta-eavtos eavtos)

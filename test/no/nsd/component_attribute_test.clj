@@ -14,7 +14,7 @@
                            [:m/address :one :ref :component]
                            [:m/country :one :ref :component]
                            [:country/name :one :string :id]
-                           [:db/txInstant2 :one :instant]]
+                           [:tx/txInstant :one :instant]]
           conn (u/empty-conn schema)
           _ @(d/transact conn [{:m/id      "id"
                                 :m/address {:m/country {:country/name "Norway"}}}])
