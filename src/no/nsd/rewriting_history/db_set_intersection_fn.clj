@@ -1,33 +1,30 @@
 (ns no.nsd.rewriting-history.db-set-intersection-fn
   (:require [datomic.api :as d]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.pprint :as pprint]))
 
 (defn set--intersection
-  [db lookup-ref-or-eid doc]
-  (let [resolved-e (cond (string? lookup-ref-or-eid)
-                         lookup-ref-or-eid
+  [db lookup-ref-or-eid a s]
+  (let [e (cond (string? lookup-ref-or-eid)
+                lookup-ref-or-eid
 
-                         (vector? lookup-ref-or-eid)
-                         (let [[id v] lookup-ref-or-eid]
-                           (d/q '[:find ?e .
-                                  :in $ ?id ?v
-                                  :where
-                                  [?e ?id ?v]]
-                                db
-                                id
-                                v))
+                (vector? lookup-ref-or-eid)
+                (let [[id v] lookup-ref-or-eid]
+                  (d/q '[:find ?e .
+                         :in $ ?id ?v
+                         :where
+                         [?e ?id ?v]]
+                       db
+                       id
+                       v))
 
-                         :else
-                         lookup-ref-or-eid)]
-    [[:db/add resolved-e :db/doc doc]]))
-
-(def datomic-fn-def
-  (clojure.edn/read-string
-    {:readers {'db/id  datomic.db/id-literal
-               'db/fn  datomic.function/construct
-               'base64 datomic.codec/base-64-literal}}
-    "{:db/ident :set/intersection\n :db/fn #db/fn \n{:lang \"clojure\", :params [db lookup-ref-or-eid doc], :requires [[datomic.api :as d] [clojure.string :as str]], :code (let [resolved-e (cond (string? lookup-ref-or-eid) lookup-ref-or-eid (vector? lookup-ref-or-eid) (let [[id v] lookup-ref-or-eid] (d/q (quote [:find ?e . :in $ ?id ?v :where [?e ?id ?v]]) db id v)) :else lookup-ref-or-eid)] [[:db/add resolved-e :db/doc doc]])}\n}"))
-
+                :else
+                lookup-ref-or-eid)]
+    (if (string? e)
+      (let [retval (mapv (fn [set-entry] {:db/id e a set-entry}) s)]
+        (pprint/pprint retval)
+        retval)
+      nil #_[[:db/add e :db/doc doc]])))
 
 (comment
   (let [uri "datomic:mem://pet-store"
@@ -36,8 +33,24 @@
         conn (d/connect uri)]
     (require '[datomic-schema.core])
     @(d/transact conn [(generate-function false)])
-    conn))
+    @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                [:m/desc :one :string]
+                                [:m/info :many :ref :component]
+                                [:c/a :one :string]])
 
+    (let [{:keys [tempids]} @(d/transact conn [{:db/id  "id"
+                                                :m/id   "id"
+                                                :m/desc "description"}
+                                               [:set/intersection "id" :m/info #{{:c/a "a"}
+                                                                                 {:c/a "b"}}]])]
+      tempids)))
+
+(def datomic-fn-def
+  (clojure.edn/read-string
+    {:readers {'db/id  datomic.db/id-literal
+               'db/fn  datomic.function/construct
+               'base64 datomic.codec/base-64-literal}}
+    "{:db/ident :set/intersection\n :db/fn #db/fn \n{:lang \"clojure\", :params [db lookup-ref-or-eid doc], :requires [[datomic.api :as d] [clojure.string :as str]], :code (let [resolved-e (cond (string? lookup-ref-or-eid) lookup-ref-or-eid (vector? lookup-ref-or-eid) (let [[id v] lookup-ref-or-eid] (d/q (quote [:find ?e . :in $ ?id ?v :where [?e ?id ?v]]) db id v)) :else lookup-ref-or-eid)] [[:db/add resolved-e :db/doc doc]])}\n}"))
 
 (comment
   (do
