@@ -28,11 +28,12 @@
                 lookup-ref-or-eid)]
     (cond
       (string? e)
-      (let [retval (mapv (fn [set-entry] {:db/id e a
-                                                 (if (map? set-entry)
-                                                   (update set-entry :db/id
-                                                           #(or % (str "a" (java.util.UUID/randomUUID))))
-                                                   set-entry)})
+      (let [retval (mapv (fn [set-entry]
+                           {:db/id e a
+                                   (if (map? set-entry)
+                                     (update set-entry :db/id
+                                             #(or % (str "a" (java.util.UUID/randomUUID))))
+                                     set-entry)})
                          new-set)]
         retval)
 
