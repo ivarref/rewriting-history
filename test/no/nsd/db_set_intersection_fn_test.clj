@@ -139,6 +139,6 @@
                  [?e :c/a "b"]]
                (d/db conn)))))))
 
-(deftest generate-function
+(deftest gen-fn
   (generate-function true)
   (is (= 1 1)))
