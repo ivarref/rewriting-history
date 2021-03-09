@@ -227,11 +227,14 @@
 
 (def schema
   #d/schema[[:rh/id :one :string :id]
-            [:rh/lookup-ref :one :string]
+            [:rh/lookup-ref :one :string :id]
+            [:rh/replace :many :ref :component]
+            [:rh/match :one :string]
+            [:rh/replacement :one :string]
             [:rh/eid :many :long]
             [:rh/org-history :many :ref :component]
             [:rh/new-history :many :ref :component]
-            [:rh/state :one :keyword]
+            [:rh/state :one :keyword :index]
             [:rh/done :one :instant]
             [:rh/error :one :instant]
             [:rh/tx-index :one :long]

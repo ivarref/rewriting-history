@@ -1,6 +1,7 @@
 (ns no.nsd.rewriting-history
   (:require [no.nsd.rewriting-history.impl :as impl]
-            [no.nsd.rewriting-history.replay-impl :as replay-impl]))
+            [no.nsd.rewriting-history.replay-impl :as replay-impl]
+            [no.nsd.rewriting-history.schedule-impl :as schedule]))
 
 ; public API
 
@@ -10,10 +11,14 @@
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (impl/pull-flat-history-simple db lookup-ref))
 
-(defn schedule-string-replace! [conn lookup-ref needle replacement])
-
 (defn rewrite-history! [conn old-history new-history]
   (impl/rewrite-history! conn old-history new-history))
 
 (defn verify-history! [conn job-id]
   (replay-impl/verify-history! conn job-id))
+
+(defn schedule-replacement! [conn lookup-ref match replacement]
+  (schedule/schedule-replacement! conn lookup-ref match replacement))
+
+(defn process-scheduled! [conn]
+  (schedule/process-scheduled! conn))
