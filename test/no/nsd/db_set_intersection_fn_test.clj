@@ -59,14 +59,16 @@
 (defn get-curr-set [conn]
   (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
        :m/set
+       (mapv (fn [v] (if (map? v)
+                       (dissoc v :db/id)
+                       v)))
        (into #{})))
 
 (deftest verify-primitives-work
   (let [schema (reduce into []
                        [[(generate-function false)]
                         #d/schema[[:m/id :one :string :id]
-                                  [:m/set :many :string]
-                                  [:c/a :one :string]]])
+                                  [:m/set :many :string]]])
         conn (u/empty-conn schema)]
     @(d/transact conn [{:db/id "id" :m/id "id"}
                        [:set/intersection "id" :m/set #{"a" "b"}]])
@@ -78,3 +80,32 @@
     @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
     (is (= #{} (get-curr-set conn)))))
 
+(deftest verify-component-refs-work
+  (let [schema (reduce into []
+                       [[(generate-function false)]
+                        #d/schema[[:m/id :one :string :id]
+                                  [:m/set :many :ref :component]
+                                  [:c/a :one :string]]])
+        conn (u/empty-conn, schema)]
+    @(d/transact conn [{:db/id "id" :m/id "id"}
+                       [:set/intersection "id" :m/set #{{:c/a "a"} {:c/a "b"}}]])
+    (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
+
+    (let [b-eid (d/q
+                  '[:find ?e .
+                    :in $
+                    :where
+                    [?e :c/a "b"]]
+                  (d/db conn))]
+      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
+      (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
+      (is (= b-eid
+             (d/q
+               '[:find ?e .
+                 :in $
+                 :where
+                 [?e :c/a "b"]]
+               (d/db conn)))))
+
+    #_@(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
+    #_(is (= #{} (get-curr-set conn)))))

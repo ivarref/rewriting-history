@@ -46,14 +46,26 @@
         tx)
 
       is-ref?
-      nil
-      #_(let [existing-set (d/q '[:find ?v
-                                  :in $ ?e ?a
-                                  :where
-                                  [?e ?a ?v]]
-                                db e a)]
-          (println "existing-set:\n" (with-out-str (pprint/pprint existing-set)))
-          nil))))
+      (let [curr-set (into #{} (d/q '[:find [(pull ?v [*]) ...]
+                                      :in $ ?e ?a
+                                      :where
+                                      [?e ?a ?v]]
+                                    db e a))
+            curr-set-without-eid (into #{} (mapv (fn [ent]
+                                                   (with-meta
+                                                     (dissoc ent :db/id)
+                                                     {:db/id (:db/id ent)}))
+                                                 curr-set))
+            to-remove (->> (set/difference curr-set-without-eid new-set)
+                           (mapv (fn [e] (:db/id (meta e))))
+                           (into #{}))
+            to-add (set/difference new-set (set/intersection curr-set-without-eid new-set))
+            tx (reduce
+                 into
+                 []
+                 [(mapv (fn [rm] [:db/retract e a rm]) to-remove)
+                  (mapv (fn [add] {:db/id e a add})  to-add)])]
+        tx))))
 
 (def datomic-fn-def
   (clojure.edn/read-string
