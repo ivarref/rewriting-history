@@ -43,13 +43,13 @@
                      "\n"
                      "}")]
     (when write-to-file
-      (spit *file* (-> (z/of-file *file*)
-                       (z/find-value z/next 'clojure.edn/read-string)
-                       (z/right)
-                       (z/right)
-                       (z/replace out-str)
-                       (z/root)
-                       (n/string))))
+      (spit fil (-> (z/of-file fil)
+                    (z/find-value z/next 'clojure.edn/read-string)
+                    (z/right)
+                    (z/right)
+                    (z/replace out-str)
+                    (z/root)
+                    (n/string))))
     (clojure.edn/read-string
       {:readers {'db/id  datomic.db/id-literal
                  'db/fn  datomic.function/construct
@@ -87,6 +87,7 @@
                                   [:m/set :many :ref :component]
                                   [:c/a :one :string]]])
         conn (u/empty-conn, schema)]
+    (generate-function true)
     @(d/transact conn [{:db/id "id" :m/id "id"}
                        [:set/intersection "id" :m/set #{{:c/a "a"} {:c/a "b"}}]])
     (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
