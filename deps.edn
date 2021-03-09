@@ -8,7 +8,8 @@
                                   com.datomic/datomic-pro              {:mvn/version "1.0.6202" :exclusions [org.slf4j/slf4j-nop]}
                                   org.mariadb.jdbc/mariadb-java-client {:mvn/version "2.4.3"}
                                   io.rkn/conformity                    {:mvn/version "0.5.4"}
-                                  vvvvalvalval/scope-capture           {:mvn/version "0.3.2"}}
+                                  vvvvalvalval/scope-capture           {:mvn/version "0.3.2"}
+                                  rewrite-clj/rewrite-clj              {:mvn/version "0.6.1"}}
                     :jvm-opts    ["-DDISABLE_SPY=true"]
                     :main-opts   ["--report" "stderr" "-m" "kaocha.runner" "--no-capture-output"]}}
 
