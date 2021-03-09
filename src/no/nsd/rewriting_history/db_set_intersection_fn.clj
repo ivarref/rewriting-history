@@ -2,7 +2,8 @@
   (:require [datomic.api :as d]
             [clojure.string :as str]
             [clojure.pprint :as pprint]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.java.io :as io]))
 
 (defn set--intersection
   [db lookup-ref-or-eid a new-set]
@@ -57,26 +58,30 @@
           (println "existing-set:\n" (with-out-str (pprint/pprint existing-set)))
           nil))))
 
-(comment
-  (let [uri "datomic:mem://pet-store"
-        _ (d/delete-database uri)
-        _ (d/create-database uri)
-        conn (d/connect uri)]
-    (require '[datomic-schema.core])
-    @(d/transact conn [(generate-function false)])
-    @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                [:m/desc :one :string]
-                                [:m/info :many :string]
-                                [:c/a :one :string]])
+(when (.exists (io/file ".nrepl-port"))
+  (defn dev-test []
+    (let [uri "datomic:mem://pet-store"
+          _ (d/delete-database uri)
+          _ (d/create-database uri)
+          conn (d/connect uri)]
+      (require '[datomic-schema.core])
+      (require '[clojure.test :as test])
+      @(d/transact conn [(generate-function false)])
+      @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                  [:m/desc :one :string]
+                                  [:m/info :many :string]
+                                  [:c/a :one :string]])
 
-    (let [{:keys [tempids]} @(d/transact conn [{:db/id  "id"
-                                                :m/id   "id"
-                                                :m/desc "description"}
-                                               [:set/intersection "id" :m/info #{"a" "b"}]])
-          a-id (get tempids "a")]
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/info #{"b" "c"}]])
-      (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
-           :m/info))))
+      (let [{:keys [tempids]} @(d/transact conn [{:db/id  "id"
+                                                  :m/id   "id"
+                                                  :m/desc "description"}
+                                                 [:set/intersection "id" :m/info #{"a" "b"}]])
+            a-id (get tempids "a")]
+        @(d/transact conn [[:set/intersection [:m/id "id"] :m/info #{"b" "c"}]])
+        (->> (d/pull (d/db conn) '[:*] [:m/id "id"]) :m/info (into #{}))))))
+
+(comment
+  (dev-test))
 
 (def datomic-fn-def
   (clojure.edn/read-string
