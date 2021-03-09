@@ -33,22 +33,19 @@
         retval)
 
       (false? is-ref?)
-      (do
-        (let [curr-set (into #{} (d/q '[:find [?v ...]
-                                        :in $ ?e ?a
-                                        :where
-                                        [?e ?a ?v]]
-                                       db e a))
-              to-remove (set/difference curr-set new-set)
-              to-add (set/difference new-set
-                                     (set/intersection curr-set new-set))
-              tx (into []
-                   (mapv (fn [rm] [:db/retract e a rm]) to-remove)
-                   (mapv (fn [add] [:db/add e a add]) to-add))]
-          (println tx)
-          (println "new-tx:\n" (with-out-str (pprint/pprint tx)))
-          nil)
-        nil)
+      (let [curr-set (into #{} (d/q '[:find [?v ...]
+                                      :in $ ?e ?a
+                                      :where
+                                      [?e ?a ?v]]
+                                    db e a))
+            to-remove (set/difference curr-set new-set)
+            to-add (set/difference new-set (set/intersection curr-set new-set))
+            tx (reduce
+                 into
+                 []
+                 [(mapv (fn [rm] [:db/retract e a rm]) to-remove)
+                  (mapv (fn [add] [:db/add e a add]) to-add)])]
+        tx)
 
       is-ref?
       nil
