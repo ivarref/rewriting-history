@@ -1,6 +1,7 @@
 (ns no.nsd.rewriting-history.db-set-intersection-fn
   (:require [datomic.api :as d]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.pprint :as pprint]))
 
 (defn set--intersection
   [db lookup-ref-or-eid a new-set]
@@ -10,6 +11,12 @@
                                        [?attr :db/valueType ?t]
                                        [?t :db/ident ?type]]
                                      db a))
+        is-component? (and is-ref?
+                           (d/q '[:find ?isComponent .
+                                  :in $ ?attr
+                                  :where
+                                  [?attr :db/isComponent ?isComponent]]
+                                db a))
         e (cond (string? lookup-ref-or-eid)
                 lookup-ref-or-eid
 
@@ -27,7 +34,12 @@
                 lookup-ref-or-eid)]
     (cond
       (string? e)
-      (let [retval (mapv (fn [set-entry] {:db/id e a set-entry}) new-set)]
+      (let [retval (mapv (fn [set-entry] {:db/id e a
+                                                 (if (map? set-entry)
+                                                   (update set-entry :db/id
+                                                           #(or % (str "a" (java.util.UUID/randomUUID))))
+                                                   set-entry)})
+                         new-set)]
         retval)
 
       (false? is-ref?)
@@ -45,7 +57,7 @@
                   (mapv (fn [add] [:db/add e a add]) to-add)])]
         tx)
 
-      is-ref?
+      :else
       (let [curr-set (into #{} (d/q '[:find [(pull ?v [*]) ...]
                                       :in $ ?e ?a
                                       :where
@@ -64,7 +76,7 @@
                  into
                  []
                  [(mapv (fn [rm] [:db/retract e a rm]) to-remove)
-                  (mapv (fn [add] {:db/id e a add})  to-add)])]
+                  (mapv (fn [add] {:db/id e a (update add :db/id #(or % (str "a" (java.util.UUID/randomUUID))))}) to-add)])]
         tx))))
 
 (def datomic-fn-def
