@@ -6,7 +6,8 @@
             [no.nsd.shorter-stacktrace]
             [clojure.string :as str]
             [datomic-schema.core]
-            [datomic.api :as d]))
+            [datomic.api :as d]
+            [no.nsd.utils :as u]))
 
 (defn generate-function [write-to-file]
   (let [fil (str "src/no/nsd/rewriting_history/db_set_intersection_fn.clj")
@@ -55,23 +56,25 @@
                  'base64 datomic.codec/base-64-literal}}
       out-str)))
 
-(deftest dev-test
-  (let [uri "datomic:mem://pet-store"
-        _ (d/delete-database uri)
-        _ (d/create-database uri)
-        conn (d/connect uri)]
-    @(d/transact conn [(generate-function false)])
-    @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                [:m/desc :one :string]
-                                [:m/info :many :string]
-                                [:c/a :one :string]])
+(defn get-curr-set [conn]
+  (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
+       :m/set
+       (into #{})))
 
-    (let [{:keys [tempids]} @(d/transact conn [{:db/id  "id"
-                                                :m/id   "id"
-                                                :m/desc "description"}
-                                               [:set/intersection "id" :m/info #{"a" "b"}]])]
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/info #{"b" "c"}]])
-      (->> (d/pull (d/db conn) '[:*] [:m/id "id"]) :m/info (into #{})))))
+(deftest verify-primitives-work
+  (let [schema (reduce into []
+                       [[(generate-function false)]
+                        #d/schema[[:m/id :one :string :id]
+                                  [:m/set :many :string]
+                                  [:c/a :one :string]]])
+        conn (u/empty-conn schema)]
+    @(d/transact conn [{:db/id "id" :m/id "id"}
+                       [:set/intersection "id" :m/set #{"a" "b"}]])
+    (is (= #{"a" "b"} (get-curr-set conn)))
 
-(comment
-  (dev-test))
+    @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
+    (is (= #{"b" "c"} (get-curr-set conn)))
+
+    @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
+    (is (= #{} (get-curr-set conn)))))
+
