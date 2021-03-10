@@ -39,11 +39,11 @@
 (defn rand-id []
   (str "id-" (UUID/randomUUID)))
 
-(defn set-intersection [db lookup-ref a v]
-  (let [v (to-clojure-types v)
+(defn set-intersection [db lookup-ref attr value]
+  (let [value (to-clojure-types value)
         lookup-ref (to-clojure-types lookup-ref)
         _ (assert (vector? lookup-ref))
-        _ (assert (set? v))
+        _ (assert (set? value))
         db (if (instance? Database db) db (d/db db))
         dbid (rand-id)
         is-ref? (= :db.type/ref (d/q '[:find ?type .
@@ -51,7 +51,7 @@
                                        :where
                                        [?attr :db/valueType ?t]
                                        [?t :db/ident ?type]]
-                                     db a))
+                                     db attr))
         [id-a id-v] lookup-ref
         e (d/q '[:find ?e .
                  :in $ ?a ?v
@@ -64,36 +64,36 @@
                                         :in $ ?e ?a
                                         :where
                                         [?e ?a ?v]]
-                                      db e a)))
+                                      db e attr)))
             curr-set-without-eid (into #{} (mapv (fn [ent]
                                                    (with-meta
                                                      (dissoc ent :db/id)
                                                      {:db/id (:db/id ent)}))
                                                  curr-set))
-            to-remove (->> (set/difference curr-set-without-eid v)
+            to-remove (->> (set/difference curr-set-without-eid value)
                            (mapv (fn [e] (:db/id (meta e))))
                            (into #{}))
-            to-add (->> (set/difference v (set/intersection curr-set-without-eid v))
+            to-add (->> (set/difference value (set/intersection curr-set-without-eid value))
                         (mapv (fn [e] (with-meta e {:tempid (rand-id)})))
                         (sort-by (fn [e] (pr-str (into (sorted-map) e)))))
             tx (vec (concat
                       [{id-a id-v :db/id dbid}]
-                      (mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
+                      (mapv (fn [rm] [:db/retract dbid attr rm]) to-remove)
                       (mapv (fn [add] (merge {:db/id (->> add (meta) :tempid)} add)) to-add)
-                      (mapv (fn [add] [:db/add dbid a (->> add (meta) :tempid)]) to-add)))]
+                      (mapv (fn [add] [:db/add dbid attr (->> add (meta) :tempid)]) to-add)))]
         tx)
       (let [curr-set (when e
                        (into #{} (d/q '[:find [?v ...]
                                         :in $ ?e ?a
                                         :where
                                         [?e ?a ?v]]
-                                      db e a)))
-            to-remove (set/difference curr-set v)
-            to-add (set/difference v (set/intersection curr-set v))
+                                      db e attr)))
+            to-remove (set/difference curr-set value)
+            to-add (set/difference value (set/intersection curr-set value))
             tx (vec (concat
                       [{id-a id-v :db/id dbid}]
-                      (vec (sort (mapv (fn [rm] [:db/retract dbid a rm]) to-remove)))
-                      (vec (sort (mapv (fn [add] [:db/add dbid a add]) to-add)))))]
+                      (vec (sort (mapv (fn [rm] [:db/retract dbid attr rm]) to-remove)))
+                      (vec (sort (mapv (fn [add] [:db/add dbid attr add]) to-add)))))]
         tx))))
 
 (def datomic-fn-def
