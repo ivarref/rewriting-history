@@ -17,13 +17,7 @@
     :set/intersection
     false))
 
-(defn empty-conn
-  ([]
-   (u/empty-conn))
-  ([schema]
-   (let [conn (empty-conn)]
-     @(d/transact conn schema)
-     conn)))
+(def empty-conn u/empty-conn)
 
 (deftest verify-genfn-works
   (let [conn (empty-conn)]
@@ -124,7 +118,7 @@
                           #d/schema[[:m/id :one :string :id]
                                     [:m/set :many :ref]
                                     [:c/id :one :string :id]]])
-          conn (u/empty-conn)]
+          conn (empty-conn)]
       @(d/transact conn schema)
       @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/id "a"} {:c/id "b"}}]])
 
@@ -151,7 +145,7 @@
         (is (= #{} (get-curr-set conn)))))))
 
 (deftest feav-style-is-cleaner
-  (let [conn (u/empty-conn)]
+  (let [conn (empty-conn)]
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/desc :one :string]
                                 [:m/set :many :string]])
