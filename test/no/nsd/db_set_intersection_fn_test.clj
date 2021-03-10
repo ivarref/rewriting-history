@@ -38,29 +38,38 @@
        (into #{})))
 
 (deftest verify-primitives-work
-  (u/clear)
-  (let [schema (reduce into []
-                       [[(db-fn)]
-                        #d/schema[[:m/id :one :string :id]
-                                  [:m/set :many :string]]])
-        conn (u/empty-conn schema)]
+  (with-redefs [s/rand-id (fn [] "randid")]
+    (let [schema (reduce into []
+                         [[(db-fn)]
+                          #d/schema[[:m/id :one :string :id]
+                                    [:m/set :many :string]]])
+          conn (u/empty-conn schema)]
 
-    (is (= (s/find-upsert-id (d/db conn) {:m/id      "id"
-                                          :m/set #{"a" "b"}})
-           [:m/id "id"]))
-    (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
+      (is (= (s/find-upsert-id (d/db conn) {:m/id      "id"
+                                            :m/set #{"a" "b"}})
+             [:m/id "id"]))
+      (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
 
+      (is (= (s/set-intersection conn {:m/id  "id"
+                                       :m/set #{"a" "b"}})
+             [{:m/id "id", :db/id "randid"}
+              [:db/add "randid" :m/set "a"]
+              [:db/add "randid" :m/set "b"]]))
 
-    #_@(d/transact conn [[:set/intersection
-                          {:m/id  "id"
-                           :m/set #{"a" "b"}}]])
-    #_(is (= #{"a" "b"} (get-curr-set conn)))))
+      @(d/transact conn [{:m/id "id" :db/id "id"}
+                         [:db/add "id" :m/set "a"]
+                         [:db/add "id" :m/set "b"]])
+      (is (= #{"a" "b"} (get-curr-set conn)))
 
-;@(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
-;(is (= #{"b" "c"} (get-curr-set conn)))
-;
-;@(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
-;(is (= #{} (get-curr-set conn)))))
+      @(d/transact conn [[:set/intersection
+                          {:m/id "id"
+                           :m/set #{"b" "c"}}]])
+      (is (= #{"b" "c"} (get-curr-set conn)))
+
+      @(d/transact conn [[:set/intersection
+                          {:m/id "id"
+                           :m/set #{}}]])
+      (is (= #{} (get-curr-set conn))))))
 
 #_(deftest verify-component-refs-work
     (let [schema (reduce into []

@@ -3,7 +3,8 @@
             [clojure.set :as set]
             [clojure.pprint :as pprint]
             [clojure.tools.logging :as log])
-  (:import (java.util UUID)))
+  (:import (java.util UUID)
+           (datomic Database)))
 
 (defn pp [o]
   (println (with-out-str (pprint/pprint o)))
@@ -25,15 +26,56 @@
                       nil
                       m)]
     (if-not id
-      (throw (ex-info "could not find :db/unique/identity" {:m m}))
+      (throw (ex-info "could not find :db.unique/identity" {:m m}))
       id)))
+
+(defn set-intersection-single [db dbid [id-k id-v] [a v]]
+  (let [is-ref? (= :db.type/ref (d/q '[:find ?type .
+                                       :in $ ?attr
+                                       :where
+                                       [?attr :db/valueType ?t]
+                                       [?t :db/ident ?type]]
+                                     db a))
+        e (d/q '[:find ?e .
+                 :in $ ?k ?v
+                 :where
+                 [?e ?k ?v]]
+               db id-k id-v)]
+    (if is-ref?
+      nil
+      (let [curr-set (when e
+                       (into #{} (d/q '[:find [?v ...]
+                                        :in $ ?e ?a
+                                        :where
+                                        [?e ?a ?v]]
+                                      db e a)))
+            to-remove (set/difference curr-set v)
+            to-add (set/difference v (set/intersection curr-set v))
+            tx (reduce
+                 into
+                 []
+                 [(mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
+                  (mapv (fn [add] [:db/add dbid a add]) to-add)])]
+        tx))))
+
+(defn rand-id []
+  (str "id-" (UUID/randomUUID)))
 
 (defn set-intersection
   [db m]
-  (assert (map? m) "expected m to be a map")
-  (log/info "wooho!" (pp m))
-  (find-upsert-id db m)
-  nil
+  (let [db (if (instance? Database db) db (d/db db))]
+    (assert (map? m) "expected m to be a map")
+    (let [e (find-upsert-id db m)
+          id (or (:db/id m) (rand-id))
+          regular-map (->> m
+                           (remove (comp set? second))
+                           (into {}))
+          sets (->> m
+                    (filter (comp set? second))
+                    (into []))]
+      (reduce into []
+              [[(assoc regular-map :db/id id)]
+               (vec (sort (mapcat (partial set-intersection-single db id e) sets)))])))
   #_(let [is-ref? (= :db.type/ref (d/q '[:find ?type .
                                          :in $ ?attr
                                          :where
