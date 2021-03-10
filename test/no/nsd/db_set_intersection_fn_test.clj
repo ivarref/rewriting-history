@@ -161,7 +161,3 @@
                  :where
                  [?e :c/a "b"]]
                (d/db conn)))))))
-
-#_(deftest gen-fn
-    (generate-function true)
-    (is (= 1 1)))
