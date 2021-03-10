@@ -85,12 +85,12 @@
                           {:m/id  "id"
                            :m/set #{"b" "c"}}]])
 
-      (is (= #{"b" "c"} (get-curr-set conn))))))
+      (is (= #{"b" "c"} (get-curr-set conn)))
 
-#_@(d/transact conn [[:set/intersection
-                      {:m/id  "id"
-                       :m/set #{}}]])
-#_(is (= #{} (get-curr-set conn)))
+      @(d/transact conn [[:set/intersection
+                          {:m/id  "id"
+                           :m/set #{}}]])
+      (is (= #{} (get-curr-set conn))))))
 
 (deftest handles-multiple-attributes
   (with-redefs [s/rand-id (fn [] "randid")]
@@ -146,7 +146,11 @@
                    :in $
                    :where
                    [?e :c/a "b"]]
-                 (d/db conn))))))))
+                 (d/db conn))))
+
+        @(d/transact conn [[:set/intersection {:m/id  "id"
+                                               :m/set #{}}]])
+        (is (= #{} (get-curr-set conn)))))))
 
 (deftest verify-refs-work
   (with-redefs [s/rand-id (let [c (atom 0)]
