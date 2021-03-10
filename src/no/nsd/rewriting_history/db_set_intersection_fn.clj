@@ -39,11 +39,11 @@
 (defn rand-id []
   (str "id-" (UUID/randomUUID)))
 
-(defn set-intersection [db lookup-ref attr value]
-  (let [value (to-clojure-types value)
+(defn set-intersection [db lookup-ref attr values]
+  (let [values (to-clojure-types values)
         lookup-ref (to-clojure-types lookup-ref)
         _ (assert (vector? lookup-ref))
-        _ (assert (set? value))
+        _ (assert (set? values))
         db (if (instance? Database db) db (d/db db))
         dbid (rand-id)
         is-ref? (= :db.type/ref (d/q '[:find ?type .
@@ -58,6 +58,11 @@
                  :where
                  [?e ?a ?v]]
                db id-a id-v)]
+    (doseq [v values]
+      (when (and (map? v)
+                 (some? (:db/id v))
+                 (not (string? (:db/id v))))
+        (throw (ex-info "expected :db/id to be a string or not present" {:element v}))))
     (if is-ref?
       (let [curr-set (when e
                        (into #{} (d/q '[:find [(pull ?v [*]) ...]
@@ -70,11 +75,14 @@
                                                      (dissoc ent :db/id)
                                                      {:db/id (:db/id ent)}))
                                                  curr-set))
-            to-remove (->> (set/difference curr-set-without-eid value)
+            to-remove (->> (set/difference curr-set-without-eid values)
                            (mapv (fn [e] (:db/id (meta e))))
                            (into #{}))
-            to-add (->> (set/difference value (set/intersection curr-set-without-eid value))
-                        (mapv (fn [e] (with-meta e {:tempid (rand-id)})))
+            to-add (->> (set/difference values (set/intersection curr-set-without-eid values))
+                        (mapv (fn [e] (with-meta e {:tempid
+                                                    (or
+                                                      (:db/id e)
+                                                      (rand-id))})))
                         (sort-by (fn [e] (pr-str (into (sorted-map) e)))))
             tx (vec (concat
                       [{id-a id-v :db/id dbid}]
@@ -88,8 +96,8 @@
                                         :where
                                         [?e ?a ?v]]
                                       db e attr)))
-            to-remove (set/difference curr-set value)
-            to-add (set/difference value (set/intersection curr-set value))
+            to-remove (set/difference curr-set values)
+            to-add (set/difference values (set/intersection curr-set values))
             tx (vec (concat
                       [{id-a id-v :db/id dbid}]
                       (vec (sort (mapv (fn [rm] [:db/retract dbid attr rm]) to-remove)))
