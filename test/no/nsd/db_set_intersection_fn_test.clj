@@ -2,14 +2,12 @@
   (:require [clojure.test :refer :all]
             [no.nsd.log-init]
             [no.nsd.shorter-stacktrace]
-            [clojure.string :as str]
             [datomic-schema.core]
             [datomic.api :as d]
             [no.nsd.utils :as u]
             [clojure.tools.logging :as log]
             [no.nsd.datomic-generate-fn :as genfn]
-            [no.nsd.rewriting-history.db-set-intersection-fn :as s]
-            [clojure.pprint :as pprint])
+            [no.nsd.rewriting-history.db-set-intersection-fn :as s])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn db-fn
@@ -18,11 +16,6 @@
     'no.nsd.rewriting-history.db-set-intersection-fn/set-intersection
     :set/intersection
     false))
-
-(deftest verify-genfn-works
-  (let [conn (u/empty-conn)]
-    @(d/transact conn [(db-fn)])
-    (is (= 1 1))))
 
 (defn get-curr-set [conn]
   (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
@@ -36,6 +29,11 @@
                        (dissoc v :db/id)
                        v)))
        (into #{})))
+
+(deftest verify-genfn-works
+  (let [conn (u/empty-conn)]
+    @(d/transact conn [(db-fn)])
+    (is (= 1 1))))
 
 (deftest verify-primitives-work
   (with-redefs [s/rand-id (fn [] "randid")]
@@ -133,7 +131,7 @@
                         #d/schema[[:m/id :one :string :id]
                                   [:m/set :many :ref]
                                   [:c/a :one :string]]])
-        conn (u/empty-conn, schema)]
+        conn (u/empty-conn schema)]
     @(d/transact conn [[:set/intersection
                         {:m/id "id"
                          :m/set #{{:c/a "a"}
