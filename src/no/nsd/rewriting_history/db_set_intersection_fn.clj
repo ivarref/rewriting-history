@@ -29,6 +29,9 @@
       (throw (ex-info "could not find :db.unique/identity" {:m m}))
       id)))
 
+(defn rand-id []
+  (str "id-" (UUID/randomUUID)))
+
 (defn set-intersection-single [db dbid [id-k id-v] [a v]]
   (let [is-ref? (= :db.type/ref (d/q '[:find ?type .
                                        :in $ ?attr
@@ -42,7 +45,30 @@
                  [?e ?k ?v]]
                db id-k id-v)]
     (if is-ref?
-      nil
+      (let [curr-set (when e
+                       (into #{} (d/q '[:find [(pull ?v [*]) ...]
+                                        :in $ ?e ?a
+                                        :where
+                                        [?e ?a ?v]]
+                                      db e a)))
+            curr-set-without-eid (into #{} (mapv (fn [ent]
+                                                   (with-meta
+                                                     (dissoc ent :db/id)
+                                                     {:db/id (:db/id ent)}))
+                                                 curr-set))
+            to-remove (->> (set/difference curr-set-without-eid v)
+                           (mapv (fn [e] (:db/id (meta e))))
+                           (into #{}))
+            to-add (set/difference v (set/intersection curr-set-without-eid v))
+            tx (reduce
+                 into
+                 []
+                 [(mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
+                  (mapv (fn [add] [:db/add dbid
+                                   a
+                                   (update add :db/id (fn [v] (or v (rand-id))))])
+                        to-add)])]
+        tx)
       (let [curr-set (when e
                        (into #{} (d/q '[:find [?v ...]
                                         :in $ ?e ?a
@@ -58,9 +84,6 @@
                   (mapv (fn [add] [:db/add dbid a add]) to-add)])]
         tx))))
 
-(defn rand-id []
-  (str "id-" (UUID/randomUUID)))
-
 (defn set-intersection
   [db m]
   (let [db (if (instance? Database db) db (d/db db))]
@@ -75,7 +98,14 @@
                     (into []))]
       (reduce into []
               [[(assoc regular-map :db/id id)]
-               (vec (sort (mapcat (partial set-intersection-single db id e) sets)))])))
+               (vec (sort-by (fn [v]
+                               (if (map? v)
+                                 (->> v
+                                      (into (sorted-map))
+                                      (into [])
+                                      (pr-str))
+                                 (pr-str v)))
+                             (mapcat (partial set-intersection-single db id e) sets)))])))
   #_(let [is-ref? (= :db.type/ref (d/q '[:find ?type .
                                          :in $ ?attr
                                          :where
