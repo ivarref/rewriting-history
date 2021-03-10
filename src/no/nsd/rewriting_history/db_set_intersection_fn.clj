@@ -1,8 +1,12 @@
 (ns no.nsd.rewriting-history.db-set-intersection-fn
   (:require [datomic.api :as d]
             [clojure.set :as set]
-            [clojure.pprint :as pprint])
+            [clojure.pprint :as pprint]
+            [clojure.tools.logging :as log])
   (:import (java.util UUID)))
+
+(defn pp [o]
+  (with-out-str (pprint/pprint o)))
 
 (defn find-upsert-id [db m]
   (assert (map? m))
@@ -10,16 +14,11 @@
              nil
              m))
 
-(defn find-upsert-id-2 [db m]
-  (reduce-kv (fn [o k v])
-             nil
-             m))
-
 (defn set-intersection
   [db m]
-  (assert (map? m) "expected m to be map")
-  (assert (map? m) "expected m to be map2")
-  (UUID/randomUUID)
+  (assert (map? m) "expected m to be a map")
+  (log/info "wooho!" (pp m))
+  (find-upsert-id db m)
   nil
   #_(let [is-ref? (= :db.type/ref (d/q '[:find ?type .
                                          :in $ ?attr
