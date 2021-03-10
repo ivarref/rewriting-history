@@ -64,9 +64,8 @@
                  into
                  []
                  [(mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
-                  (mapv (fn [add] [:db/add dbid
-                                   a
-                                   (update add :db/id (fn [v] (or v (rand-id))))])
+                  (mapv (fn [add] {:db/id dbid
+                                   a (update add :db/id (fn [v] (or v (rand-id))))})
                         to-add)])]
         tx)
       (let [curr-set (when e

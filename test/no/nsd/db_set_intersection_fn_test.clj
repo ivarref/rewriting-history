@@ -99,33 +99,34 @@
                                     [:m/set :many :ref :component]
                                     [:c/a :one :string]]])
           conn (u/empty-conn schema)]
-      (is (= (s/set-intersection
-               (d/db conn)
-               {:m/id "id"
-                :m/set #{{:c/a "a"} {:c/a "b"}}})
+      (is (= (u/pprint (s/set-intersection
+                         (d/db conn)
+                         {:m/id "id"
+                          :m/set #{{:c/a "a"} {:c/a "b"}}}))
              [{:m/id "id", :db/id "randid-1"}
-              [:db/add "randid-1" :m/set {:c/a "a", :db/id "randid-2"}]
-              [:db/add "randid-1" :m/set {:c/a "b", :db/id "randid-3"}]]))
+              {:db/id "randid-1", :m/set {:c/a "a", :db/id "randid-2"}}
+              {:db/id "randid-1", :m/set {:c/a "b", :db/id "randid-3"}}]))
 
-      #_@(d/transact conn [[:set/intersection {:m/id "id"
-                                               :m/set #{{:c/a "a"} {:c/a "b"}}}]])
-      #_(is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
+      @(d/transact conn [[:set/intersection {:m/id "id"
+                                             :m/set #{{:c/a "a"} {:c/a "b"}}}]])
+      (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
 
-      #_(let [b-eid (d/q
-                      '[:find ?e .
-                        :in $
-                        :where
-                        [?e :c/a "b"]]
-                      (d/db conn))]
-          @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
-          (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
-          (is (= b-eid
-                 (d/q
-                   '[:find ?e .
-                     :in $
-                     :where
-                     [?e :c/a "b"]]
-                   (d/db conn))))))))
+      (let [b-eid (d/q
+                    '[:find ?e .
+                      :in $
+                      :where
+                      [?e :c/a "b"]]
+                    (d/db conn))]
+        @(d/transact conn [[:set/intersection {:m/id "id"
+                                               :m/set #{{:c/a "b"} {:c/a "c"}}}]])
+        (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
+        (is (= b-eid
+               (d/q
+                 '[:find ?e .
+                   :in $
+                   :where
+                   [?e :c/a "b"]]
+                 (d/db conn))))))))
 
 #_(deftest verify-refs-work
     (let [schema (reduce into []
