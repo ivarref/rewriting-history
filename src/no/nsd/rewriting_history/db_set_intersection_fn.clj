@@ -81,8 +81,7 @@
             tx (vec (concat
                       [{id-a id-v :db/id dbid}]
                       (mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
-                      (mapv (fn [add] (merge {:db/id (->> add (meta) :tempid)}
-                                             add)) to-add)
+                      (mapv (fn [add] (merge {:db/id (->> add (meta) :tempid)} add)) to-add)
                       (mapv (fn [add] [:db/add dbid a (->> add (meta) :tempid)]) to-add)))]
         tx)
       (let [curr-set (when e

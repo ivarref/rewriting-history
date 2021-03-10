@@ -50,7 +50,8 @@
                          [[(db-fn)]
                           #d/schema[[:m/id :one :string :id]
                                     [:m/set :many :string]]])
-          conn (empty-conn schema)]
+          conn (empty-conn)]
+      @(d/transact conn schema)
 
       (is (= (s/find-upsert-id (d/db conn) {:m/id  "id"
                                             :m/set #{"a" "b"}})
