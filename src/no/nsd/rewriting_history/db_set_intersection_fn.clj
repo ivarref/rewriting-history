@@ -1,8 +1,6 @@
 (ns no.nsd.rewriting-history.db-set-intersection-fn
   (:require [datomic.api :as d]
             [clojure.set :as set]
-            [clojure.pprint :as pprint]
-            [clojure.tools.logging :as log]
             [clojure.walk :as walk])
   (:import (java.util UUID HashSet List)
            (datomic Database)))
