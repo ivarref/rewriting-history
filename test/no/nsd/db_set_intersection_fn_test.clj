@@ -63,52 +63,25 @@
              [:m/id "id"]))
       (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
 
-      (is (= (s/set-intersection conn {:m/id  "id"
-                                       :m/set #{"a" "b"}})
+      (is (= (s/set-intersection conn [:m/id "id"] :m/set #{"a" "b"})
              [{:m/id "id", :db/id "randid"}
               [:db/add "randid" :m/set "a"]
               [:db/add "randid" :m/set "b"]]))
 
-      @(d/transact conn [[:set/intersection
-                          {:m/id  "id"
-                           :m/set #{"a" "b"}}]])
+      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
       (is (= #{"a" "b"} (get-curr-set conn)))
 
-      (is (= (s/set-intersection (d/db conn)
-                                 {:m/id  "id"
-                                  :m/set #{"b" "c"}})
+      (is (= (s/set-intersection (d/db conn) [:m/id "id"] :m/set #{"b" "c"})
              [{:m/id "id", :db/id "randid"}
-              [:db/add "randid" :m/set "c"]
-              [:db/retract "randid" :m/set "a"]]))
+              [:db/retract "randid" :m/set "a"]
+              [:db/add "randid" :m/set "c"]]))
 
-      @(d/transact conn [[:set/intersection
-                          {:m/id  "id"
-                           :m/set #{"b" "c"}}]])
+      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
 
       (is (= #{"b" "c"} (get-curr-set conn)))
 
-      @(d/transact conn [[:set/intersection
-                          {:m/id  "id"
-                           :m/set #{}}]])
+      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
       (is (= #{} (get-curr-set conn))))))
-
-(deftest handles-multiple-attributes
-  (with-redefs [s/rand-id (fn [] "randid")]
-    (let [schema (reduce into []
-                         [[(db-fn)]
-                          #d/schema[[:m/id :one :string :id]
-                                    [:m/s1 :many :string]
-                                    [:m/s2 :many :string]]])
-          conn (empty-conn schema)]
-
-      (is (= (s/set-intersection conn {:m/id "id"
-                                       :m/s1 #{"a" "b"}
-                                       :m/s2 #{"c" "d"}})
-             [{:m/id "id" :db/id "randid"}
-              [:db/add "randid" :m/s1 "a"]
-              [:db/add "randid" :m/s1 "b"]
-              [:db/add "randid" :m/s2 "c"]
-              [:db/add "randid" :m/s2 "d"]])))))
 
 (deftest verify-component-refs-work
   (with-redefs [s/rand-id (let [c (atom 0)]
@@ -220,3 +193,54 @@
                (dissoc :db/id)
                (update :m/set (partial into #{})))
            #:m{:id "id" :desc "description2" :set #{"b" "c"}}))))
+
+(deftest verify-primitives-feav
+  (let [conn-fn u/empty-stage-conn]
+    (testing "using feav when other data is present"
+      (with-redefs [s/rand-id (let [c (atom 0)]
+                                (fn [] (str "randid-" (swap! c inc))))]
+        (let [conn (conn-fn)]
+          @(d/transact conn (reduce into []
+                                    [[(db-fn)]
+                                     #d/schema[[:m/id :one :string :id]
+                                               [:m/desc :one :string]
+                                               [:m/set :many :string]]]))
+          @(d/transact conn [{:m/id   "id"
+                              :m/desc "description"}
+                             [:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
+
+          (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                     (dissoc :db/id)
+                     (update :m/set (partial into #{})))
+                 #:m{:id "id" :desc "description" :set #{"a" "b"}}))
+
+          @(d/transact conn [{:m/id   "id"
+                              :m/desc "description2"}
+                             [:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
+
+          (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                     (dissoc :db/id)
+                     (update :m/set (partial into #{})))
+                 #:m{:id "id" :desc "description2" :set #{"b" "c"}})))))
+
+    (testing "using feav when no other data is present"
+      (with-redefs [s/rand-id (let [c (atom 0)]
+                                (fn [] (str "randid-" (swap! c inc))))]
+        (let [conn (conn-fn)]
+          @(d/transact conn (reduce into []
+                                    [[(db-fn)]
+                                     #d/schema[[:m/id :one :string :id]
+                                               [:m/set :many :string]]]))
+          @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
+
+          (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                     (dissoc :db/id)
+                     (update :m/set (partial into #{})))
+                 #:m{:id "id" :set #{"a" "b"}}))
+
+          @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
+
+          (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                     (dissoc :db/id)
+                     (update :m/set (partial into #{})))
+                 #:m{:id "id" :set #{"b" "c"}})))))))

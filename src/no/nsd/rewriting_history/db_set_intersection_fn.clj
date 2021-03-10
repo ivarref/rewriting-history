@@ -41,18 +41,25 @@
 (defn rand-id []
   (str "id-" (UUID/randomUUID)))
 
-(defn set-intersection-single [db dbid [id-k id-v] [a v]]
-  (let [is-ref? (= :db.type/ref (d/q '[:find ?type .
+(defn set-intersection [db lookup-ref a v]
+  (let [v (to-clojure-types v)
+        lookup-ref (to-clojure-types lookup-ref)
+        _ (assert (vector? lookup-ref))
+        _ (assert (set? v))
+        db (if (instance? Database db) db (d/db db))
+        dbid (rand-id)
+        is-ref? (= :db.type/ref (d/q '[:find ?type .
                                        :in $ ?attr
                                        :where
                                        [?attr :db/valueType ?t]
                                        [?t :db/ident ?type]]
                                      db a))
+        [id-a id-v] lookup-ref
         e (d/q '[:find ?e .
-                 :in $ ?k ?v
+                 :in $ ?a ?v
                  :where
-                 [?e ?k ?v]]
-               db id-k id-v)]
+                 [?e ?a ?v]]
+               db id-a id-v)]
     (if is-ref?
       (let [curr-set (when e
                        (into #{} (d/q '[:find [(pull ?v [*]) ...]
@@ -73,8 +80,8 @@
                  into
                  []
                  [(mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
-                  (mapv (fn [add] {:db/id dbid
-                                   a (update add :db/id (fn [v] (or v (rand-id))))})
+                  (mapv (fn [add] :db/id dbid
+                          a (update add :db/id (fn [v] (or v (rand-id)))))
                         to-add)])]
         tx)
       (let [curr-set (when e
@@ -85,37 +92,11 @@
                                       db e a)))
             to-remove (set/difference curr-set v)
             to-add (set/difference v (set/intersection curr-set v))
-            tx (reduce
-                 into
-                 []
-                 [(mapv (fn [rm] [:db/retract dbid a rm]) to-remove)
-                  (mapv (fn [add] [:db/add dbid a add]) to-add)])]
+            tx (vec (concat
+                      [{id-a id-v :db/id dbid}]
+                      (vec (sort (mapv (fn [rm] [:db/retract dbid a rm]) to-remove)))
+                      (vec (sort (mapv (fn [add] [:db/add dbid a add]) to-add)))))]
         tx))))
-
-(defn set-intersection
-  [db m]
-  (let [m (to-clojure-types m)
-        db (if (instance? Database db) db (d/db db))]
-    (assert (map? m) "expected m to be a map")
-    (let [e (find-upsert-id db m)
-          id (or (:db/id m) (rand-id))
-          regular-map (->> m
-                           (remove (comp set? second))
-                           (into {}))
-          sets (->> m
-                    (filter (comp set? second))
-                    (into []))
-          tx (reduce into []
-                     [[(assoc regular-map :db/id id)]
-                      (vec (sort-by (fn [v]
-                                      (if (map? v)
-                                        (->> v
-                                             (into (sorted-map))
-                                             (into [])
-                                             (pr-str))
-                                        (pr-str v)))
-                                    (mapcat (partial set-intersection-single db id e) sets)))])]
-      tx)))
 
 (def datomic-fn-def
   (clojure.edn/read-string
