@@ -19,7 +19,7 @@
 
 (defn empty-conn
   ([]
-   (u/empty-stage-conn "ivr-test"))
+   (u/empty-conn))
   ([schema]
    (let [conn (empty-conn)]
      @(d/transact conn schema)
