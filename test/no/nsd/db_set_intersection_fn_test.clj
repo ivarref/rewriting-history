@@ -8,7 +8,9 @@
             [no.nsd.utils :as u]
             [clojure.tools.logging :as log]
             [no.nsd.datomic-generate-fn :as genfn]
-            [clojure.pprint :as pprint]))
+            [no.nsd.rewriting-history.db-set-intersection-fn :as s]
+            [clojure.pprint :as pprint])
+  (:import (clojure.lang ExceptionInfo)))
 
 (defn db-fn
   []
@@ -36,14 +38,22 @@
        (into #{})))
 
 (deftest verify-primitives-work
+  (u/clear)
   (let [schema (reduce into []
                        [[(db-fn)]
                         #d/schema[[:m/id :one :string :id]
                                   [:m/set :many :string]]])
         conn (u/empty-conn schema)]
-    @(d/transact conn [[:set/intersection
-                        {:m/id  "id"
-                         :m/set #{"a" "b"}}]])
+
+    (is (= (s/find-upsert-id (d/db conn) {:m/id      "id"
+                                          :m/set #{"a" "b"}})
+           [:m/id "id"]))
+    (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
+
+
+    #_@(d/transact conn [[:set/intersection
+                          {:m/id  "id"
+                           :m/set #{"a" "b"}}]])
     #_(is (= #{"a" "b"} (get-curr-set conn)))))
 
 ;@(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])

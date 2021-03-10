@@ -6,13 +6,27 @@
   (:import (java.util UUID)))
 
 (defn pp [o]
-  (with-out-str (pprint/pprint o)))
+  (println (with-out-str (pprint/pprint o)))
+  o)
 
 (defn find-upsert-id [db m]
   (assert (map? m))
-  (reduce-kv (fn [o k v])
-             nil
-             m))
+  (let [id (reduce-kv (fn [o k v]
+                        (when (= :db.unique/identity
+                                 (d/q '[:find ?ident .
+                                        :in $ ?id
+                                        :where
+                                        [?e :db/ident ?id]
+                                        [?e :db/unique ?u]
+                                        [?u :db/ident ?ident]]
+                                      db
+                                      k))
+                          (reduced [k v])))
+                      nil
+                      m)]
+    (if-not id
+      (throw (ex-info "could not find :db/unique/identity" {:m m}))
+      id)))
 
 (defn set-intersection
   [db m]
