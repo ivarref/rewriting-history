@@ -55,16 +55,19 @@
     (pprint/pprint x))
   x)
 
-(defn empty-stage-conn [db-name]
-  (assert (string? db-name))
-  (assert (str/includes? db-name "-test"))
-  (when (.exists (io/file ".stage-url.txt"))
-    (let [jdbc-uri (str/trim (slurp (io/file ".stage-url.txt")))]
-      (assert (str/starts-with? jdbc-uri "jdbc:"))
-      (let [uri (str "datomic:sql://" db-name "?" jdbc-uri)]
-        (d/delete-database uri)
-        (d/create-database uri)
-        (conn-with-fake-tx-time (d/connect uri))))))
+(defn empty-stage-conn
+  ([db-name]
+   (assert (string? db-name))
+   (assert (str/includes? db-name "-test"))
+   (when (.exists (io/file ".stage-url.txt"))
+     (let [jdbc-uri (str/trim (slurp (io/file ".stage-url.txt")))]
+       (assert (str/starts-with? jdbc-uri "jdbc:"))
+       (let [uri (str "datomic:sql://" db-name "?" jdbc-uri)]
+         (d/delete-database uri)
+         (d/create-database uri)
+         (conn-with-fake-tx-time (d/connect uri))))))
+  ([]
+   (empty-stage-conn "ivr-test")))
 
 (defn clear []
   (.print System/out "\033[H\033[2J")
