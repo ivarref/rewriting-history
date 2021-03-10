@@ -121,6 +121,13 @@
                                     [:c/id :one :string :id]]])
           conn (empty-conn)]
       @(d/transact conn schema)
+      (is (= (s/set-intersection conn [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}})
+             [{:m/id "id", :db/id "randid-1"}
+              {:db/id "randid-2", :c/id "b"}
+              {:db/id "randid-3", :c/id "c"}
+              [:db/add "randid-1" :m/set "randid-2"]
+              [:db/add "randid-1" :m/set "randid-3"]]))
+
       @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/id "a"} {:c/id "b"}}]])
 
       (is (= #{{:c/id "a"} {:c/id "b"}} (get-curr-set conn)))
