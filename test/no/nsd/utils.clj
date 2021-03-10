@@ -51,7 +51,7 @@
      conn)))
 
 (defn pprint [x]
-  (binding [pprint/*print-right-margin* 120]
+  (binding [pprint/*print-right-margin* 80]
     (pprint/pprint x))
   x)
 
