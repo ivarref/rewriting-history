@@ -90,7 +90,6 @@
               [:db/add "randid" :m/s2 "d"]])))))
 
 (deftest verify-component-refs-work
-  (u/clear)
   (with-redefs [s/rand-id (let [c (atom 0)]
                             (fn [] (str "randid-" (swap! c inc))))]
     (let [schema (reduce into []
@@ -99,10 +98,10 @@
                                     [:m/set :many :ref :component]
                                     [:c/a :one :string]]])
           conn (u/empty-conn schema)]
-      (is (= (u/pprint (s/set-intersection
-                         (d/db conn)
-                         {:m/id "id"
-                          :m/set #{{:c/a "a"} {:c/a "b"}}}))
+      (is (= (s/set-intersection
+               (d/db conn)
+               {:m/id "id"
+                :m/set #{{:c/a "a"} {:c/a "b"}}})
              [{:m/id "id", :db/id "randid-1"}
               {:db/id "randid-1", :m/set {:c/a "a", :db/id "randid-2"}}
               {:db/id "randid-1", :m/set {:c/a "b", :db/id "randid-3"}}]))
