@@ -17,8 +17,14 @@
     :set/intersection
     false))
 
+(defn empty-conn
+  ([]
+   (u/empty-conn))
+  ([schema]
+   (u/empty-conn schema)))
+
 (deftest verify-genfn-works
-  (let [conn (u/empty-conn)]
+  (let [conn (empty-conn)]
     @(d/transact conn [(db-fn)])
     (is (= 1 1))))
 
@@ -48,7 +54,7 @@
                          [[(db-fn)]
                           #d/schema[[:m/id :one :string :id]
                                     [:m/set :many :string]]])
-          conn (u/empty-conn schema)]
+          conn (empty-conn schema)]
 
       (is (= (s/find-upsert-id (d/db conn) {:m/id  "id"
                                             :m/set #{"a" "b"}})
@@ -83,7 +89,7 @@
                           #d/schema[[:m/id :one :string :id]
                                     [:m/s1 :many :string]
                                     [:m/s2 :many :string]]])
-          conn (u/empty-conn schema)]
+          conn (empty-conn schema)]
 
       (is (= (s/set-intersection conn {:m/id "id"
                                        :m/s1 #{"a" "b"}
@@ -102,7 +108,7 @@
                           #d/schema[[:m/id :one :string :id]
                                     [:m/set :many :ref :component]
                                     [:c/a :one :string]]])
-          conn (u/empty-conn schema)]
+          conn (empty-conn schema)]
       (is (= (s/set-intersection
                (d/db conn)
                {:m/id "id"
@@ -138,7 +144,7 @@
                         #d/schema[[:m/id :one :string :id]
                                   [:m/set :many :ref]
                                   [:c/a :one :string]]])
-        conn (u/empty-conn schema)]
+        conn (empty-conn schema)]
     @(d/transact conn [[:set/intersection
                         {:m/id "id"
                          :m/set #{{:c/a "a"}
