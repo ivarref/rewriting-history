@@ -17,6 +17,18 @@
     :set/intersection
     false))
 
+(deftest verify-genfn-works
+  (let [conn (u/empty-conn)]
+    @(d/transact conn [(db-fn)])
+    (is (= 1 1))))
+
+(deftest write-fn
+  (genfn/generate-function
+    'no.nsd.rewriting-history.db-set-intersection-fn/set-intersection
+    :set/intersection
+    true)
+  (is (= 1 1)))
+
 (defn get-curr-set [conn]
   (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
        :m/set
@@ -29,11 +41,6 @@
                        (dissoc v :db/id)
                        v)))
        (into #{})))
-
-(deftest verify-genfn-works
-  (let [conn (u/empty-conn)]
-    @(d/transact conn [(db-fn)])
-    (is (= 1 1))))
 
 (deftest verify-primitives-work
   (with-redefs [s/rand-id (fn [] "randid")]
