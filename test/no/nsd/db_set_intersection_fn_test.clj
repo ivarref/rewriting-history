@@ -8,7 +8,8 @@
             [clojure.tools.logging :as log]
             [no.nsd.datomic-generate-fn :as genfn]
             [no.nsd.rewriting-history.db-set-intersection-fn :as s])
-  (:import (clojure.lang ExceptionInfo)))
+  (:import (clojure.lang ExceptionInfo)
+           (java.util.concurrent ExecutionException)))
 
 (defn db-fn
   []
@@ -182,6 +183,29 @@
                (dissoc :db/id)
                (update :m/set (partial into #{})))
            #:m{:id "id" :desc "description2" :set #{"b" "c"}}))))
+
+(deftest strange-db-id-gives-exception
+  (with-redefs [s/rand-id (let [c (atom 0)]
+                            (fn [] (str "randid-" (swap! c inc))))]
+    (let [conn (empty-conn)]
+      @(d/transact conn (reduce into []
+                                [[(db-fn)]
+                                 #d/schema[[:m/id :one :string :id]
+                                           [:m/set :many :ref :component]
+                                           [:c/a :one :string]]]))
+      (is (thrown? ExecutionException @(d/transact conn [[:set/intersection [:m/id "id"]
+                                                          :m/set #{{:c/a   "a"
+                                                                    :db/id [:m/id "parent"]}}]])))
+      (is (= (s/set-intersection conn [:m/id "id"]
+                                 :m/set #{{:c/a   "a"
+                                           :db/id "customstr"}})
+             [{:m/id "id", :db/id "randid-1"}
+              {:db/id "customstr", :c/a "a"}
+              [:db/add "randid-1" :m/set "customstr"]]))
+      @(d/transact conn [[:set/intersection [:m/id "id"]
+                          :m/set #{{:c/a   "a"
+                                    :db/id "customstr"}}]])
+      (is (= #{{:c/a "a"}} (get-curr-set conn))))))
 
 (deftest verify-primitives-feav
   (testing "using feav when other data is present"
