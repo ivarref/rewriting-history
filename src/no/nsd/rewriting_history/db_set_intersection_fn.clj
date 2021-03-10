@@ -1,8 +1,23 @@
 (ns no.nsd.rewriting-history.db-set-intersection-fn
   (:require [datomic.api :as d]
-            [clojure.set :as set])
-  (:import (java.util UUID)
+            [clojure.set :as set]
+            [clojure.pprint :as pprint]
+            [clojure.tools.logging :as log]
+            [clojure.walk :as walk])
+  (:import (java.util UUID HashSet List)
            (datomic Database)))
+
+(defn to-clojure-types [m]
+  (walk/prewalk
+    (fn [e]
+      (cond (instance? HashSet e)
+            (into #{} e)
+
+            (and (instance? List e) (not (vector? e)))
+            (vec e)
+
+            :else e))
+    m))
 
 (defn find-upsert-id [db m]
   (assert (map? m))
@@ -79,7 +94,8 @@
 
 (defn set-intersection
   [db m]
-  (let [db (if (instance? Database db) db (d/db db))]
+  (let [m (to-clojure-types m)
+        db (if (instance? Database db) db (d/db db))]
     (assert (map? m) "expected m to be a map")
     (let [e (find-upsert-id db m)
           id (or (:db/id m) (rand-id))
@@ -88,17 +104,18 @@
                            (into {}))
           sets (->> m
                     (filter (comp set? second))
-                    (into []))]
-      (reduce into []
-              [[(assoc regular-map :db/id id)]
-               (vec (sort-by (fn [v]
-                               (if (map? v)
-                                 (->> v
-                                      (into (sorted-map))
-                                      (into [])
-                                      (pr-str))
-                                 (pr-str v)))
-                             (mapcat (partial set-intersection-single db id e) sets)))]))))
+                    (into []))
+          tx (reduce into []
+                     [[(assoc regular-map :db/id id)]
+                      (vec (sort-by (fn [v]
+                                      (if (map? v)
+                                        (->> v
+                                             (into (sorted-map))
+                                             (into [])
+                                             (pr-str))
+                                        (pr-str v)))
+                                    (mapcat (partial set-intersection-single db id e) sets)))])]
+      tx)))
 
 (def datomic-fn-def
   (clojure.edn/read-string
