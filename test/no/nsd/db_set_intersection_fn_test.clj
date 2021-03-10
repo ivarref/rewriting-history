@@ -184,4 +184,8 @@
                    :in $
                    :where
                    [?e :c/id "b"]]
-                 (d/db conn))))))))
+                 (d/db conn))))
+
+        @(d/transact conn [[:set/intersection {:m/id  "id"
+                                               :m/set #{}}]])
+        (is (= #{} (get-curr-set conn)))))))
