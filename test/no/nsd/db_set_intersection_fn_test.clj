@@ -127,32 +127,35 @@
                    [?e :c/a "b"]]
                  (d/db conn))))))))
 
-#_(deftest verify-refs-work
-    (let [schema (reduce into []
-                         [[(generate-function false)]
-                          #d/schema[[:m/id :one :string :id]
-                                    [:m/set :many :ref]
-                                    [:c/a :one :string]]])
-          conn (u/empty-conn, schema)]
-      @(d/transact conn [{:db/id "id" :m/id "id"}
-                         [:set/intersection "id" :m/set #{{:c/a "a"} {:c/a "b"}}]])
-      (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
+(deftest verify-refs-work
+  (let [schema (reduce into []
+                       [[(db-fn)]
+                        #d/schema[[:m/id :one :string :id]
+                                  [:m/set :many :ref]
+                                  [:c/a :one :string]]])
+        conn (u/empty-conn, schema)]
+    @(d/transact conn [[:set/intersection
+                        {:m/id "id"
+                         :m/set #{{:c/a "a"}
+                                  {:c/a "b"}}}]])
+    (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
 
-      (let [b-eid (d/q
-                    '[:find ?e .
-                      :in $
-                      :where
-                      [?e :c/a "b"]]
-                    (d/db conn))]
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
-        (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
-        (is (= b-eid
-               (d/q
-                 '[:find ?e .
-                   :in $
-                   :where
-                   [?e :c/a "b"]]
-                 (d/db conn)))))))
+    (let [b-eid (d/q
+                  '[:find ?e .
+                    :in $
+                    :where
+                    [?e :c/a "b"]]
+                  (d/db conn))]
+      @(d/transact conn [[:set/intersection {:m/id "id"
+                                             :m/set #{{:c/a "b"} {:c/a "c"}}}]])
+      (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
+      (is (= b-eid
+             (d/q
+               '[:find ?e .
+                 :in $
+                 :where
+                 [?e :c/a "b"]]
+               (d/db conn)))))))
 
 #_(deftest gen-fn
     (generate-function true)
