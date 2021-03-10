@@ -45,7 +45,7 @@
                                     [:m/set :many :string]]])
           conn (u/empty-conn schema)]
 
-      (is (= (s/find-upsert-id (d/db conn) {:m/id      "id"
+      (is (= (s/find-upsert-id (d/db conn) {:m/id  "id"
                                             :m/set #{"a" "b"}})
              [:m/id "id"]))
       (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
@@ -62,14 +62,32 @@
       (is (= #{"a" "b"} (get-curr-set conn)))
 
       @(d/transact conn [[:set/intersection
-                          {:m/id "id"
+                          {:m/id  "id"
                            :m/set #{"b" "c"}}]])
       (is (= #{"b" "c"} (get-curr-set conn)))
 
       @(d/transact conn [[:set/intersection
-                          {:m/id "id"
+                          {:m/id  "id"
                            :m/set #{}}]])
       (is (= #{} (get-curr-set conn))))))
+
+(deftest handles-multiple-attributes
+  (with-redefs [s/rand-id (fn [] "randid")]
+    (let [schema (reduce into []
+                         [[(db-fn)]
+                          #d/schema[[:m/id :one :string :id]
+                                    [:m/s1 :many :string]
+                                    [:m/s2 :many :string]]])
+          conn (u/empty-conn schema)]
+
+      (is (= (s/set-intersection conn {:m/id "id"
+                                       :m/s1 #{"a" "b"}
+                                       :m/s2 #{"c" "d"}})
+             [{:m/id "id" :db/id "randid"}
+              [:db/add "randid" :m/s1 "a"]
+              [:db/add "randid" :m/s1 "b"]
+              [:db/add "randid" :m/s2 "c"]
+              [:db/add "randid" :m/s2 "d"]])))))
 
 #_(deftest verify-component-refs-work
     (let [schema (reduce into []
