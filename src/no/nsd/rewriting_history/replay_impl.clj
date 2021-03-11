@@ -49,6 +49,7 @@
     2))
 
 (defn job-state [conn lookup-ref]
+  (assert (vector? lookup-ref))
   (d/q '[:find ?state .
          :in $ ?lookup-ref
          :where
@@ -58,6 +59,7 @@
        (pr-str lookup-ref)))
 
 (defn job-init! [conn lookup-ref]
+  (assert (vector? lookup-ref))
   (let [eids-to-excise (d/q '[:find [?eid ...]
                               :in $ ?lookup-ref
                               :where
@@ -207,15 +209,14 @@
        (mapv (partial zipmap [:rh/e :rh/a :rh/v :rh/t :rh/o]))
        (into #{})))
 
-(defn add-rewrite-job! [conn job-id org-history new-history]
-  (assert (string? job-id))
+(defn add-rewrite-job! [conn lookup-ref org-history new-history]
+  (assert (vector? lookup-ref))
   (assert (vector? org-history))
   (assert (vector? new-history))
-  (let [tx [{:rh/id          job-id
+  (let [tx [{:rh/lookup-ref  (pr-str lookup-ref)
              :rh/state       :init
              :rh/tx-index    0
              :rh/eid         (into #{} (-> org-history meta :original-eids))
-             :rh/lookup-ref  (pr-str (-> org-history meta :lookup-ref))
              :rh/org-history (history->set org-history)
              :rh/new-history (history->set new-history)}]]
     @(d/transact conn tx)))
