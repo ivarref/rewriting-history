@@ -84,12 +84,12 @@
                 [4 :m/info "good-data" 3 true]]))
 
         ; Add job
-        (replay/add-rewrite-job! conn2 "job" org-history org-history)
+        (replay/add-rewrite-job! conn2 [:m/id "id"] org-history org-history)
 
         ; Fake excision
-        @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
+        @(d/transact conn2 [{:rh/lookup-ref (pr-str [:m/id "id"]) :rh/state :rewrite-history}])
 
-        (replay/process-job-step! conn2 "job")
+        (replay/process-job-step! conn2 [:m/id "id"])
 
         (is (= (rh/pull-flat-history conn2 [:m/id "id"])
                [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
@@ -102,12 +102,12 @@
         (let [{:keys [expected-history]}
               (timbre/with-level
                 :fatal
-                (replay/rewrite-history! conn2 "job"))]
+                (replay/rewrite-history! conn2 [:m/id "id"]))]
           (is (= expected-history
                  [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
                   [4 :m/id "id" 1 true]
                   [4 :m/info "original-data" 1 true]]))
-          (is (= :error (replay/job-state conn2 "job"))))))))
+          (is (= :error (replay/job-state conn2 [:m/id "id"]))))))))
 
 (deftest verify-replay-history-job-test
   (testing "Verify is fine with writes just after last re-write has occurred"
