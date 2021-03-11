@@ -5,6 +5,7 @@
             [no.nsd.utils :as u]
             [no.nsd.shorter-stacktrace]
             [no.nsd.log-init]
+            [datomic-schema.core]
             [datomic.api :as d]))
 
 (defn db-fn
