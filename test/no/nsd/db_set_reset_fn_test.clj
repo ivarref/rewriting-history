@@ -44,6 +44,38 @@
                        v)))
        (into #{})))
 
+(deftest feav-style-is-cleaner
+  (testing "show database behaviour and how we would like our transactions to look like"
+    (let [conn (empty-conn)]
+      @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                  [:m/desc :one :string]
+                                  [:m/set :many :string]])
+      @(d/transact conn
+                   [{:m/id   "id"
+                     :m/desc "description"
+                     :db/id  "jalla"}
+                    {:m/id "id" :db/id "asdf"}
+                    [:db/add "asdf" :m/set "a"]
+                    [:db/add "asdf" :m/set "b"]])
+
+      (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                 (dissoc :db/id)
+                 (update :m/set (partial into #{})))
+             #:m{:id "id" :desc "description" :set #{"a" "b"}}))
+
+      @(d/transact conn
+                   [{:m/id   "id"
+                     :m/desc "description2"
+                     :db/id  "jalla"}
+                    {:m/id "id" :db/id "asdf"}
+                    [:db/add "asdf" :m/set "c"]
+                    [:db/retract "asdf" :m/set "a"]])
+
+      (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                 (dissoc :db/id)
+                 (update :m/set (partial into #{})))
+             #:m{:id "id" :desc "description2" :set #{"b" "c"}})))))
+
 (deftest verify-primitives-work
   (with-redefs [s/rand-id (fn [] "randid")]
     (let [schema (reduce into []
@@ -146,38 +178,6 @@
 
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
         (is (= #{} (get-curr-set conn)))))))
-
-(deftest feav-style-is-cleaner
-  (testing "show database behaviour and how we would like our transactions to look like"
-    (let [conn (empty-conn)]
-      @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                  [:m/desc :one :string]
-                                  [:m/set :many :string]])
-      @(d/transact conn
-                   [{:m/id   "id"
-                     :m/desc "description"
-                     :db/id  "jalla"}
-                    {:m/id "id" :db/id "asdf"}
-                    [:db/add "asdf" :m/set "a"]
-                    [:db/add "asdf" :m/set "b"]])
-
-      (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
-                 (dissoc :db/id)
-                 (update :m/set (partial into #{})))
-             #:m{:id "id" :desc "description" :set #{"a" "b"}}))
-
-      @(d/transact conn
-                   [{:m/id   "id"
-                     :m/desc "description2"
-                     :db/id  "jalla"}
-                    {:m/id "id" :db/id "asdf"}
-                    [:db/add "asdf" :m/set "c"]
-                    [:db/retract "asdf" :m/set "a"]])
-
-      (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
-                 (dissoc :db/id)
-                 (update :m/set (partial into #{})))
-             #:m{:id "id" :desc "description2" :set #{"b" "c"}})))))
 
 (deftest strange-db-id-gives-exception
   (with-redefs [s/rand-id (let [c (atom 0)]
