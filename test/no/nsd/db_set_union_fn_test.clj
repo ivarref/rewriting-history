@@ -161,3 +161,7 @@
                   (sort)
                   (vec))
              ["banana" "pancakes"])))))
+
+(deftest generate-fn-test
+  (db-fn true)
+  (is (= 1 1)))
