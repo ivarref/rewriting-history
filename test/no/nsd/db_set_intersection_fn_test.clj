@@ -208,7 +208,7 @@
       (is (= #{{:c/a "a"}} (get-curr-set conn))))))
 
 (deftest verify-primitives-feav
-  (testing "using feav when other data is present"
+  (testing "using :set/reset when other data is present"
     (with-redefs [s/rand-id (let [c (atom 0)]
                               (fn [] (str "randid-" (swap! c inc))))]
       (let [conn (empty-conn)]
@@ -233,26 +233,4 @@
         (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
                    (dissoc :db/id)
                    (update :m/set (partial into #{})))
-               #:m{:id "id" :desc "description2" :set #{"b" "c"}})))))
-
-  (testing "using feav when no other data is present"
-    (with-redefs [s/rand-id (let [c (atom 0)]
-                              (fn [] (str "randid-" (swap! c inc))))]
-      (let [conn (empty-conn)]
-        @(d/transact conn (reduce into []
-                                  [[(db-fn)]
-                                   #d/schema[[:m/id :one :string :id]
-                                             [:m/set :many :string]]]))
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
-
-        (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
-                   (dissoc :db/id)
-                   (update :m/set (partial into #{})))
-               #:m{:id "id" :set #{"a" "b"}}))
-
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
-
-        (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
-                   (dissoc :db/id)
-                   (update :m/set (partial into #{})))
-               #:m{:id "id" :set #{"b" "c"}}))))))
+               #:m{:id "id" :desc "description2" :set #{"b" "c"}}))))))
