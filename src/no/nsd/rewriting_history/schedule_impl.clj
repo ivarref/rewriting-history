@@ -61,8 +61,8 @@
             [:set/reset [:rh/lookup-ref id] :rh/new-history (replay/history->set new-history)]
             [:set/reset [:rh/lookup-ref id] :rh/replace #{}]
             [:set/reset [:rh/lookup-ref id] :rh/tempids #{}]
-            #_[:some/retract [:rh/lookup-ref id] :rh/done]
-            #_[:some/retract [:rh/lookup-ref id] :rh/error]
+            [:some/retract [:rh/lookup-ref id] :rh/done]
+            [:some/retract [:rh/lookup-ref id] :rh/error]
             {:rh/lookup-ref id
              :rh/tx-index 0}]]
     (log/info "lookup-ref:" lookup-ref)
