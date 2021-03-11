@@ -57,6 +57,7 @@
         org-history (impl/pull-flat-history-simple conn lookup-ref)
         new-history (mapv (partial replace-eavto replacements) org-history)
         tx [[:db/cas [:rh/lookup-ref id] :rh/state :scheduled :init]
+            [:set/reset [:rh/lookup-ref id] :rh/eid (into #{} (-> org-history meta :original-eids))]
             [:set/reset [:rh/lookup-ref id] :rh/org-history (replay/history->set org-history)]
             [:set/reset [:rh/lookup-ref id] :rh/new-history (replay/history->set new-history)]
             [:set/reset [:rh/lookup-ref id] :rh/replace #{}]

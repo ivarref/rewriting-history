@@ -228,10 +228,16 @@
 
 (def schema
   (into #d/schema[[:rh/id :one :string :id]
+
+                  ; for identifying what is going to be rewritten
                   [:rh/lookup-ref :one :string :id]
+
+                  ; for scheduling replacements
                   [:rh/replace :many :ref :component]
                   [:rh/match :one :string]
                   [:rh/replacement :one :string]
+
+                  ;for rewrite job
                   [:rh/eid :many :long]
                   [:rh/org-history :many :ref :component]
                   [:rh/new-history :many :ref :component]
