@@ -14,8 +14,8 @@
 (defn db-fn
   []
   (genfn/generate-function
-    'no.nsd.rewriting-history.db-set-reset-fn/set-intersection
-    :set/intersection
+    'no.nsd.rewriting-history.db-set-reset-fn/set-reset
+    :set/reset
     false))
 
 (def empty-conn u/empty-conn)
@@ -27,8 +27,8 @@
 
 (deftest write-fn
   (genfn/generate-function
-    'no.nsd.rewriting-history.db-set-reset-fn/set-intersection
-    :set/intersection
+    'no.nsd.rewriting-history.db-set-reset-fn/set-reset
+    :set/reset
     true)
   (is (= 1 1)))
 
@@ -59,24 +59,24 @@
              [:m/id "id"]))
       (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
 
-      (is (= (s/set-intersection conn [:m/id "id"] :m/set #{"a" "b"})
+      (is (= (s/set-reset conn [:m/id "id"] :m/set #{"a" "b"})
              [{:m/id "id", :db/id "randid"}
               [:db/add "randid" :m/set "a"]
               [:db/add "randid" :m/set "b"]]))
 
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{"a" "b"}]])
       (is (= #{"a" "b"} (get-curr-set conn)))
 
-      (is (= (s/set-intersection (d/db conn) [:m/id "id"] :m/set #{"b" "c"})
+      (is (= (s/set-reset (d/db conn) [:m/id "id"] :m/set #{"b" "c"})
              [{:m/id "id", :db/id "randid"}
               [:db/retract "randid" :m/set "a"]
               [:db/add "randid" :m/set "c"]]))
 
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{"b" "c"}]])
 
       (is (= #{"b" "c"} (get-curr-set conn)))
 
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
       (is (= #{} (get-curr-set conn))))))
 
 (deftest verify-component-refs-work
@@ -90,7 +90,7 @@
           conn (empty-conn)]
       @(d/transact conn schema)
 
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/a "a"} {:c/a "b"}}]])
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/a "a"} {:c/a "b"}}]])
       (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
 
       (let [b-eid (d/q
@@ -99,7 +99,7 @@
                       :where
                       [?e :c/a "b"]]
                     (d/db conn))]
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
+        @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
         (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
         (is (= b-eid
                (d/q
@@ -109,7 +109,7 @@
                    [?e :c/a "b"]]
                  (d/db conn))))
 
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
+        @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
         (is (= #{} (get-curr-set conn)))))))
 
 (deftest verify-refs-work
@@ -122,14 +122,14 @@
                                     [:c/id :one :string :id]]])
           conn (empty-conn)]
       @(d/transact conn schema)
-      (is (= (s/set-intersection conn [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}})
+      (is (= (s/set-reset conn [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}})
              [{:m/id "id", :db/id "randid-1"}
               {:db/id "randid-2", :c/id "b"}
               {:db/id "randid-3", :c/id "c"}
               [:db/add "randid-1" :m/set "randid-2"]
               [:db/add "randid-1" :m/set "randid-3"]]))
 
-      @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/id "a"} {:c/id "b"}}]])
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/id "a"} {:c/id "b"}}]])
 
       (is (= #{{:c/id "a"} {:c/id "b"}} (get-curr-set conn)))
 
@@ -139,7 +139,7 @@
                       :where
                       [?e :c/id "b"]]
                     (d/db conn))]
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}}]])
+        @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}}]])
 
         (is (= #{{:c/id "b"} {:c/id "c"}} (get-curr-set conn)))
         (is (= b-eid
@@ -150,7 +150,7 @@
                    [?e :c/id "b"]]
                  (d/db conn))))
 
-        @(d/transact conn [[:set/intersection [:m/id "id"] :m/set #{}]])
+        @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
         (is (= #{} (get-curr-set conn)))))))
 
 (deftest feav-style-is-cleaner
@@ -193,16 +193,16 @@
                                  #d/schema[[:m/id :one :string :id]
                                            [:m/set :many :ref :component]
                                            [:c/a :one :string]]]))
-      (is (thrown? ExecutionException @(d/transact conn [[:set/intersection [:m/id "id"]
+      (is (thrown? ExecutionException @(d/transact conn [[:set/reset [:m/id "id"]
                                                           :m/set #{{:c/a   "a"
                                                                     :db/id [:m/id "parent"]}}]])))
-      (is (= (s/set-intersection conn [:m/id "id"]
-                                 :m/set #{{:c/a   "a"
-                                           :db/id "customstr"}})
+      (is (= (s/set-reset conn [:m/id "id"]
+                          :m/set #{{:c/a   "a"
+                                    :db/id "customstr"}})
              [{:m/id "id", :db/id "randid-1"}
               {:db/id "customstr", :c/a "a"}
               [:db/add "randid-1" :m/set "customstr"]]))
-      @(d/transact conn [[:set/intersection [:m/id "id"]
+      @(d/transact conn [[:set/reset [:m/id "id"]
                           :m/set #{{:c/a   "a"
                                     :db/id "customstr"}}]])
       (is (= #{{:c/a "a"}} (get-curr-set conn))))))
@@ -218,7 +218,7 @@
                                            [:m/set :many :string]]]))
       @(d/transact conn [{:m/id   "id"
                           :m/desc "description"}
-                         [:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
+                         [:set/reset [:m/id "id"] :m/set #{"a" "b"}]])
 
       (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
                  (dissoc :db/id)
@@ -227,7 +227,7 @@
 
       @(d/transact conn [{:m/id   "id"
                           :m/desc "description2"}
-                         [:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
+                         [:set/reset [:m/id "id"] :m/set #{"b" "c"}]])
 
       (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
                  (dissoc :db/id)
