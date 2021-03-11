@@ -33,4 +33,4 @@
                      [?e ?a ?v]]
                    db e attr)]
         (when (some? v)
-          [:db/retract lookup-ref attr v])))))
+          [[:db/retract lookup-ref attr v]])))))
