@@ -79,6 +79,7 @@
         @(d/transact conn [(db-fn)])
 
         @(d/transact conn [[:set/union [:m/id "id"] :m/set #{"banana"}]])
+        @(d/transact conn [[:set/union [:m/id "id"] :m/set #{"banana"}]])
 
         (is (= (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
                     :m/set)
