@@ -45,7 +45,7 @@
        (into #{})))
 
 (deftest feav-style-is-cleaner
-  (testing "show database behaviour and how we would like our transactions to look like"
+  (testing "verify database behaviour and show how we would like our transactions to look like"
     (let [conn (empty-conn)]
       @(d/transact conn #d/schema[[:m/id :one :string :id]
                                   [:m/desc :one :string]
