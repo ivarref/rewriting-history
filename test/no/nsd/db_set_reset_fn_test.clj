@@ -54,11 +54,6 @@
           conn (empty-conn)]
       @(d/transact conn schema)
 
-      (is (= (s/find-upsert-id (d/db conn) {:m/id  "id"
-                                            :m/set #{"a" "b"}})
-             [:m/id "id"]))
-      (is (thrown? ExceptionInfo (s/find-upsert-id (d/db conn) {:m/set #{"a" "b"}})))
-
       (is (= (s/set-reset conn [:m/id "id"] :m/set #{"a" "b"})
              [{:m/id "id", :db/id "randid"}
               [:db/add "randid" :m/set "a"]
