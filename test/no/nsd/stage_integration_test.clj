@@ -46,8 +46,9 @@
               [4 :m/info "good-data" 3 true]]))
 
       (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")
-
       (replay/process-until-state conn [:m/id "id"] :done)
+
+      (is (= #{"original-data" "corrected-data" "good-data"} (db-values-set conn)))
 
       (is (= (rh/pull-flat-history conn [:m/id "id"])
              [[1 :tx/txInstant #inst "1972" 1 true]
