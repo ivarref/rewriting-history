@@ -66,10 +66,10 @@
             [:some/retract [:rh/lookup-ref id] :rh/error]
             {:rh/lookup-ref id
              :rh/tx-index 0}]]
-    (log/info "lookup-ref:" lookup-ref)
-    (log/info "replacements:" replacements)
-    (log/info "new-history:\n" (with-out-str (pprint/pprint new-history)))
-    (log/info "tx:\n" (with-out-str (pprint/pprint tx)))
+    ;(log/info "lookup-ref:" lookup-ref)
+    ;(log/info "replacements:" replacements)
+    ;(log/info "new-history:\n" (with-out-str (pprint/pprint new-history)))
+    ;(log/info "tx:\n" (with-out-str (pprint/pprint tx)))
     @(d/transact conn tx)))
 
 

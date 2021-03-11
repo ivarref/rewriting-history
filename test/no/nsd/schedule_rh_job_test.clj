@@ -46,5 +46,5 @@
 
         (schedule/process-single-schedule! conn1 [:m/id "id"])
 
-        #_(replay/rewrite-history!)))))
+        (replay/rewrite-history! conn1 [:m/id "id"])))))
 
