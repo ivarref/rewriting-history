@@ -1,7 +1,9 @@
 (ns no.nsd.db-set-union-fn-test
   (:require [clojure.test :refer :all]
             [no.nsd.datomic-generate-fn :as genfn]
+            [no.nsd.rewriting-history.db-set-union-fn :as s]
             [no.nsd.utils :as u]
+            [no.nsd.log-init]
             [datomic.api :as d]))
 
 (defn db-fn
@@ -27,6 +29,7 @@
       @(d/transact conn [{:m/id "id"
                           :m/set #{{:r/name "banana"}}}])
 
+      ; There are now two bananas, but I would expect (and like) a single one
       (is (= (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
                   :m/set
                   (mapv :r/name))
@@ -48,4 +51,53 @@
                   :m/set
                   (mapv (fn [{:db/keys [id]}] (d/pull (d/db conn) '[:*] id)))
                   (mapv :r/name))
-             ["banana" "banana"])))))
+             ["banana" "banana"]))))
+
+  (testing "Show how Datomic's default set addition behaves for primitives"
+    (let [conn (empty-conn)]
+      @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                  [:m/set :many :string]])
+
+      @(d/transact conn [{:m/id "id"
+                          :m/set #{"banana"}}])
+
+      @(d/transact conn [{:m/id "id"
+                          :m/set #{"banana"}}])
+
+      (is (= (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                  :m/set)
+             ["banana"])))))
+
+#_(deftest db-behaviour
+    (testing "verify database behaviour and show how we would like our transactions to look like"
+      (with-redefs [s/rand-id (let [c (atom 0)]
+                                (fn [] (str "randid-" (swap! c inc))))]
+        (let [conn (empty-conn)]
+          @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                      [:m/set :many :ref :component]
+                                      [:r/name :one :string]])
+          @(d/transact conn
+                       [{:m/id   "id"
+                         :m/desc "description"
+                         :db/id  "jalla"}
+                        {:m/id "id" :db/id "asdf"}
+                        [:db/add "asdf" :m/set "a"]
+                        [:db/add "asdf" :m/set "b"]])
+
+          (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                     (dissoc :db/id)
+                     (update :m/set (partial into #{})))
+                 #:m{:id "id" :desc "description" :set #{"a" "b"}}))
+
+          @(d/transact conn
+                       [{:m/id   "id"
+                         :m/desc "description2"
+                         :db/id  "jalla"}
+                        {:m/id "id" :db/id "asdf"}
+                        [:db/add "asdf" :m/set "c"]
+                        [:db/retract "asdf" :m/set "a"]])
+
+          (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                     (dissoc :db/id)
+                     (update :m/set (partial into #{})))
+                 #:m{:id "id" :desc "description2" :set #{"b" "c"}}))))))
