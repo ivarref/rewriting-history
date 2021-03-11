@@ -133,6 +133,11 @@
                     (d/db conn))]
         (is (pos-int? a-eid))
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
+
+        ; Asserting identical set is a no-op:
+        (is (= (s/set-reset conn [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}})
+               [{:m/id "id", :db/id "randid-1"}]))
+
         (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
         (is (= b-eid
                (d/q
@@ -190,6 +195,10 @@
                 {:db/id "randid-5", :c/id "c"}
                 [:db/add "randid-4" :m/set "randid-5"]]))
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}}]])
+
+        ; Asserting identical set is a no-op:
+        (is (= (s/set-reset conn [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}})
+               [{:m/id "id", :db/id "randid-6"}]))
 
         (is (= #{{:c/id "b"} {:c/id "c"}} (get-curr-set conn)))
         (is (= b-eid
