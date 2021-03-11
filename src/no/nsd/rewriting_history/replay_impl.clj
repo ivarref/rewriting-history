@@ -75,16 +75,6 @@
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after)))))
 
-(defn job->lookup-ref [conn job-id]
-  (->> (d/q '[:find ?lookup-ref .
-              :in $ ?job-id
-              :where
-              [?e :rh/id ?job-id]
-              [?e :rh/lookup-ref ?lookup-ref]]
-            (d/db conn)
-            job-id)
-       (edn/read-string)))
-
 (defn save-tempids-metadata [tx]
   (->> tx
        (map second)
@@ -203,12 +193,6 @@
             :else
             new-state))))
 
-(defn history->set [hist]
-  (->> hist
-       (map #(mapv pr-str %))
-       (mapv (partial zipmap [:rh/e :rh/a :rh/v :rh/t :rh/o]))
-       (into #{})))
-
 (defn add-rewrite-job! [conn lookup-ref org-history new-history]
   (assert (vector? lookup-ref))
   (assert (vector? org-history))
@@ -217,6 +201,6 @@
              :rh/state       :init
              :rh/tx-index    0
              :rh/eid         (into #{} (-> org-history meta :original-eids))
-             :rh/org-history (history->set org-history)
-             :rh/new-history (history->set new-history)}]]
+             :rh/org-history (impl/history->set org-history)
+             :rh/new-history (impl/history->set new-history)}]]
     @(d/transact conn tx)))

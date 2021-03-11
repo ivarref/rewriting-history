@@ -2,7 +2,6 @@
   (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
             [no.nsd.rewriting-history.impl :as impl]
-            [no.nsd.rewriting-history.replay-impl :as replay]
             [clojure.edn :as edn]
             [clojure.pprint :as pprint]
             [clojure.string :as str]))
@@ -58,8 +57,8 @@
         new-history (mapv (partial replace-eavto replacements) org-history)
         tx [[:db/cas [:rh/lookup-ref id] :rh/state :scheduled :init]
             [:set/reset [:rh/lookup-ref id] :rh/eid (into #{} (-> org-history meta :original-eids))]
-            [:set/reset [:rh/lookup-ref id] :rh/org-history (replay/history->set org-history)]
-            [:set/reset [:rh/lookup-ref id] :rh/new-history (replay/history->set new-history)]
+            [:set/reset [:rh/lookup-ref id] :rh/org-history (impl/history->set org-history)]
+            [:set/reset [:rh/lookup-ref id] :rh/new-history (impl/history->set new-history)]
             [:set/reset [:rh/lookup-ref id] :rh/replace #{}]
             [:set/reset [:rh/lookup-ref id] :rh/tempids #{}]
             [:some/retract [:rh/lookup-ref id] :rh/done]

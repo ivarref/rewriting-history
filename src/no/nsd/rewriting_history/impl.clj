@@ -224,6 +224,12 @@
     {}
     txes))
 
+(defn history->set [hist]
+  (->> hist
+       (map #(mapv pr-str %))
+       (mapv (partial zipmap [:rh/e :rh/a :rh/v :rh/t :rh/o]))
+       (into #{})))
+
 (defn rewrite-history! [conn old-history new-history])
 
 (def schema
