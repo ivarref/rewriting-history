@@ -1,4 +1,4 @@
-(ns no.nsd.db-set-intersection-fn-test
+(ns no.nsd.db-set-reset-fn-test
   (:require [clojure.test :refer :all]
             [no.nsd.log-init]
             [no.nsd.shorter-stacktrace]
@@ -7,14 +7,14 @@
             [no.nsd.utils :as u]
             [clojure.tools.logging :as log]
             [no.nsd.datomic-generate-fn :as genfn]
-            [no.nsd.rewriting-history.db-set-intersection-fn :as s])
+            [no.nsd.rewriting-history.db-set-reset-fn :as s])
   (:import (clojure.lang ExceptionInfo)
            (java.util.concurrent ExecutionException)))
 
 (defn db-fn
   []
   (genfn/generate-function
-    'no.nsd.rewriting-history.db-set-intersection-fn/set-intersection
+    'no.nsd.rewriting-history.db-set-reset-fn/set-intersection
     :set/intersection
     false))
 
@@ -27,7 +27,7 @@
 
 (deftest write-fn
   (genfn/generate-function
-    'no.nsd.rewriting-history.db-set-intersection-fn/set-intersection
+    'no.nsd.rewriting-history.db-set-reset-fn/set-intersection
     :set/intersection
     true)
   (is (= 1 1)))

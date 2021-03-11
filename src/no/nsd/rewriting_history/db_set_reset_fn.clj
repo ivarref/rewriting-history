@@ -1,4 +1,4 @@
-(ns no.nsd.rewriting-history.db-set-intersection-fn
+(ns no.nsd.rewriting-history.db-set-reset-fn
   (:require [datomic.api :as d]
             [clojure.set :as set]
             [clojure.walk :as walk])
