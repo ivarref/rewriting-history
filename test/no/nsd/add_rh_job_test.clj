@@ -122,16 +122,16 @@
 
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
         ; Add job
-        (replay/add-rewrite-job! conn2 "job" org-history org-history)
+        (replay/add-rewrite-job! conn2 [:m/id "id"] org-history org-history)
 
         ; Fake excision
-        @(d/transact conn2 [{:rh/id "job" :rh/state :rewrite-history}])
+        @(d/transact conn2 [{:rh/lookup-ref (pr-str [:m/id "id"]) :rh/state :rewrite-history}])
 
-        (replay/process-until-state conn2 "job" :verify)
+        (replay/process-until-state conn2 [:m/id "id"] :verify)
 
         @(d/transact conn2 [{:m/id   "id"
                              :m/info "somebody wrote data just after re-writing was finished (but not verified)!"}])
 
-        (replay/process-job-step! conn2 "job")
+        (replay/process-job-step! conn2 [:m/id "id"])
 
-        (is (= :done (replay/job-state conn2 "job")))))))
+        (is (= :done (replay/job-state conn2 [:m/id "id"])))))))
