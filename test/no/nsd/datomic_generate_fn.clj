@@ -34,6 +34,7 @@
 
 (defn generate-function [fqn db-name write-to-file]
   (let [fil (fqn->fil fqn)
+        out-fil (str/replace fil ".clj" "_generated.clj")
         reqs (-> (z/of-file fil)
                  (z/find-value z/next 'ns)
                  (z/find-value z/next :require)
@@ -78,13 +79,13 @@
                      "\n"
                      "}")]
     (when write-to-file
-      (spit fil (-> (z/of-file fil)
-                    (z/find-value z/next 'clojure.edn/read-string)
-                    (z/right)
-                    (z/right)
-                    (z/replace out-str)
-                    (z/root)
-                    (n/string))))
+      (spit out-fil (-> (z/of-file out-fil)
+                        (z/find-value z/next 'clojure.edn/read-string)
+                        (z/right)
+                        (z/right)
+                        (z/replace out-str)
+                        (z/root)
+                        (n/string))))
     (clojure.edn/read-string
       {:readers {'db/id  datomic.db/id-literal
                  'db/fn  datomic.function/construct
