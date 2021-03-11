@@ -8,8 +8,7 @@
             [clojure.tools.logging :as log]
             [no.nsd.datomic-generate-fn :as genfn]
             [no.nsd.rewriting-history.db-set-reset-fn :as s])
-  (:import (clojure.lang ExceptionInfo)
-           (java.util.concurrent ExecutionException)))
+  (:import (java.util.concurrent ExecutionException)))
 
 (defn db-fn
   []
