@@ -48,25 +48,25 @@
      [4 :m/info "good-data" 3 true]]
     2))
 
-(defn job-state [conn job-id]
+(defn job-state [conn lookup-ref]
   (d/q '[:find ?state .
-         :in $ ?job-id
+         :in $ ?lookup-ref
          :where
-         [?e :rh/id ?job-id]
+         [?e :rh/lookup-ref ?lookup-ref]
          [?e :rh/state ?state]]
        (d/db conn)
-       job-id))
+       (pr-str lookup-ref)))
 
-(defn job-init! [conn job-id]
+(defn job-init! [conn lookup-ref]
   (let [eids-to-excise (d/q '[:find [?eid ...]
-                              :in $ ?job-id
+                              :in $ ?lookup-ref
                               :where
-                              [?e :rh/id ?job-id]
+                              [?e :rh/lookup-ref ?lookup-ref]
                               [?e :rh/eid ?eid]]
                             (d/db conn)
-                            job-id)
+                            (pr-str lookup-ref))
         tx (->> (concat
-                  [[:db/cas [:rh/id job-id] :rh/state :init :rewrite-history]]
+                  [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :init :rewrite-history]]
                   (mapv (fn [eid] {:db/excise eid}) eids-to-excise))
                 vec)]
     (log/debug "deleting initial eids:" eids-to-excise)
@@ -149,20 +149,20 @@
         {:expected-history (history-take-tx new-history tx-index)}))))
 
 
-(defn verify-history! [conn job-id]
-  (let [lookup-ref (job->lookup-ref conn job-id)
-        expected-history (get-new-history conn job-id)
+(defn verify-history! [conn lookup-ref]
+  (let [expected-history (get-new-history conn lookup-ref)
         current-history (some->>
                           (impl/pull-flat-history-simple (d/db conn) lookup-ref)
                           (take (count expected-history))
                           (vec)
                           (impl/simplify-eavtos conn lookup-ref))
         ok-replay? (= expected-history current-history)
+        db-id [:rh/lookup-ref (pr-str lookup-ref)]
         tx (if ok-replay?
-             [[:db/cas [:rh/id job-id] :rh/state :verify :done]
-              {:db/id [:rh/id job-id] :rh/done (Date.)}]
-             [[:db/cas [:rh/id job-id] :rh/state :verify :error]
-              {:db/id [:rh/id job-id] :rh/error (Date.)}])]
+             [[:db/cas db-id :rh/state :verify :done]
+              {:db/id db-id :rh/done (Date.)}]
+             [[:db/cas db-id :rh/state :verify :error]
+              {:db/id db-id :rh/error (Date.)}])]
     (if ok-replay?
       (do
         @(d/transact conn tx))
@@ -171,27 +171,27 @@
         (log/error "expected history:" expected-history)
         @(d/transact conn tx)))))
 
-(defn process-job-step! [conn job-id]
-  (let [state (job-state conn "job")]
+(defn process-job-step! [conn lookup-ref]
+  (let [state (job-state conn lookup-ref)]
     (cond
       (= :init state)
-      (job-init! conn job-id)
+      (job-init! conn lookup-ref)
 
       (= :rewrite-history state)
-      (rewrite-history! conn job-id)
+      (rewrite-history! conn lookup-ref)
 
       (= :verify state)
-      (verify-history! conn job-id)
+      (verify-history! conn lookup-ref)
 
       :else
       (do
         (log/error "unhandled job state:" state)
         nil #_(throw (ex-info "unhandled job state" {:state state}))))))
 
-(defn process-until-state [conn job-id desired-state]
+(defn process-until-state [conn lookup-ref desired-state]
   (loop []
-    (process-job-step! conn job-id)
-    (let [new-state (job-state conn job-id)]
+    (process-job-step! conn lookup-ref)
+    (let [new-state (job-state conn lookup-ref)]
       (cond (= new-state :error)
             :error
 
