@@ -3,6 +3,7 @@
             [clojure.tools.logging :as log]
             [clojure.set :as set]
             [clojure.pprint :as pprint]
+            [no.nsd.rewriting-history.db-fns-schema :as fn-schema]
             [datomic-schema.core])
   (:import (datomic Database)))
 
@@ -226,26 +227,27 @@
 (defn rewrite-history! [conn old-history new-history])
 
 (def schema
-  #d/schema[[:rh/id :one :string :id]
-            [:rh/lookup-ref :one :string :id]
-            [:rh/replace :many :ref :component]
-            [:rh/match :one :string]
-            [:rh/replacement :one :string]
-            [:rh/eid :many :long]
-            [:rh/org-history :many :ref :component]
-            [:rh/new-history :many :ref :component]
-            [:rh/state :one :keyword :index]
-            [:rh/done :one :instant]
-            [:rh/error :one :instant]
-            [:rh/tx-index :one :long]
-            [:rh/tempids :many :ref :component]
-            [:rh/tempid-str :one :string]
-            [:rh/tempid-ref :one :ref]
-            [:rh/e :one :string]
-            [:rh/a :one :string]
-            [:rh/v :one :string]
-            [:rh/t :one :string]
-            [:rh/o :one :string]])
+  (into #d/schema[[:rh/id :one :string :id]
+                  [:rh/lookup-ref :one :string :id]
+                  [:rh/replace :many :ref :component]
+                  [:rh/match :one :string]
+                  [:rh/replacement :one :string]
+                  [:rh/eid :many :long]
+                  [:rh/org-history :many :ref :component]
+                  [:rh/new-history :many :ref :component]
+                  [:rh/state :one :keyword :index]
+                  [:rh/done :one :instant]
+                  [:rh/error :one :instant]
+                  [:rh/tx-index :one :long]
+                  [:rh/tempids :many :ref :component]
+                  [:rh/tempid-str :one :string]
+                  [:rh/tempid-ref :one :ref]
+                  [:rh/e :one :string]
+                  [:rh/a :one :string]
+                  [:rh/v :one :string]
+                  [:rh/t :one :string]
+                  [:rh/o :one :string]]
+    fn-schema/schema))
 
 (defn init-schema! [conn]
   ; Setup schema for persisting of history-rewrites:

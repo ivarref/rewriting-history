@@ -2,6 +2,7 @@
   (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
             [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.rewriting-history.replay-impl :as replay]
             [clojure.edn :as edn]
             [clojure.pprint :as pprint]
             [clojure.string :as str]))
@@ -17,13 +18,13 @@
     (log/error "cannot schedule replacement on entity that has failed!")
     (throw (ex-info "cannot schedule replacement on entity that has failed!"
                     {:lookup-ref lookup-ref})))
-  @(d/transact conn
-               [{:rh/lookup-ref (pr-str lookup-ref)
-                 :rh/replace    "replacement"
-                 :rh/state      :scheduled}
-                {:db/id          "replacement"
-                 :rh/match       (pr-str match)
-                 :rh/replacement (pr-str replacement)}]))
+  (let [id (pr-str lookup-ref)
+        replace {:rh/match       (pr-str match)
+                 :rh/replacement (pr-str replacement)}]
+    @(d/transact conn
+                 [{:rh/lookup-ref id
+                   :rh/state      :scheduled}
+                  [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])))
 
 (defn maybe-replace [o {:keys [match replacement]}]
   (cond (and (string? o)
@@ -41,7 +42,8 @@
    o])
 
 (defn process-single-schedule! [conn lookup-ref]
-  (let [replacements (->> (d/q '[:find ?r ?match ?replacement
+  (let [id (pr-str lookup-ref)
+        replacements (->> (d/q '[:find ?r ?match ?replacement
                                  :in $ ?lookup-ref
                                  :where
                                  [?e :rh/lookup-ref ?lookup-ref]
@@ -49,16 +51,21 @@
                                  [?r :rh/match ?match]
                                  [?r :rh/replacement ?replacement]]
                                (d/db conn)
-                               (pr-str lookup-ref))
+                               id)
                           (mapv (fn [[eid m r]] [eid (edn/read-string m) (edn/read-string r)]))
                           (mapv (partial zipmap [:eid :match :replacement])))
         org-history (impl/pull-flat-history-simple conn lookup-ref)
         new-history (mapv (partial replace-eavto replacements) org-history)
-        tx [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :scheduled :init]]]
+        tx [[:db/cas [:rh/lookup-ref id] :rh/state :scheduled :init]
+            [:set/reset [:rh/lookup-ref id] :rh/org-history (replay/history->set org-history)]
+            [:set/reset [:rh/lookup-ref id] :rh/new-history (replay/history->set new-history)]
+            [:set/reset [:rh/lookup-ref id] :rh/replace #{}]
+            {:rh/lookup-ref id
+             :rh/tx-index 0}]]
     (log/info "lookup-ref:" lookup-ref)
     (log/info "replacements:" replacements)
     (log/info "new-history:\n" (with-out-str (pprint/pprint new-history)))
-
+    (log/info "tx:\n" (with-out-str (pprint/pprint tx)))
     @(d/transact conn tx)))
 
 

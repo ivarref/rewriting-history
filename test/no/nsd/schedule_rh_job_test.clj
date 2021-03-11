@@ -41,4 +41,7 @@
 
         (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")
 
+        ; duplicates are ignored
+        (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")
+
         (schedule/process-single-schedule! conn1 [:m/id "id"])))))
