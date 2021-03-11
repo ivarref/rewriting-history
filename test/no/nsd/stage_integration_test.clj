@@ -6,7 +6,8 @@
             [datomic-schema.core]
             [no.nsd.rewriting-history :as rh]
             [no.nsd.shorter-stacktrace]
-            [no.nsd.rewriting-history.impl :as impl]))
+            [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.rewriting-history.replay-impl :as replay]))
 
 (defn db-values-set [conn]
   (into (sorted-set) (d/q '[:find [?v ...]
@@ -46,15 +47,15 @@
 
       (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")
 
-      ; Excise original data:
-      #_(if-let [eids (some->> org-history (meta) :original-eids not-empty)]
-          (let [{:keys [db-after]} @(d/transact conn (mapv (fn [eid] {:db/excise eid}) eids))]
-            @(d/sync-excise conn (d/basis-t db-after)))
-          (do
-            (log/error "original eids not found!")
-            (assert false "original eids not found!")))
+      (replay/process-until-state conn [:m/id "id"] :done)
 
-      ; Verify that the database is empty after excision:
-      #_(is (= #{} (db-values-set conn))))))
-
-
+      (is (= (rh/pull-flat-history conn [:m/id "id"])
+             [[1 :tx/txInstant #inst "1972" 1 true]
+              [4 :m/id "id" 1 true]
+              [4 :m/info "original-data" 1 true]
+              [2 :tx/txInstant #inst "1973" 2 true]
+              [4 :m/info "original-data" 2 false]
+              [4 :m/info "corrected-data" 2 true]
+              [3 :tx/txInstant #inst "1974" 3 true]
+              [4 :m/info "corrected-data" 3 false]
+              [4 :m/info "good-data" 3 true]])))))

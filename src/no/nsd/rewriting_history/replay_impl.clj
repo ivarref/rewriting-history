@@ -3,6 +3,7 @@
             [clojure.tools.logging :as log]
             [clojure.edn :as edn]
             [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.rewriting-history.schedule-impl :as schedule]
             [clojure.pprint :as pprint])
   (:import (java.util Date)))
 
@@ -166,6 +167,10 @@
 (defn process-job-step! [conn lookup-ref]
   (let [state (job-state conn lookup-ref)]
     (cond
+
+      (= :scheduled state)
+      (schedule/process-single-schedule! conn lookup-ref)
+
       (= :init state)
       (job-init! conn lookup-ref)
 
