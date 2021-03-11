@@ -43,7 +43,6 @@
                      [?e :m/now ?now]]
                     (d/db conn))))))
 
-
 (deftest gen-fn
   (db-fn true)
   (is (= 1 1)))
