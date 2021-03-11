@@ -58,7 +58,7 @@
         (impl/apply-txes! conn2
                           (->> (rh/pull-flat-history conn1 [:rh/lookup-ref (pr-str [:m/id "id"])])
                                (impl/history->transactions conn1)))
-        ; conn2 now only holds the rewrite data. That is the original data has been excised.
+        ; conn2 now only holds the rewrite data. That is the original data has been "excised".
 
         (replay/process-until-state conn2 [:m/id "id"] :done)
 
