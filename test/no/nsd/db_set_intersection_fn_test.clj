@@ -207,30 +207,29 @@
                                     :db/id "customstr"}}]])
       (is (= #{{:c/a "a"}} (get-curr-set conn))))))
 
-(deftest verify-primitives-feav
-  (testing "using :set/reset when other data is present"
-    (with-redefs [s/rand-id (let [c (atom 0)]
-                              (fn [] (str "randid-" (swap! c inc))))]
-      (let [conn (empty-conn)]
-        @(d/transact conn (reduce into []
-                                  [[(db-fn)]
-                                   #d/schema[[:m/id :one :string :id]
-                                             [:m/desc :one :string]
-                                             [:m/set :many :string]]]))
-        @(d/transact conn [{:m/id   "id"
-                            :m/desc "description"}
-                           [:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
+(deftest verify-set-reset-when-other-data-is-present
+  (with-redefs [s/rand-id (let [c (atom 0)]
+                            (fn [] (str "randid-" (swap! c inc))))]
+    (let [conn (empty-conn)]
+      @(d/transact conn (reduce into []
+                                [[(db-fn)]
+                                 #d/schema[[:m/id :one :string :id]
+                                           [:m/desc :one :string]
+                                           [:m/set :many :string]]]))
+      @(d/transact conn [{:m/id   "id"
+                          :m/desc "description"}
+                         [:set/intersection [:m/id "id"] :m/set #{"a" "b"}]])
 
-        (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
-                   (dissoc :db/id)
-                   (update :m/set (partial into #{})))
-               #:m{:id "id" :desc "description" :set #{"a" "b"}}))
+      (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                 (dissoc :db/id)
+                 (update :m/set (partial into #{})))
+             #:m{:id "id" :desc "description" :set #{"a" "b"}}))
 
-        @(d/transact conn [{:m/id   "id"
-                            :m/desc "description2"}
-                           [:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
+      @(d/transact conn [{:m/id   "id"
+                          :m/desc "description2"}
+                         [:set/intersection [:m/id "id"] :m/set #{"b" "c"}]])
 
-        (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
-                   (dissoc :db/id)
-                   (update :m/set (partial into #{})))
-               #:m{:id "id" :desc "description2" :set #{"b" "c"}}))))))
+      (is (= (-> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                 (dissoc :db/id)
+                 (update :m/set (partial into #{})))
+             #:m{:id "id" :desc "description2" :set #{"b" "c"}})))))
