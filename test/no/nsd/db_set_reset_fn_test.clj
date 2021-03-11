@@ -177,7 +177,18 @@
                       :in $
                       :where
                       [?e :c/id "b"]]
-                    (d/db conn))]
+                    (d/db conn))
+            tx (s/set-reset conn [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}})]
+        (is (= tx
+               [{:m/id "id", :db/id "randid-4"}
+                [:db/retract "randid-4" :m/set (d/q
+                                                 '[:find ?e .
+                                                   :in $
+                                                   :where
+                                                   [?e :c/id "a"]]
+                                                 (d/db conn))]
+                {:db/id "randid-5", :c/id "c"}
+                [:db/add "randid-4" :m/set "randid-5"]]))
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/id "b"} {:c/id "c"}}]])
 
         (is (= #{{:c/id "b"} {:c/id "c"}} (get-curr-set conn)))
