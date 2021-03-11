@@ -93,7 +93,6 @@
                ["banana" "pancakes"]))))))
 
 (deftest verify-component-refs-work
-  (u/clear)
   (with-redefs [s/rand-id (let [c (atom 0)]
                             (fn [] (str "randid-" (swap! c inc))))]
     (let [conn (empty-conn)]
@@ -121,6 +120,43 @@
 
       (is (= (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
                   :m/set
+                  (mapv :r/name)
+                  (sort)
+                  (vec))
+             ["banana" "pancakes"])))))
+
+(deftest verify-refs-work
+  (with-redefs [s/rand-id (let [c (atom 0)]
+                            (fn [] (str "randid-" (swap! c inc))))]
+    (let [conn (empty-conn)]
+      @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                  [:m/set :many :ref]
+                                  [:r/name :one :string]])
+      @(d/transact conn [(db-fn)])
+
+      (is (= (s/set-union conn [:m/id "id"] :m/set #{{:r/name "banana"}})
+             [{:m/id "id", :db/id "randid-1"}
+              {:db/id "randid-2", :r/name "banana"}
+              [:db/add "randid-1" :m/set "randid-2"]]))
+      @(d/transact conn [[:set/union [:m/id "id"] :m/set #{{:r/name "banana"}}]])
+
+      (is (= (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                  :m/set
+                  (mapv :db/id)
+                  (mapv (partial u/pull-id (d/db conn)))
+                  (mapv :r/name))
+             ["banana"]))
+
+      ; Adding identical set element is a no-op:
+      (is (= (s/set-union conn [:m/id "id"] :m/set #{{:r/name "banana"}})
+             [{:m/id "id", :db/id "randid-3"}]))
+
+      @(d/transact conn [[:set/union [:m/id "id"] :m/set #{{:r/name "pancakes"}}]])
+
+      (is (= (->> (d/pull (d/db conn) '[:*] [:m/id "id"])
+                  :m/set
+                  (mapv :db/id)
+                  (mapv (partial u/pull-id (d/db conn)))
                   (mapv :r/name)
                   (sort)
                   (vec))
