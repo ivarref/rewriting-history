@@ -33,6 +33,12 @@
                                        [?attr :db/valueType ?t]
                                        [?t :db/ident ?type]]
                                      db attr))
+        is-component? (and is-ref?
+                           (true? (d/q '[:find ?comp .
+                                         :in $ ?attr
+                                         :where
+                                         [?attr :db/isComponent ?comp]]
+                                       db attr)))
         [id-a id-v] lookup-ref
         e (d/q '[:find ?e .
                  :in $ ?a ?v
@@ -67,7 +73,10 @@
                         (sort-by (fn [e] (pr-str (into (sorted-map) e)))))
             tx (vec (concat
                       [{id-a id-v :db/id dbid}]
-                      (mapv (fn [rm] [:db/retract dbid attr rm]) to-remove)
+                      (mapv (fn [rm] (if is-component?
+                                       [:db/retractEntity rm]
+                                       [:db/retract dbid attr rm]))
+                            to-remove)
                       (mapv (fn [add] (merge {:db/id (->> add (meta) :tempid)} add)) to-add)
                       (mapv (fn [add] [:db/add dbid attr (->> add (meta) :tempid)]) to-add)))]
         tx)

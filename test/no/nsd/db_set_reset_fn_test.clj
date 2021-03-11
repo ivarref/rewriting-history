@@ -119,12 +119,19 @@
       @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/a "a"} {:c/a "b"}}]])
       (is (= #{{:c/a "a"} {:c/a "b"}} (get-curr-set conn)))
 
-      (let [b-eid (d/q
+      (let [a-eid (d/q
+                    '[:find ?e .
+                      :in $
+                      :where
+                      [?e :c/a "a"]]
+                    (d/db conn))
+            b-eid (d/q
                     '[:find ?e .
                       :in $
                       :where
                       [?e :c/a "b"]]
                     (d/db conn))]
+        (is (pos-int? a-eid))
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{{:c/a "b"} {:c/a "c"}}]])
         (is (= #{{:c/a "b"} {:c/a "c"}} (get-curr-set conn)))
         (is (= b-eid
@@ -134,6 +141,12 @@
                    :where
                    [?e :c/a "b"]]
                  (d/db conn))))
+        (is (nil? (d/q
+                    '[:find ?e .
+                      :in $
+                      :where
+                      [?e :c/a "a"]]
+                    (d/db conn))))
 
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
         (is (= #{} (get-curr-set conn)))))))
@@ -175,6 +188,12 @@
                    :where
                    [?e :c/id "b"]]
                  (d/db conn))))
+        (is (some? (d/q
+                     '[:find ?e .
+                       :in $
+                       :where
+                       [?e :c/id "a"]]
+                     (d/db conn))))
 
         @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
         (is (= #{} (get-curr-set conn)))))))
