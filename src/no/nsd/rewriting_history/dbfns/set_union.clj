@@ -62,6 +62,13 @@
         _ (assert (set? values))
         _ (assert (keyword? attr))
         db (if (instance? Database db) db (d/db db))
+        _ (assert (= :db.cardinality/many (d/q '[:find ?type .
+                                                 :in $ ?attr
+                                                 :where
+                                                 [?attr :db/cardinality ?c]
+                                                 [?c :db/ident ?type]]
+                                               db attr))
+                  (str "expected attribute to have cardinality :db.cardinality/many"))
         is-ref? (= :db.type/ref (d/q '[:find ?type .
                                        :in $ ?attr
                                        :where
