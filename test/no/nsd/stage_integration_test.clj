@@ -7,6 +7,7 @@
             [no.nsd.rewriting-history :as rh]
             [no.nsd.shorter-stacktrace]
             [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.log-init]
             [no.nsd.rewriting-history.replay-impl :as replay]))
 
 (defn db-values-set [conn]
@@ -59,4 +60,8 @@
               [4 :m/info "corrected-data" 2 true]
               [3 :tx/txInstant #inst "1974" 3 true]
               [4 :m/info "corrected-data" 3 false]
-              [4 :m/info "good-data" 3 true]])))))
+              [4 :m/info "good-data" 3 true]]))
+
+      (u/pprint (d/pull (d/db conn)
+                        [:*]
+                        [:rh/lookup-ref (pr-str [:m/id "id"])])))))

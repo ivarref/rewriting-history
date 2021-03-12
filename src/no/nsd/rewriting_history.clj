@@ -20,5 +20,8 @@
 (defn schedule-replacement! [conn lookup-ref match replacement]
   (schedule/schedule-replacement! conn lookup-ref match replacement))
 
+(defn cancel-replacement! [conn lookup-ref match replacement]
+  (schedule/cancel-replacement! conn lookup-ref match replacement))
+
 (defn process-scheduled! [conn]
   (schedule/process-scheduled! conn))

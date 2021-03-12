@@ -1,9 +1,16 @@
 (ns no.nsd.rewriting-history.db-fns-schema
-  (:require [no.nsd.rewriting-history.db-set-reset-fn-generated :as set-reset]
-            [no.nsd.rewriting-history.db-set-union-fn-generated :as set-union]
-            [no.nsd.rewriting-history.db-some-retract-fn-generated :as some-retract]))
+  (:require [datomic.api :as d]
+            [no.nsd.rewriting-history.db-fns-generated :as fns]))
+
+(defn read-dbfn [s]
+  (clojure.edn/read-string
+    {:readers {'db/id  datomic.db/id-literal
+               'db/fn  datomic.function/construct
+               'base64 datomic.codec/base-64-literal}}
+    s))
 
 (def schema
-  [set-reset/datomic-fn-def
-   set-union/datomic-fn-def
-   some-retract/datomic-fn-def])
+  (mapv read-dbfn [fns/set-disj
+                   fns/set-reset
+                   fns/set-union
+                   fns/some-retract]))

@@ -1,4 +1,4 @@
-(ns no.nsd.rewriting-history.db-set-disj-fn
+(ns no.nsd.rewriting-history.dbfns.set-disj
   (:require [datomic.api :as d]
             [clojure.walk :as walk])
   (:import (java.util HashSet List)

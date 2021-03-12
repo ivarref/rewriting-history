@@ -1,5 +1,6 @@
 (ns no.nsd.datomic-generate-fn
   (:require [clojure.test :refer :all]
+            [datomic.api]
             [clojure.string :as str]
             [rewrite-clj.zip :as z]
             [rewrite-clj.node :as n]))
@@ -34,7 +35,8 @@
 
 (defn generate-function [fqn db-name write-to-file]
   (let [fil (fqn->fil fqn)
-        out-fil (str/replace fil ".clj" "_generated.clj")
+        ident (fqn->fn fqn)
+        out-fil "src/no/nsd/rewriting_history/db_fns_generated.clj"
         reqs (-> (z/of-file fil)
                  (z/find-value z/next 'ns)
                  (z/find-value z/next :require)
@@ -45,11 +47,6 @@
                   (z/find-value z/next :import)
                   (z/up)
                   (z/child-sexprs))
-        ident (fqn->fn fqn)
-        fndef (-> (z/of-file fil)
-                  (z/find-value z/next ident)
-                  (z/up)
-                  (z/sexpr))
         other-defns (->> (find-fns (z/of-file fil))
                          (remove #(= ident (second %)))
                          (mapv (fn [[_defn id args & body]]
@@ -80,8 +77,7 @@
                      "}")]
     (when write-to-file
       (spit out-fil (-> (z/of-file out-fil)
-                        (z/find-value z/next 'clojure.edn/read-string)
-                        (z/right)
+                        (z/find-value z/next ident)
                         (z/right)
                         (z/replace out-str)
                         (z/root)

@@ -25,6 +25,25 @@
                    :rh/state      :scheduled}
                   [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])))
 
+(defn cancel-replacement! [conn lookup-ref match replacement]
+  (when (some? (d/q '[:find ?error .
+                      :in $ ?lookup-ref
+                      :where
+                      [?e :rh/lookup-ref ?lookup-ref]
+                      [?e :rh/error ?error]]
+                    (d/db conn)
+                    (pr-str lookup-ref)))
+    (log/error "cannot schedule replacement on entity that has failed!")
+    (throw (ex-info "cannot schedule replacement on entity that has failed!"
+                    {:lookup-ref lookup-ref})))
+  (let [id (pr-str lookup-ref)
+        replace {:rh/match       (pr-str match)
+                 :rh/replacement (pr-str replacement)}]
+    @(d/transact conn
+                 [{:rh/lookup-ref id
+                   :rh/state      :scheduled}
+                  [:set/disj [:rh/lookup-ref id] :rh/replace replace]])))
+
 (defn maybe-replace [o {:keys [match replacement]}]
   (cond (and (string? o)
              (string? match)
