@@ -30,6 +30,15 @@
                                            [?t :db/ident ?type]]
                                          db attr)))
                   (str "expected " attr " to be of valueType :db.type/ref"))
+
+        _ (assert (true?
+                    (= :db.cardinality/many (d/q '[:find ?c .
+                                                   :in $ ?attr
+                                                   :where
+                                                   [?attr :db/cardinality ?c]]
+                                                 db attr)))
+                  (str "expected attribute to have cardinality :db.cardinality/many"))
+
         db (if (instance? Database db) db (d/db db))
         [id-a id-v] lookup-ref
         e (d/q '[:find ?e .
