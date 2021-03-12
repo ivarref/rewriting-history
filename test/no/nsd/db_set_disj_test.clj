@@ -34,21 +34,32 @@
          (ex-message t#)))))
 
 (defmacro is-assert-msg [msg & body]
-  `(is (true? (str/includes? (ex-msg ~@body) ~msg))))
+  `(is (let [emsg# (ex-msg ~@body)
+             v# (true? (str/includes? emsg# ~msg))]
+         (when-not v#
+           (log/error "got error message" emsg#))
+         v#)))
 
 (deftest set-disj-tests
   (testing "fails on non-map input"
-      (let [conn (u/empty-conn)]
-        @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
-                                                    [:m/ref :many :ref :component]]))
-        (is (= (ex-msg @(d/transact conn [[:set/disj [:m/id "id"] :m/ref "asdf"]]))
-               "Assert failed: (map? value)"))))
+    (let [conn (u/empty-conn)]
+      @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
+                                                  [:m/ref :many :ref :component]]))
+      (is-assert-msg "Assert failed: (map? value)"
+                     @(d/transact conn [[:set/disj [:m/id "id"] :m/ref "asdf"]]))))
 
   (testing "fails on not-many attribute"
     (let [conn (u/empty-conn)]
       @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
                                                   [:m/ref :one :ref :component]]))
       (is-assert-msg "expected attribute to have cardinality :db.cardinality/many"
+                     @(d/transact conn [[:set/disj [:m/id "id"] :m/ref {:x :x}]]))))
+
+  (testing "fails on non-ref attribute"
+    (let [conn (u/empty-conn)]
+      @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
+                                                  [:m/ref :one :string]]))
+      (is-assert-msg "expected :m/ref to be of valueType :db.type/ref"
                      @(d/transact conn [[:set/disj [:m/id "id"] :m/ref {:x :x}]])))))
 
 
