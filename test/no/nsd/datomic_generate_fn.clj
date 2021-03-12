@@ -36,7 +36,7 @@
 (defn generate-function [fqn db-name write-to-file]
   (let [fil (fqn->fil fqn)
         ident (fqn->fn fqn)
-        out-fil "src/no/nsd/rewriting_history/db_fns_generated.clj"
+        out-fil "src/no/nsd/rewriting_history/dbfns/generated.clj"
         reqs (-> (z/of-file fil)
                  (z/find-value z/next 'ns)
                  (z/find-value z/next :require)
