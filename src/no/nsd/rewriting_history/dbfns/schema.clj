@@ -1,6 +1,6 @@
-(ns no.nsd.rewriting-history.db-fns-schema
+(ns no.nsd.rewriting-history.dbfns.schema
   (:require [datomic.api :as d]
-            [no.nsd.rewriting-history.db-fns-generated :as fns]))
+            [no.nsd.rewriting-history.dbfns.generated :as fns]))
 
 (defn read-dbfn [s]
   (clojure.edn/read-string

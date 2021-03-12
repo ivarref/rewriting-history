@@ -1,4 +1,4 @@
-(ns no.nsd.rewriting-history.db-some-retract-fn
+(ns no.nsd.rewriting-history.dbfns.some-retract
   (:require [clojure.walk :as walk]
             [datomic.api :as d])
   (:import (java.util HashSet List)

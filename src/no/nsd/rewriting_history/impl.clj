@@ -3,7 +3,7 @@
             [clojure.tools.logging :as log]
             [clojure.set :as set]
             [clojure.pprint :as pprint]
-            [no.nsd.rewriting-history.db-fns-schema :as fn-schema]
+            [no.nsd.rewriting-history.schema :as fn-schema]
             [datomic-schema.core])
   (:import (datomic Database)))
 
