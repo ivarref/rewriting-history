@@ -10,3 +10,6 @@
      :set/disj
      generate)))
 
+(deftest write-fn
+  (db-fn true)
+  (is (= 1 1)))
