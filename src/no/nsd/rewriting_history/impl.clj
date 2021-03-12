@@ -233,9 +233,7 @@
 (defn rewrite-history! [conn old-history new-history])
 
 (def schema
-  (into #d/schema[[:rh/id :one :string :id]
-
-                  ; for identifying what is going to be rewritten
+  (into #d/schema[; for identifying what is going to be rewritten
                   [:rh/lookup-ref :one :string :id]
 
                   ; for scheduling replacements
