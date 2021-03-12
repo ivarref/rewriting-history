@@ -7,13 +7,13 @@
             [no.nsd.utils :as u]
             [clojure.tools.logging :as log]
             [no.nsd.datomic-generate-fn :as genfn]
-            [no.nsd.rewriting-history.db-set-reset-fn :as s])
+            [no.nsd.rewriting-history.dbfns.set-reset :as s])
   (:import (java.util.concurrent ExecutionException)))
 
 (defn db-fn
   []
   (genfn/generate-function
-    'no.nsd.rewriting-history.db-set-reset-fn/set-reset
+    'no.nsd.rewriting-history.dbfns.set-reset/set-reset
     :set/reset
     false))
 
@@ -26,7 +26,7 @@
 
 (deftest write-fn
   (genfn/generate-function
-    'no.nsd.rewriting-history.db-set-reset-fn/set-reset
+    'no.nsd.rewriting-history.dbfns.set-reset/set-reset
     :set/reset
     true)
   (is (= 1 1)))
