@@ -36,13 +36,12 @@
     (log/error "cannot schedule replacement on entity that has failed!")
     (throw (ex-info "cannot schedule replacement on entity that has failed!"
                     {:lookup-ref lookup-ref})))
-  (let [id (pr-str lookup-ref)
-        replace {:rh/match       (pr-str match)
-                 :rh/replacement (pr-str replacement)}]
+  (let [id (pr-str lookup-ref)]
     @(d/transact conn
                  [{:rh/lookup-ref id
                    :rh/state      :scheduled}
-                  [:set/disj [:rh/lookup-ref id] :rh/replace replace]])))
+                  [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
+                                                              :rh/replacement (pr-str replacement)}]])))
 
 (defn maybe-replace [o {:keys [match replacement]}]
   (cond (and (string? o)
