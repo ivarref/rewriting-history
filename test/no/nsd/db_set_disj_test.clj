@@ -58,7 +58,7 @@
   (testing "fails on non-ref attribute"
     (let [conn (u/empty-conn)]
       @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
-                                                  [:m/ref :one :string]]))
+                                                  [:m/ref :many :string]]))
       (is-assert-msg "expected :m/ref to be of valueType :db.type/ref"
                      @(d/transact conn [[:set/disj [:m/id "id"] :m/ref {:x :x}]])))))
 
