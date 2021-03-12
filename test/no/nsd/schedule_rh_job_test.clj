@@ -49,6 +49,12 @@
         ; duplicates are ignored
         (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")
 
+        ; schedule something by mistake
+        (rh/schedule-replacement! conn1 [:m/id "id"] "a" "oops")
+
+        ; abort the mistake
+        (rh/cancel-replacement! conn1 [:m/id "id"] "a" "oops")
+
         ; Prepare for re-write
         (schedule/process-single-schedule! conn1 [:m/id "id"])
         (replay/job-init! conn1 [:m/id "id"])
