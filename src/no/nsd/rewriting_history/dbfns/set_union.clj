@@ -1,4 +1,4 @@
-(ns no.nsd.rewriting-history.db-set-union-fn
+(ns no.nsd.rewriting-history.dbfns.set-union
   (:require [clojure.walk :as walk]
             [clojure.tools.logging :as log]
             [datomic.api :as d]

@@ -1,7 +1,7 @@
 (ns no.nsd.db-set-union-fn-test
   (:require [clojure.test :refer :all]
             [no.nsd.datomic-generate-fn :as genfn]
-            [no.nsd.rewriting-history.db-set-union-fn :as s]
+            [no.nsd.rewriting-history.dbfns.set-union :as s]
             [no.nsd.utils :as u]
             [no.nsd.shorter-stacktrace]
             [no.nsd.log-init]
@@ -12,7 +12,7 @@
   ([] (db-fn false))
   ([generate]
    (genfn/generate-function
-     'no.nsd.rewriting-history.db-set-union-fn/set-union
+     'no.nsd.rewriting-history.dbfns.set-union/set-union
      :set/union
      generate)))
 
