@@ -8,6 +8,8 @@
 
 (defn schedule-replacement! [conn lookup-ref match replacement]
   (assert (vector? lookup-ref))
+  (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
+          (str "Expected to find lookup-ref " lookup-ref))
   (when (some? (d/q '[:find ?error .
                       :in $ ?lookup-ref
                       :where
@@ -27,6 +29,8 @@
                   [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
+  (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
+          (str "Expected to find lookup-ref " lookup-ref))
   (when (some? (d/q '[:find ?error .
                       :in $ ?lookup-ref
                       :where

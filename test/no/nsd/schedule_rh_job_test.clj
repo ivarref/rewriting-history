@@ -26,7 +26,8 @@
     (is (= 1 1))
     (let [conn1 (empty-conn)]
       @(d/transact conn1 schema)
-      (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data"))))
+      (u/is-assert-msg "Expected to find lookup-ref"
+                       (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")))))
 
 (deftest schedule-rh-job-test
   (testing "Verify that the most basic scheduling of string replacement works"
