@@ -15,18 +15,14 @@
     (d/db db-or-conn)))
 
 (defn resolve-lookup-ref
-  "Returns eid of lookup ref"
+  "Returns eid of lookup ref or nil if lookup ref is not found"
   [db lookup-ref-or-eid]
-  (if (vector? lookup-ref-or-eid)
-    (if-let [eid (d/q '[:find ?e .
-                        :in $ ?a ?v
-                        :where [?e ?a ?v]]
-                      db (first lookup-ref-or-eid) (second lookup-ref-or-eid))]
-      eid
-      (do (log/debug "Could not find lookup ref" lookup-ref-or-eid)
-          nil
-          #_(throw (ex-info "Could not find lookup ref" {:ref lookup-ref-or-eid}))))
-    lookup-ref-or-eid))
+  (assert (vector? lookup-ref-or-eid))
+  (d/q '[:find ?e .
+         :in $ ?a ?v
+         :where [?e ?a ?v]]
+       (to-db db)
+       (first lookup-ref-or-eid) (second lookup-ref-or-eid)))
 
 (declare eid->eavto-set)
 
