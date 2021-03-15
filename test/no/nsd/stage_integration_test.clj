@@ -62,6 +62,6 @@
               [4 :m/info "corrected-data" 3 false]
               [4 :m/info "good-data" 3 true]]))
 
-      (u/pprint (d/pull (d/db conn)
-                        [:*]
-                        [:rh/lookup-ref (pr-str [:m/id "id"])])))))
+      #_(u/pprint (d/pull (d/db conn)
+                          [:*]
+                          [:rh/lookup-ref (pr-str [:m/id "id"])])))))
