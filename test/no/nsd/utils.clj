@@ -3,7 +3,9 @@
             [datomic-schema.core]
             [clojure.pprint :as pprint]
             [clojure.java.io :as io]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.tools.logging :as log]
+            [clojure.test :as test])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
            (java.util Date UUID)
@@ -75,3 +77,23 @@
 
 (defn pull-id [db id]
   (d/pull db '[:*] id))
+
+(defmacro ex-msg [& body]
+  `(try
+     ~@body
+     (log/error "no exception!")
+     ""
+     (catch Throwable t#
+       (let [t# (loop [e# t#]
+                  (if-let [cause# (ex-cause e#)]
+                    (recur cause#)
+                    e#))]
+         (log/debug "error message was" (ex-message t#))
+         (ex-message t#)))))
+
+(defmacro is-assert-msg [msg & body]
+  `(test/is (let [emsg# (ex-msg ~@body)
+                  v# (true? (str/includes? emsg# ~msg))]
+              (when-not v#
+                (log/error "got error message" emsg#))
+              v#)))
