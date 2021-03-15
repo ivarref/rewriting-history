@@ -68,3 +68,27 @@
       (wipe/wipe-rewrite-job! conn [:m/id "id"])
 
       (is (zero? (count (rh/pull-flat-history conn [:rh/lookup-ref (pr-str [:m/id "id"])])))))))
+
+(deftest wipe-old-test
+  (is (= 1 1))
+  (when-let [conn (u/empty-stage-conn "rewriting-history-integration-test-1")]
+    @(d/transact conn (into
+                        impl/schema
+                        #d/schema[[:m/id :one :string :id]
+                                  [:m/info :one :string]
+                                  [:tx/txInstant :one :instant]]))
+
+    ; fake done rewrite job:
+    @(d/transact conn [{:rh/lookup-ref (pr-str [:m/id "id"])
+                        :rh/state :done
+                        :rh/done #inst"1990-01-01"}])
+
+    (is (= 1 (wipe/wipe-old-rewrite-jobs! conn #inst"1990-01-10" 5)))
+
+    (is (= 0 (wipe/wipe-old-rewrite-jobs! conn #inst"1990-01-10" 5)))
+
+
+    @(d/transact conn [{:rh/lookup-ref (pr-str [:m/id "id"])
+                        :rh/state :done
+                        :rh/done #inst"1990-01-01"}])
+    (is (= 0 (wipe/wipe-old-rewrite-jobs! conn #inst"1990-01-01" 1)))))
