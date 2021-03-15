@@ -7,6 +7,7 @@
             [clojure.string :as str]))
 
 (defn schedule-replacement! [conn lookup-ref match replacement]
+  (assert (vector? lookup-ref))
   (when (some? (d/q '[:find ?error .
                       :in $ ?lookup-ref
                       :where

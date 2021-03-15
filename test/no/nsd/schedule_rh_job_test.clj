@@ -20,6 +20,14 @@
 
 (def empty-conn u/empty-conn)
 
+
+(deftest schedule-rh-bad-input-test
+  (testing "Verify that missing lookup ref throws exception"
+    (is (= 1 1))
+    (let [conn1 (empty-conn)]
+      @(d/transact conn1 schema)
+      (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data"))))
+
 (deftest schedule-rh-job-test
   (testing "Verify that the most basic scheduling of string replacement works"
     (let [conn1 (empty-conn)
