@@ -76,12 +76,14 @@
                      "\n"
                      "}")]
     (when write-to-file
-      (spit out-fil (-> (z/of-file out-fil)
-                        (z/find-value z/next ident)
-                        (z/right)
-                        (z/replace out-str)
-                        (z/root)
-                        (n/string))))
+      (let [new-file-content (-> (z/of-file out-fil)
+                                 (z/find-value z/next ident)
+                                 (z/right)
+                                 (z/replace out-str)
+                                 (z/root)
+                                 (n/string))]
+        (when (not= new-file-content (slurp out-fil))
+          (spit out-fil new-file-content))))
     (clojure.edn/read-string
       {:readers {'db/id  datomic.db/id-literal
                  'db/fn  datomic.function/construct
