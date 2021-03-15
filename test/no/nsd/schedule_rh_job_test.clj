@@ -23,7 +23,6 @@
 
 (deftest schedule-rh-bad-input-test
   (testing "Verify that missing lookup ref throws exception"
-    (is (= 1 1))
     (let [conn1 (empty-conn)]
       @(d/transact conn1 schema)
       (u/is-assert-msg "Expected to find lookup-ref"
