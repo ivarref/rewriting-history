@@ -226,8 +226,6 @@
        (mapv (partial zipmap [:rh/e :rh/a :rh/v :rh/t :rh/o]))
        (into #{})))
 
-(defn rewrite-history! [conn old-history new-history])
-
 (def schema
   (into #d/schema[; for identifying what is going to be rewritten
                   [:rh/lookup-ref :one :string :id]
