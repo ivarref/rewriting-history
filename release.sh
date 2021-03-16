@@ -25,3 +25,5 @@ git push --follow-tags
 clojure -M:deploy
 
 echo "Released $RAW_VERSION!"
+
+rm *.pom.asc
