@@ -17,11 +17,11 @@ echo "Releasing >$NEW_VERSION< ..."
 
 sed -i 's|^    <tag>.*$|    <tag>'$NEW_VERSION'</tag>|' pom.xml
 
-#git add pom.xml
-#git commit -m "Release $NEW_VERSION"
-#git tag -a $NEW_VERSION -m "Release $NEW_VERSION"
-#git push --follow-tags
-#
-#clojure -M:deploy
-#
-#echo "Released $RAW_VERSION!"
+git add pom.xml
+git commit -m "Release $NEW_VERSION"
+git tag -a $NEW_VERSION -m "Release $NEW_VERSION"
+git push --follow-tags
+
+clojure -M:deploy
+
+echo "Released $RAW_VERSION!"
