@@ -226,18 +226,19 @@
        (into #{})))
 
 (def schema
-  (into [#:db{:ident :rh/lookup-ref :cardinality :db.cardinality/one :valueType :db.type/string, :unique :db.unique/identity}
-         #:db{:ident :rh/replace :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
+  (into [#:db{:ident :rh/lookup-ref :cardinality :db.cardinality/one :valueType :db.type/string :unique :db.unique/identity}
+         #:db{:ident :tx/txInstant :cardinality :db.cardinality/one :valueType :db.type/instant}
+         #:db{:ident :rh/replace :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
          #:db{:ident :rh/match :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/replacement :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/eid :cardinality :db.cardinality/many :valueType :db.type/long}
-         #:db{:ident :rh/org-history :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
-         #:db{:ident :rh/new-history :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
-         #:db{:ident :rh/state :cardinality :db.cardinality/one :valueType :db.type/keyword, :index true}
+         #:db{:ident :rh/org-history :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
+         #:db{:ident :rh/new-history :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
+         #:db{:ident :rh/state :cardinality :db.cardinality/one :valueType :db.type/keyword :index true}
          #:db{:ident :rh/done :cardinality :db.cardinality/one :valueType :db.type/instant}
          #:db{:ident :rh/error :cardinality :db.cardinality/one :valueType :db.type/instant}
          #:db{:ident :rh/tx-index :cardinality :db.cardinality/one :valueType :db.type/long}
-         #:db{:ident :rh/tempids :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
+         #:db{:ident :rh/tempids :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
          #:db{:ident :rh/tempid-str :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/tempid-ref :cardinality :db.cardinality/one :valueType :db.type/ref}
          #:db{:ident :rh/e :cardinality :db.cardinality/one :valueType :db.type/string}
