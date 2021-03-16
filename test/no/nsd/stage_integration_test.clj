@@ -7,8 +7,7 @@
             [no.nsd.rewriting-history :as rh]
             [no.nsd.shorter-stacktrace]
             [no.nsd.rewriting-history.impl :as impl]
-            [no.nsd.log-init]
-            [no.nsd.rewriting-history.replay-impl :as replay]))
+            [no.nsd.log-init]))
 
 (defn db-values-set [conn]
   (into (sorted-set) (d/q '[:find [?v ...]
