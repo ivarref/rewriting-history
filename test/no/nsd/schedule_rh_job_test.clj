@@ -52,20 +52,25 @@
                 [4 :m/info "bad-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))
 
-        (is (= [["bad-data" "corrected-data"]]
+        (is (= [{:match       "bad-data"
+                 :replacement "corrected-data"}]
                (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")))
 
         ; duplicates are ignored
-        (is (= [["bad-data" "corrected-data"]]
+        (is (= [{:match       "bad-data"
+                 :replacement "corrected-data"}]
                (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")))
 
         ; schedule something by mistake
-        (is (= [["a" "oops"]
-                ["bad-data" "corrected-data"]]
-              (rh/schedule-replacement! conn1 [:m/id "id"] "a" "oops")))
+        (is (= [{:match       "a"
+                 :replacement "oops"}
+                {:match       "bad-data"
+                 :replacement "corrected-data"}]
+               (rh/schedule-replacement! conn1 [:m/id "id"] "a" "oops")))
 
         ; abort the mistake
-        (is (= [["bad-data" "corrected-data"]]
+        (is (= [{:match       "bad-data"
+                 :replacement "corrected-data"}]
                (rh/cancel-replacement! conn1 [:m/id "id"] "a" "oops")))
 
         ; Prepare for re-write

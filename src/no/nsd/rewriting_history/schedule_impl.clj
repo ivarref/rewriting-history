@@ -16,8 +16,9 @@
             db
             (pr-str lookup-ref))
        (map (partial mapv edn/read-string))
-       (into [])
-       (sort)
+       (map (partial zipmap [:match :replacement]))
+       (map (partial into (sorted-map)))
+       (sort-by pr-str)
        (vec)))
 
 (defn schedule-replacement! [conn lookup-ref match replacement]
