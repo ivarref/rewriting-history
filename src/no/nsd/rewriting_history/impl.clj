@@ -3,8 +3,7 @@
             [clojure.tools.logging :as log]
             [clojure.set :as set]
             [clojure.pprint :as pprint]
-            [no.nsd.rewriting-history.dbfns.schema :as fn-schema]
-            [datomic-schema.core])
+            [no.nsd.rewriting-history.dbfns.schema :as fn-schema])
   (:import (datomic Database)))
 
 ; private API, subject to change
@@ -227,31 +226,26 @@
        (into #{})))
 
 (def schema
-  (into #d/schema[; for identifying what is going to be rewritten
-                  [:rh/lookup-ref :one :string :id]
-
-                  ; for scheduling replacements
-                  [:rh/replace :many :ref :component]
-                  [:rh/match :one :string]
-                  [:rh/replacement :one :string]
-
-                  ;for rewrite job
-                  [:rh/eid :many :long]
-                  [:rh/org-history :many :ref :component]
-                  [:rh/new-history :many :ref :component]
-                  [:rh/state :one :keyword :index]
-                  [:rh/done :one :instant]
-                  [:rh/error :one :instant]
-                  [:rh/tx-index :one :long]
-                  [:rh/tempids :many :ref :component]
-                  [:rh/tempid-str :one :string]
-                  [:rh/tempid-ref :one :ref]
-                  [:rh/e :one :string]
-                  [:rh/a :one :string]
-                  [:rh/v :one :string]
-                  [:rh/t :one :string]
-                  [:rh/o :one :string]]
-    fn-schema/schema))
+  (into [#:db{:ident :rh/lookup-ref :cardinality :db.cardinality/one :valueType :db.type/string, :unique :db.unique/identity}
+         #:db{:ident :rh/replace :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
+         #:db{:ident :rh/match :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/replacement :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/eid :cardinality :db.cardinality/many :valueType :db.type/long}
+         #:db{:ident :rh/org-history :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
+         #:db{:ident :rh/new-history :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
+         #:db{:ident :rh/state :cardinality :db.cardinality/one :valueType :db.type/keyword, :index true}
+         #:db{:ident :rh/done :cardinality :db.cardinality/one :valueType :db.type/instant}
+         #:db{:ident :rh/error :cardinality :db.cardinality/one :valueType :db.type/instant}
+         #:db{:ident :rh/tx-index :cardinality :db.cardinality/one :valueType :db.type/long}
+         #:db{:ident :rh/tempids :cardinality :db.cardinality/many :valueType :db.type/ref, :isComponent true}
+         #:db{:ident :rh/tempid-str :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/tempid-ref :cardinality :db.cardinality/one :valueType :db.type/ref}
+         #:db{:ident :rh/e :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/a :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/v :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/t :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/o :cardinality :db.cardinality/one :valueType :db.type/string}]
+        fn-schema/schema))
 
 (defn init-schema! [conn]
   ; Setup schema for persisting of history-rewrites:

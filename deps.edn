@@ -1,9 +1,10 @@
-{:deps      {ivarref/datomic-schema {:mvn/version "0.2.0"}}
+{:deps      {}
 
  :paths     ["src"]
 
  :aliases   {:test {:extra-paths ["test"]
-                    :extra-deps  {lambdaisland/kaocha                  {:mvn/version "1.0.732"}
+                    :extra-deps  {ivarref/datomic-schema {:mvn/version "0.2.0"}
+                                  lambdaisland/kaocha                  {:mvn/version "1.0.732"}
                                   no.nsd/envelope                      {:mvn/version "0.2.4"}
                                   com.datomic/datomic-pro              {:mvn/version "1.0.6202" :exclusions [org.slf4j/slf4j-nop]}
                                   org.mariadb.jdbc/mariadb-java-client {:mvn/version "2.4.3"}
