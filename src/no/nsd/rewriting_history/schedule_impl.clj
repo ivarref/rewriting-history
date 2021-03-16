@@ -5,6 +5,21 @@
             [clojure.edn :as edn]
             [clojure.string :as str]))
 
+(defn pending-replacements [db lookup-ref]
+  (->> (d/q '[:find ?match ?replacement
+              :in $ ?lookup-ref
+              :where
+              [?e :rh/lookup-ref ?lookup-ref]
+              [?e :rh/replace ?r]
+              [?r :rh/match ?match]
+              [?r :rh/replacement ?replacement]]
+            db
+            (pr-str lookup-ref))
+       (map (partial mapv edn/read-string))
+       (into [])
+       (sort)
+       (vec)))
+
 (defn schedule-replacement! [conn lookup-ref match replacement]
   (assert (vector? lookup-ref))
   (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
@@ -22,10 +37,12 @@
   (let [id (pr-str lookup-ref)
         replace {:rh/match       (pr-str match)
                  :rh/replacement (pr-str replacement)}]
-    @(d/transact conn
-                 [{:rh/lookup-ref id
-                   :rh/state      :scheduled}
-                  [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])))
+    (-> @(d/transact conn
+                     [{:rh/lookup-ref id
+                       :rh/state      :scheduled}
+                      [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])
+        :db-after
+        (pending-replacements lookup-ref))))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
   (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
@@ -41,11 +58,13 @@
     (throw (ex-info "cannot schedule replacement on entity that has failed!"
                     {:lookup-ref lookup-ref})))
   (let [id (pr-str lookup-ref)]
-    @(d/transact conn
-                 [{:rh/lookup-ref id
-                   :rh/state      :scheduled}
-                  [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
-                                                              :rh/replacement (pr-str replacement)}]])))
+    (-> @(d/transact conn
+                     [{:rh/lookup-ref id
+                       :rh/state      :scheduled}
+                      [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
+                                                                  :rh/replacement (pr-str replacement)}]])
+        :db-after
+        (pending-replacements lookup-ref))))
 
 (defn maybe-replace [o {:keys [match replacement]}]
   (cond (and (string? o)
