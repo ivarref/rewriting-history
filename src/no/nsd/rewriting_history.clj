@@ -2,7 +2,8 @@
   (:require [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
-            [no.nsd.rewriting-history.wipe :as wipe])
+            [no.nsd.rewriting-history.wipe :as wipe]
+            [datomic.api :as d])
   (:import (java.util Date)))
 
 ; public API
@@ -15,6 +16,9 @@
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
   (schedule/cancel-replacement! conn lookup-ref match replacement))
+
+(defn pending-replacements [conn lookup-ref]
+  (schedule/pending-replacements (d/db conn) lookup-ref))
 
 (defn process-scheduled! [conn]
   (replay/process-state! conn :scheduled))
