@@ -1,5 +1,7 @@
 # Rewriting history
 
+[![Clojars Project](https://img.shields.io/clojars/v/no.nsd/rewriting-history.svg)](https://clojars.org/no.nsd/rewriting-history)
+
 A library to rewrite Datomic history.
 
 ![Shoe-banging incident](Khruschev_shoe_fake.jpg "Shoe-banging incident")
