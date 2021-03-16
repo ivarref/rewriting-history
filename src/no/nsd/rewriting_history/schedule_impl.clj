@@ -3,7 +3,6 @@
             [clojure.tools.logging :as log]
             [no.nsd.rewriting-history.impl :as impl]
             [clojure.edn :as edn]
-            [clojure.pprint :as pprint]
             [clojure.string :as str]))
 
 (defn schedule-replacement! [conn lookup-ref match replacement]
@@ -88,18 +87,4 @@
             [:some/retract [:rh/lookup-ref id] :rh/error]
             {:rh/lookup-ref id
              :rh/tx-index 0}]]
-    ;(log/info "lookup-ref:" lookup-ref)
-    ;(log/info "replacements:" replacements)
-    ;(log/info "new-history:\n" (with-out-str (pprint/pprint new-history)))
-    ;(log/info "tx:\n" (with-out-str (pprint/pprint tx)))
     @(d/transact conn tx)))
-
-
-(defn process-scheduled! [conn]
-  (when-let [lookup-ref (d/q '[:find ?lookup-ref .
-                               :in $
-                               :where
-                               [?e :rh/state :scheduled]
-                               [?e :rh/lookup-ref ?lookup-ref]]
-                             (d/db conn))]
-    (process-single-schedule! conn (edn/read-string lookup-ref))))

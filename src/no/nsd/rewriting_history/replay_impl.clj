@@ -198,6 +198,18 @@
             :else
             new-state))))
 
+(defn process-state! [conn state]
+  (when-let [lookup-ref (some-> (d/q '[:find ?lookup-ref .
+                                       :in $ ?state
+                                       :where
+                                       [?e :rh/state ?state]
+                                       [?e :rh/lookup-ref ?lookup-ref]]
+                                     (d/db conn)
+                                     state)
+                                (edn/read-string))]
+    (process-until-state conn lookup-ref :done)
+    (recur conn state)))
+
 (defn add-rewrite-job! [conn lookup-ref org-history new-history]
   (assert (vector? lookup-ref))
   (assert (vector? org-history))
