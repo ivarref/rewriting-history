@@ -14,8 +14,8 @@
                     :jvm-opts    ["-DDISABLE_SPY=true"]
                     :main-opts   ["--report" "stderr" "-m" "kaocha.runner" "--no-capture-output"]}
 
-             :jar    {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"}
-                                                   :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}
+             :jar    {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
+                                                    :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}}
                       :main-opts  ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "target/out.jar"]}
 
              :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.3"}}
