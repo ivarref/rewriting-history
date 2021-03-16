@@ -23,8 +23,6 @@
   (wipe/wipe-old-rewrite-jobs! conn (Date.) older-than-days))
 
 ; convenience methods
+
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (impl/pull-flat-history-simple db lookup-ref))
-
-(defn verify-history! [conn job-id]
-  (replay/verify-history! conn job-id))
