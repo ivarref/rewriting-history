@@ -252,3 +252,19 @@
   ; Setup schema for persisting of history-rewrites:
   @(d/transact conn schema))
 
+(defn get-new-history [conn lookup-ref]
+  (->> (d/q '[:find ?e ?a ?v ?t ?o
+              :in $ ?ee
+              :where
+              [?ee :rh/new-history ?n]
+              [?n :rh/e ?e]
+              [?n :rh/a ?a]
+              [?n :rh/v ?v]
+              [?n :rh/t ?t]
+              [?n :rh/o ?o]]
+            (d/db conn)
+            (resolve-lookup-ref (d/db conn) [:rh/lookup-ref (pr-str lookup-ref)]))
+       (vec)
+       (mapv (partial mapv read-string))
+       (sort-by (fn [[e a v t o]] [t e a o v]))
+       (vec)))

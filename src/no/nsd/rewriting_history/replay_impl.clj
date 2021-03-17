@@ -5,37 +5,9 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.init :as init]
+            [no.nsd.rewriting-history.rewrite :as rewrite]
             [clojure.pprint :as pprint])
   (:import (java.util Date)))
-
-(defn get-new-history [conn lookup-ref]
-  (->> (d/q '[:find ?e ?a ?v ?t ?o
-              :in $ ?ee
-              :where
-              [?ee :rh/new-history ?n]
-              [?n :rh/e ?e]
-              [?n :rh/a ?a]
-              [?n :rh/v ?v]
-              [?n :rh/t ?t]
-              [?n :rh/o ?o]]
-            (d/db conn)
-            (impl/resolve-lookup-ref (d/db conn) [:rh/lookup-ref (pr-str lookup-ref)]))
-       (vec)
-       (mapv (partial mapv read-string))
-       (sort-by (fn [[e a v t o]] [t e a o v]))
-       (vec)))
-
-(defn history-take-tx [history tx]
-  (let [tx-max (->> history
-                    (mapv (fn [[e a v t o]] t))
-                    (distinct)
-                    (sort)
-                    (take tx)
-                    (last))]
-    (when tx-max
-      (->> history
-           (take-while (fn [[e a v t o]] (<= t tx-max)))
-           (vec)))))
 
 (comment
   (history-take-tx
@@ -60,75 +32,8 @@
        (d/db conn)
        (pr-str lookup-ref)))
 
-(defn save-tempids-metadata [tx]
-  (->> tx
-       (map second)
-       (filter string?)
-       (map (fn [tempid] {:rh/tempid-str tempid
-                          :rh/tempid-ref tempid}))
-       (into #{})))
-
-(defn resolve-tempid [conn lookup-ref [o [tempid tempid-str] a v]]
-  (assert (and (string? tempid-str) (= :tempid tempid)))
-  [o
-   (d/q '[:find ?tempid-ref .
-          :in $ ?lookup-ref ?tempid-str
-          :where
-          [?e :rh/lookup-ref ?lookup-ref]
-          [?e :rh/tempids ?tmpid]
-          [?tmpid :rh/tempid-str ?tempid-str]
-          [?tmpid :rh/tempid-ref ?tempid-ref]]
-        (d/db conn)
-        (pr-str lookup-ref)
-        tempid-str)
-   a v])
-
-(defn rewrite-history! [conn lookup-ref]
-  (assert (vector? lookup-ref))
-  (let [new-history (get-new-history conn lookup-ref)
-        txes (impl/history->transactions conn new-history)
-        tx-index (d/q '[:find ?tx-index .
-                        :in $ ?ref
-                        :where
-                        [?e :rh/lookup-ref ?ref]
-                        [?e :rh/tx-index ?tx-index]]
-                      (d/db conn)
-                      (pr-str lookup-ref))
-        expected-history (some->>
-                           (history-take-tx new-history tx-index)
-                           (impl/simplify-eavtos conn lookup-ref))
-        actual-history (impl/pull-flat-history-simple conn lookup-ref)
-        new-hist-tx (->> (nth txes tx-index)
-                         (mapv (fn [[o e a v :as oeav]]
-                                 (if (vector? e)
-                                   (resolve-tempid conn lookup-ref oeav)
-                                   oeav))))
-        save-tempids (save-tempids-metadata new-hist-tx)
-        tx-done? (= (inc tx-index) (count txes))
-        db-id [:rh/lookup-ref (pr-str lookup-ref)]
-        tx (->> (concat [[:db/cas db-id :rh/tx-index tx-index (inc tx-index)]
-                         {:db/id db-id :rh/tempids save-tempids}]
-                        (if tx-done?
-                          [[:db/cas db-id :rh/state :rewrite-history :verify]]
-                          [[:cas/contains db-id :rh/state #{:rewrite-history} :rewrite-history]])
-                        new-hist-tx)
-                vec)]
-    (log/debug "expected-history:" expected-history)
-    (if (= expected-history actual-history)
-      (do
-        (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
-        @(d/transact conn tx))
-      (do
-        (log/error "expected history differs from actual history so far:")
-        (log/error "expected history:\n" (with-out-str (pprint/pprint expected-history)))
-        (log/error "actual history:" (with-out-str (pprint/pprint actual-history)))
-        @(d/transact conn [[:db/cas db-id :rh/state :rewrite-history :error]
-                           {:db/id db-id :rh/error (Date.)}])
-        {:expected-history (history-take-tx new-history tx-index)}))))
-
-
 (defn verify-history! [conn lookup-ref]
-  (let [expected-history (get-new-history conn lookup-ref)
+  (let [expected-history (impl/get-new-history conn lookup-ref)
         current-history (some->>
                           (impl/pull-flat-history-simple (d/db conn) lookup-ref)
                           (take (count expected-history))
@@ -161,7 +66,7 @@
       (init/job-init! conn lookup-ref)
 
       (= :rewrite-history state)
-      (rewrite-history! conn lookup-ref)
+      (rewrite/rewrite-history! conn lookup-ref)
 
       (= :verify state)
       (verify-history! conn lookup-ref)
