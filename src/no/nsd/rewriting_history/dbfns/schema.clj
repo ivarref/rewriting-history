@@ -13,4 +13,5 @@
   (mapv read-dbfn [fns/set-disj
                    fns/set-reset
                    fns/set-union
-                   fns/some-retract]))
+                   fns/some-retract
+                   fns/cas-contains]))
