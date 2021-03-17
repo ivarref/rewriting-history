@@ -8,3 +8,4 @@ tree.txt
 .db.url
 .stage-url.txt
 stage-schema.edn
+*.pom.asc
