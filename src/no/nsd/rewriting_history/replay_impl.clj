@@ -131,7 +131,7 @@
     (log/debug "expected-history:" expected-history)
     (if (= expected-history actual-history)
       (do
-        (log/debug "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
+        (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
         @(d/transact conn tx))
       (do
         (log/error "expected history differs from actual history so far:")
@@ -166,6 +166,7 @@
 
 (defn process-job-step! [conn lookup-ref]
   (let [state (job-state conn lookup-ref)]
+    (log/info "processing state" state "for lookup-ref" lookup-ref "...")
     (cond
 
       (= :scheduled state)

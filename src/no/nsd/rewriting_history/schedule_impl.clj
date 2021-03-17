@@ -39,8 +39,7 @@
         replace {:rh/match       (pr-str match)
                  :rh/replacement (pr-str replacement)}]
     (-> @(d/transact conn
-                     [{:rh/lookup-ref id
-                       :rh/state      :scheduled}
+                     [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
                       [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])
         :db-after
         (pending-replacements lookup-ref))))
