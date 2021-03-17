@@ -6,21 +6,8 @@
             [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.init :as init]
             [no.nsd.rewriting-history.rewrite :as rewrite]
-            [clojure.pprint :as pprint])
-  (:import (java.util Date)))
-
-(comment
-  (history-take-tx
-    [[1 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 1 true]
-     [4 :m/id "id" 1 true]
-     [4 :m/info "original-data" 1 true]
-     [2 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 2 true]
-     [4 :m/info "original-data" 2 false]
-     [4 :m/info "bad-data" 2 true]
-     [3 :tx/txInstant #inst"1976-01-01T00:00:00.000-00:00" 3 true]
-     [4 :m/info "bad-data" 3 false]
-     [4 :m/info "good-data" 3 true]]
-    2))
+            [no.nsd.rewriting-history.verify :as verify]
+            [clojure.pprint :as pprint]))
 
 (defn job-state [conn lookup-ref]
   (assert (vector? lookup-ref))
@@ -31,28 +18,6 @@
          [?e :rh/state ?state]]
        (d/db conn)
        (pr-str lookup-ref)))
-
-(defn verify-history! [conn lookup-ref]
-  (let [expected-history (impl/get-new-history conn lookup-ref)
-        current-history (some->>
-                          (impl/pull-flat-history-simple (d/db conn) lookup-ref)
-                          (take (count expected-history))
-                          (vec)
-                          (impl/simplify-eavtos conn lookup-ref))
-        ok-replay? (= expected-history current-history)
-        db-id [:rh/lookup-ref (pr-str lookup-ref)]
-        tx (if ok-replay?
-             [[:db/cas db-id :rh/state :verify :done]
-              {:db/id db-id :rh/done (Date.)}]
-             [[:db/cas db-id :rh/state :verify :error]
-              {:db/id db-id :rh/error (Date.)}])]
-    (if ok-replay?
-      (do
-        @(d/transact conn tx))
-      (do
-        (log/error "replay of history for lookup ref" lookup-ref "got something wrong")
-        (log/error "expected history:" expected-history)
-        @(d/transact conn tx)))))
 
 (defn process-job-step! [conn lookup-ref]
   (let [state (job-state conn lookup-ref)]
@@ -69,7 +34,7 @@
       (rewrite/rewrite-history! conn lookup-ref)
 
       (= :verify state)
-      (verify-history! conn lookup-ref)
+      (verify/verify-history! conn lookup-ref)
 
       :else
       (do
