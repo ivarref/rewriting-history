@@ -9,7 +9,7 @@
             [datomic.api :as d]
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]
-            [no.nsd.rewriting-history.schedule-impl :as schedule]
+            [no.nsd.rewriting-history.schedule-init :as schedule]
             [no.nsd.rewriting-history.init :as init]
             [taoensso.timbre :as timbre]))
 

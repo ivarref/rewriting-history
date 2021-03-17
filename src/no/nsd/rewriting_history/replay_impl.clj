@@ -3,10 +3,10 @@
             [clojure.tools.logging :as log]
             [clojure.edn :as edn]
             [no.nsd.rewriting-history.impl :as impl]
-            [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.init :as init]
             [no.nsd.rewriting-history.rewrite :as rewrite]
             [no.nsd.rewriting-history.verify :as verify]
+            [no.nsd.rewriting-history.schedule-init :as schedule-init]
             [clojure.pprint :as pprint]))
 
 (defn job-state [conn lookup-ref]
@@ -25,7 +25,7 @@
     (cond
 
       (= :scheduled state)
-      (schedule/process-single-schedule! conn lookup-ref)
+      (schedule-init/process-single-schedule! conn lookup-ref)
 
       (= :init state)
       (init/job-init! conn lookup-ref)
