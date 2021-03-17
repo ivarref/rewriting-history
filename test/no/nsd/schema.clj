@@ -22,10 +22,10 @@
        (vec)))
 
 (comment
-  (let [uri (str/trim (slurp ".pvo-stage-url.txt"))
+  (let [uri (str "datomic:sql://pvo-backend-service-stage-2?" (str/trim (slurp ".stage-url.txt")))
         conn (d/connect uri)
-        s (get-user-schema (d/db conn))])
-  (spit "stage-schema.edn" (pr-str s)))
+        s (get-user-schema (d/db conn))]
+    (spit "stage-schema.edn" (pr-str s))))
 
 (def schema (edn/read-string {:readers {'db/id  datomic.db/id-literal
                                         'db/fn  datomic.function/construct
