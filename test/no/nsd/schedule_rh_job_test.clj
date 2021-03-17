@@ -10,6 +10,7 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
+            [no.nsd.rewriting-history.init :as init]
             [taoensso.timbre :as timbre]))
 
 (def schema
@@ -75,7 +76,7 @@
 
         ; Prepare for re-write
         (schedule/process-single-schedule! conn1 [:m/id "id"])
-        (replay/job-init! conn1 [:m/id "id"])
+        (init/job-init! conn1 [:m/id "id"])
 
         ; In memory datomic does not have excision, so we need to fake
         ; it using a different connection:

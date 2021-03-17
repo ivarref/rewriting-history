@@ -9,6 +9,7 @@
             [datomic.api :as d]
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]
+            [no.nsd.rewriting-history.init :as init]
             [taoensso.timbre :as timbre]))
 
 (defn setup-schema! [conn]
@@ -47,7 +48,7 @@
         (replay/add-rewrite-job! conn2 [:m/id "id"] org-history org-history)
 
         ; This will wipe the existing data:
-        (replay/job-init! conn1 [:m/id "id"])
+        (init/job-init! conn1 [:m/id "id"])
 
         ; Fake excision is done for conn2:
         @(d/transact conn2 [{:rh/lookup-ref (pr-str [:m/id "id"]) :rh/state :rewrite-history}])
