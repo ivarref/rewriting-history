@@ -59,8 +59,7 @@
                     {:lookup-ref lookup-ref})))
   (let [id (pr-str lookup-ref)]
     (-> @(d/transact conn
-                     [{:rh/lookup-ref id
-                       :rh/state      :scheduled}
+                     [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
                       [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
                                                                   :rh/replacement (pr-str replacement)}]])
         :db-after

@@ -124,8 +124,9 @@
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         tx (->> (concat [[:db/cas db-id :rh/tx-index tx-index (inc tx-index)]
                          {:db/id db-id :rh/tempids save-tempids}]
-                        (when tx-done?
-                          [[:db/cas db-id :rh/state :rewrite-history :verify]])
+                        (if tx-done?
+                          [[:db/cas db-id :rh/state :rewrite-history :verify]]
+                          [[:cas/contains db-id :rh/state #{:rewrite-history} :rewrite-history]])
                         new-hist-tx)
                 vec)]
     (log/debug "expected-history:" expected-history)
