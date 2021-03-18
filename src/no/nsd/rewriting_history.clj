@@ -3,6 +3,7 @@
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.wipe :as wipe]
+            [no.nsd.rewriting-history.rollback :as rollback]
             [datomic.api :as d])
   (:import (java.util Date)))
 
@@ -26,7 +27,8 @@
 (defn wipe-old-rewrite-jobs! [conn older-than-days]
   (wipe/wipe-old-rewrite-jobs! conn (Date.) older-than-days))
 
-(defn rollback! [conn lookup-ref t])
+(defn rollback! [conn lookup-ref t]
+  (rollback/rollback! conn lookup-ref t))
 
 ; convenience methods
 
