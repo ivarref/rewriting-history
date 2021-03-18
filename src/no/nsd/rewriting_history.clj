@@ -26,7 +26,12 @@
 (defn wipe-old-rewrite-jobs! [conn older-than-days]
   (wipe/wipe-old-rewrite-jobs! conn (Date.) older-than-days))
 
+(defn rollback! [conn lookup-ref t])
+
 ; convenience methods
 
-(defn pull-flat-history [db [a v :as lookup-ref]]
+(defn pull-flat-history [db lookup-ref]
   (impl/pull-flat-history-simple db lookup-ref))
+
+(defn get-org-history [db lookup-ref]
+  (impl/get-org-history db lookup-ref))
