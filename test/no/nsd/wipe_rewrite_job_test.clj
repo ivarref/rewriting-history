@@ -63,7 +63,7 @@
               [4 :m/info "corrected-data" 3 false]
               [4 :m/info "good-data" 3 true]]))
 
-      (is (= 161 (count (rh/pull-flat-history conn [:rh/lookup-ref (pr-str [:m/id "id"])]))))
+      (is (pos-int? (count (rh/pull-flat-history conn [:rh/lookup-ref (pr-str [:m/id "id"])]))))
 
       (wipe/wipe-rewrite-job! conn [:m/id "id"])
 
