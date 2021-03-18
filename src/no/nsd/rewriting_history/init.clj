@@ -1,6 +1,7 @@
 (ns no.nsd.rewriting-history.init
   (:require [datomic.api :as d]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [no.nsd.rewriting-history.impl :as impl]))
 
 (defn job-init! [conn lookup-ref]
   (assert (vector? lookup-ref))
@@ -16,5 +17,7 @@
                   (mapv (fn [eid] {:db/excise eid}) eids-to-excise))
                 vec)]
     (log/debug "deleting initial eids:" eids-to-excise)
+    (log/info "excising old entities belonging to" lookup-ref "before history rewrite ...")
     (let [{:keys [db-after]} @(d/transact conn tx)]
-      @(d/sync-excise conn (d/basis-t db-after)))))
+      @(d/sync-excise conn (d/basis-t db-after))
+      (impl/log-state-change :rewrite-history lookup-ref))))

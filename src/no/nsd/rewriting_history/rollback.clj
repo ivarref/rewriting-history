@@ -35,12 +35,13 @@
                          [:some/retract job-ref :rh/error]
                          {:rh/lookup-ref lookup-ref-str
                           :rh/tx-index   0}])
+      (impl/log-state-change :pending-rollback lookup-ref)
       (schedule-init/put-chunks! conn job-ref :pending-rollback :rh/eid (into #{} (-> history meta :original-eids)))
       (schedule-init/put-chunks! conn job-ref :pending-rollback :rh/org-history (impl/history->set history))
       (schedule-init/put-chunks! conn job-ref :pending-rollback :rh/new-history (impl/history->set history))
       (log/info "saved chunks OK!")
       @(d/transact conn [[:db/cas job-ref :rh/state :pending-rollback :init]])
-      (log/info "state is now :init for" lookup-ref))))
+      (impl/log-state-change :init lookup-ref))))
 
 
 

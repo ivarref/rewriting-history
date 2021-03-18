@@ -74,11 +74,14 @@
     (if (= expected-history actual-history)
       (do
         (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
-        @(d/transact conn tx))
+        (let [res @(d/transact conn tx)]
+          (impl/log-state-change (if tx-done? :verify :rewrite-history) lookup-ref)
+          res))
       (do
         (log/error "expected history differs from actual history so far:")
         (log/error "expected history:\n" (with-out-str (pprint/pprint expected-history)))
         (log/error "actual history:" (with-out-str (pprint/pprint actual-history)))
         @(d/transact conn [[:db/cas db-id :rh/state :rewrite-history :error]
                            {:db/id db-id :rh/error (Date.)}])
+        (impl/log-state-change :error lookup-ref)
         {:expected-history (history-take-tx new-history tx-index)}))))

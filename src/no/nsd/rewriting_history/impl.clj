@@ -282,3 +282,6 @@
 
 (defn get-org-history [conn lookup-ref]
   (get-history conn :rh/org-history lookup-ref))
+
+(defn log-state-change [state lookup-ref]
+  (log/info "state is now" state "for" lookup-ref))

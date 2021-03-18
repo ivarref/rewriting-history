@@ -36,12 +36,14 @@
                     {:lookup-ref lookup-ref})))
   (let [id (pr-str lookup-ref)
         replace {:rh/match       (pr-str match)
-                 :rh/replacement (pr-str replacement)}]
-    (-> @(d/transact conn
-                     [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
-                      [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])
-        :db-after
-        (pending-replacements lookup-ref))))
+                 :rh/replacement (pr-str replacement)}
+        res (-> @(d/transact conn
+                             [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
+                              [:set/union [:rh/lookup-ref id] :rh/replace #{replace}]])
+                :db-after
+                (pending-replacements lookup-ref))]
+    (impl/log-state-change :scheduled lookup-ref)
+    res))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
   (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
@@ -56,10 +58,12 @@
     (log/error "cannot schedule replacement on entity that has failed!")
     (throw (ex-info "cannot schedule replacement on entity that has failed!"
                     {:lookup-ref lookup-ref})))
-  (let [id (pr-str lookup-ref)]
-    (-> @(d/transact conn
-                     [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
-                      [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
-                                                                  :rh/replacement (pr-str replacement)}]])
-        :db-after
-        (pending-replacements lookup-ref))))
+  (let [id (pr-str lookup-ref)
+        res (-> @(d/transact conn
+                             [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
+                              [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
+                                                                          :rh/replacement (pr-str replacement)}]])
+                :db-after
+                (pending-replacements lookup-ref))]
+    (impl/log-state-change :scheduled lookup-ref)
+    res))

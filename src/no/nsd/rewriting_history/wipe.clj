@@ -20,7 +20,8 @@
                    eids)]
       (log/debug "excising" (count tx) "entities ...")
       (let [{:keys [db-after]} @(d/transact conn tx)]
-        @(d/sync-excise conn (d/basis-t db-after))))))
+        @(d/sync-excise conn (d/basis-t db-after))
+        (impl/log-state-change :nil lookup-ref)))))
 
 (defn wipe-old-rewrite-jobs! [conn ^Date now older-than-days]
   (assert (instance? Connection conn))

@@ -13,10 +13,11 @@
                           (impl/simplify-eavtos conn lookup-ref))
         ok-replay? (= expected-history current-history)
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
+        new-state (if ok-replay? :done :error)
         tx (if ok-replay?
-             [[:db/cas db-id :rh/state :verify :done]
+             [[:db/cas db-id :rh/state :verify new-state]
               {:db/id db-id :rh/done (Date.)}]
-             [[:db/cas db-id :rh/state :verify :error]
+             [[:db/cas db-id :rh/state :verify new-state]
               {:db/id db-id :rh/error (Date.)}])]
     (if ok-replay?
       (do
@@ -24,4 +25,5 @@
       (do
         (log/error "replay of history for lookup ref" lookup-ref "got something wrong")
         (log/error "expected history:" expected-history)
-        @(d/transact conn tx)))))
+        @(d/transact conn tx)))
+    (impl/log-state-change new-state lookup-ref)))

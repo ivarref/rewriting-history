@@ -59,9 +59,10 @@
              :rh/tx-index 0}]]
     (log/info "setting state to :pending-init and resetting state ...")
     @(d/transact conn tx)
+    (impl/log-state-change :pending-init lookup-ref)
     (put-chunks! conn job-ref :pending-init :rh/eid (into #{} (-> org-history meta :original-eids)))
     (put-chunks! conn job-ref :pending-init :rh/org-history (impl/history->set org-history))
     (put-chunks! conn job-ref :pending-init :rh/new-history (impl/history->set new-history))
     (log/info "saved chunks OK!")
     @(d/transact conn [[:db/cas job-ref :rh/state :pending-init :init]])
-    (log/info "state is now :init for" lookup-ref)))
+    (impl/log-state-change :init lookup-ref)))
