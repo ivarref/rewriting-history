@@ -63,11 +63,12 @@
         save-tempids (save-tempids-metadata new-hist-tx)
         tx-done? (= (inc tx-index) (count txes))
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
+        new-state (if tx-done? :verify :rewrite-history)
         tx (->> (concat [[:db/cas db-id :rh/tx-index tx-index (inc tx-index)]
                          {:db/id db-id :rh/tempids save-tempids}]
                         (if tx-done?
-                          [[:db/cas db-id :rh/state :rewrite-history :verify]]
-                          [[:cas/contains db-id :rh/state #{:rewrite-history} :rewrite-history]])
+                          [[:db/cas db-id :rh/state :rewrite-history new-state]]
+                          [[:cas/contains db-id :rh/state #{:rewrite-history} new-state]])
                         new-hist-tx)
                 vec)]
     (log/debug "expected-history:" expected-history)
@@ -75,7 +76,7 @@
       (do
         (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
         (let [res @(d/transact conn tx)]
-          (impl/log-state-change (if tx-done? :verify :rewrite-history) lookup-ref)
+          (impl/log-state-change new-state lookup-ref)
           res))
       (do
         (log/error "expected history differs from actual history so far:")
