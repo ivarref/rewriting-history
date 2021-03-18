@@ -13,6 +13,12 @@
     db-or-conn
     (d/db db-or-conn)))
 
+(defn history [db-or-conn]
+  (d/history (to-db db-or-conn)))
+
+(defn as-of [conn t]
+  (d/as-of (to-db conn) t))
+
 (defn resolve-lookup-ref
   "Returns eid of lookup ref or nil if lookup ref is not found"
   [db lookup-ref-or-eid]
