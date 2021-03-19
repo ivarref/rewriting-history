@@ -25,13 +25,13 @@
     (replay/process-until-state conn [:m/id "id"] :done)
 
     (is (= (rh/pull-flat-history conn [:m/id "id"])
-           [[1 :tx/txInstant #inst "1973-01-01T00:00:00.000-00:00" 1 true]
+           [[1 :tx/txInstant #inst "1973" 1 true]
             [4 :m/id "id" 1 true]
             [4 :m/info "originbl-dbtb" 1 true]
-            [2 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 2 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
             [4 :m/info "originbl-dbtb" 2 false]
             [4 :m/info "bbd-dbtb" 2 true]
-            [3 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 3 true]
+            [3 :tx/txInstant #inst "1975" 3 true]
             [4 :m/info "bbd-dbtb" 3 false]
             [4 :m/info "good-dbtb" 3 true]]))
 
@@ -42,13 +42,13 @@
     (rh/rollback! conn [:m/id "id"] #inst"1981")
     (replay/process-until-state conn [:m/id "id"] :done)
     (is (= (rh/pull-flat-history conn [:m/id "id"])
-           [[1 :tx/txInstant #inst "1973-01-01T00:00:00.000-00:00" 1 true]
+           [[1 :tx/txInstant #inst "1973" 1 true]
             [4 :m/id "id" 1 true]
             [4 :m/info "original-data" 1 true]
-            [2 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 2 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
             [4 :m/info "original-data" 2 false]
             [4 :m/info "bad-data" 2 true]
-            [3 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 3 true]
+            [3 :tx/txInstant #inst "1975" 3 true]
             [4 :m/info "bad-data" 3 false]
             [4 :m/info "good-data" 3 true]]))
 
@@ -60,12 +60,12 @@
     (rh/rollback! conn [:m/id "id"] #inst"1991")
     (replay/process-until-state conn [:m/id "id"] :done)
     (is (= (rh/pull-flat-history conn [:m/id "id"])
-           [[1 :tx/txInstant #inst "1973-01-01T00:00:00.000-00:00" 1 true]
+           [[1 :tx/txInstant #inst "1973" 1 true]
             [4 :m/id "id" 1 true]
             [4 :m/info "originbl-dbtb" 1 true]
-            [2 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 2 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
             [4 :m/info "originbl-dbtb" 2 false]
             [4 :m/info "bbd-dbtb" 2 true]
-            [3 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 3 true]
+            [3 :tx/txInstant #inst "1975" 3 true]
             [4 :m/info "bbd-dbtb" 3 false]
             [4 :m/info "good-dbtb" 3 true]]))))
