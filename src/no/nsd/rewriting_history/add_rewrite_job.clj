@@ -14,14 +14,14 @@
                          [:set/union job-ref attr (into #{} chunk)]])))
   #_(log/info "saving attribute" attr "for" job-ref "of size" (count items) "... OK!"))
 
-(defn add-job! [conn lookup-ref from-state to-pending-state new-history]
+(defn add-job! [conn lookup-ref from-state pending-state new-history]
   (assert (vector? lookup-ref))
   (assert (vector? new-history)
           (str "expected new-history to be vector, was: " (pr-str new-history)))
   (let [id (pr-str lookup-ref)
         job-ref [:rh/lookup-ref id]
         org-history (impl/pull-flat-history-simple conn lookup-ref)
-        tx [[:db/cas job-ref :rh/state from-state to-pending-state]
+        tx [[:cas/contains job-ref :rh/state from-state pending-state]
             [:set/reset job-ref :rh/eid #{}]
             [:set/reset job-ref :rh/org-history #{}]
             [:set/reset job-ref :rh/new-history #{}]
@@ -30,11 +30,11 @@
             [:some/retract job-ref :rh/done]
             [:some/retract job-ref :rh/error]
             {:rh/lookup-ref id
-             :rh/tx-index 0}]]
+             :rh/tx-index   0}]]
     @(d/transact conn tx)
-    (impl/log-state-change to-pending-state lookup-ref)
-    (put-chunks! conn job-ref :pending-init :rh/eid (into #{} (-> org-history meta :original-eids)))
-    (put-chunks! conn job-ref :pending-init :rh/org-history (impl/history->set org-history))
-    (put-chunks! conn job-ref :pending-init :rh/new-history (impl/history->set new-history))
-    @(d/transact conn [[:db/cas job-ref :rh/state to-pending-state :init]])
+    (impl/log-state-change pending-state lookup-ref)
+    (put-chunks! conn job-ref pending-state :rh/eid (into #{} (-> org-history meta :original-eids)))
+    (put-chunks! conn job-ref pending-state :rh/org-history (impl/history->set org-history))
+    (put-chunks! conn job-ref pending-state :rh/new-history (impl/history->set new-history))
+    @(d/transact conn [[:db/cas job-ref :rh/state pending-state :init]])
     (impl/log-state-change :init lookup-ref)))

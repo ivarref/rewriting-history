@@ -35,4 +35,4 @@
                           (mapv (partial zipmap [:eid :match :replacement])))
         new-history (->> (impl/pull-flat-history-simple conn lookup-ref)
                          (mapv (partial replace-eavto replacements)))]
-    (add-job/add-job! conn lookup-ref :scheduled :pending-init new-history)))
+    (add-job/add-job! conn lookup-ref #{:scheduled} :pending-init new-history)))

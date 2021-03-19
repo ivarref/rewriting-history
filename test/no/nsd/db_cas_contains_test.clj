@@ -56,7 +56,7 @@
                                                 [:m/status :one :keyword]]))
     @(d/transact conn [[:cas/contains [:m/id "id"] :m/status #{nil} :init]])
 
-    (u/is-assert-msg "expected key to be found in coll"
+    (u/is-assert-msg "expected key :init to be found in coll #{nil}"
                      @(d/transact conn [[:cas/contains [:m/id "id"] :m/status #{nil} :init]]))
 
     ; no-ops is fine:

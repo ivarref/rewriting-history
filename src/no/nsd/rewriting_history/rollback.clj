@@ -34,9 +34,9 @@
                         t))
               "Expected to find t in history with :rh/state set to :init")
       (log/info "checking t ... OK")
-      (let [new-history (impl/pull-flat-history-simple (impl/as-of conn t) lookup-ref)]
+      (let [new-history (impl/get-org-history (impl/as-of conn t) lookup-ref)]
         (log/info "adding rollback job...")
-        (add-job/add-job! conn lookup-ref :ok-rollback :pending-rollback new-history)
+        (add-job/add-job! conn lookup-ref #{:ok-rollback :done} :pending-rollback new-history)
         (log/info "adding rollback job... OK!")))))
 
 (defn available-times [conn lookup-ref]

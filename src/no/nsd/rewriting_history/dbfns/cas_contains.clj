@@ -55,7 +55,8 @@
                           [?e ?attr ?curr-value]]
                         db id-a id-v attr)]
     (assert (contains? coll curr-value)
-            (str "expected key to be found in coll"))
+            (str "expected key " (pr-str curr-value)
+                 " to be found in coll " (pr-str coll)))
     [{id-a id-v
       attr key}]))
 
