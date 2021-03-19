@@ -2,7 +2,8 @@
   (:require [datomic.api :as d]
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.add-rewrite-job :as add-job]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [no.nsd.rewriting-history.replay-impl :as replay])
   (:import (datomic Connection)
            (java.util Date)))
 
@@ -36,8 +37,11 @@
       (log/info "checking t ... OK")
       (let [new-history (impl/get-org-history (impl/as-of conn t) lookup-ref)]
         (log/info "adding rollback job...")
-        (add-job/add-job! conn lookup-ref #{:ok-rollback :done} :pending-rollback new-history)
-        (log/info "adding rollback job... OK!")))))
+        (add-job/add-job! conn lookup-ref #{:init :ok-rollback :done} :pending-rollback new-history)
+        (log/info "adding rollback job... OK!")
+        (log/info "replaying history of" lookup-ref "...")
+        (replay/process-until-state conn lookup-ref :done)
+        (log/info "replaying history of" lookup-ref "... OK!")))))
 
 (defn available-times [conn lookup-ref]
   (assert (vector? lookup-ref))

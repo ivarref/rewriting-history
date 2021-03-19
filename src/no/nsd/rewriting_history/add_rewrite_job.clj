@@ -9,7 +9,6 @@
   (log/info "saving attribute" attr "for" job-ref "of size" (count items) "...")
   (let [chunks (partition-all chunk-size (into [] items))]
     (doseq [[idx chunk] (map-indexed vector chunks)]
-      #_(log/info "process chunk" (inc idx) "of" (count chunks))
       @(d/transact conn [[:cas/contains job-ref :rh/state #{expected-state} expected-state]
                          [:set/union job-ref attr (into #{} chunk)]])))
   #_(log/info "saving attribute" attr "for" job-ref "of size" (count items) "... OK!"))
