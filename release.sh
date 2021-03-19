@@ -2,7 +2,8 @@
 
 set -ex
 
-clojure -Spom
+#clojure -Spom
+clojure -M:test
 clojure -M:jar
 
 COMMIT_COUNT="$(git rev-list --count HEAD)"

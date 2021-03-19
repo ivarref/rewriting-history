@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>no.nsd</groupId>
   <artifactId>rewriting-history</artifactId>
-  <version>0.5.288</version>
+  <version>0.5.297</version>
   <name>rewriting-history</name>
   <dependencies>
     <dependency>
@@ -25,7 +25,7 @@
   <scm>
     <connection>scm:git:git://github.com/ivarref/rewriting-history.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/ivarref/rewriting-history.git</developerConnection>
-    <tag>v0.4.288</tag>
+    <tag>v0.5.297</tag>
     <url>https://github.com/ivarref/rewriting-history</url>
   </scm>
 </project>
