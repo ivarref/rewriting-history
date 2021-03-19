@@ -25,16 +25,20 @@
     (cond
 
       (= :scheduled state)
-      (schedule-init/process-single-schedule! conn lookup-ref)
+      (do (schedule-init/process-single-schedule! conn lookup-ref)
+          (job-state conn lookup-ref))
 
       (= :init state)
-      (init/job-init! conn lookup-ref)
+      (do (init/job-init! conn lookup-ref)
+          (job-state conn lookup-ref))
 
       (= :rewrite-history state)
-      (rewrite/rewrite-history! conn lookup-ref)
+      (do (rewrite/rewrite-history! conn lookup-ref)
+          (job-state conn lookup-ref))
 
       (= :verify state)
-      (verify/verify-history! conn lookup-ref)
+      (do (verify/verify-history! conn lookup-ref)
+          (job-state conn lookup-ref))
 
       :else
       (do

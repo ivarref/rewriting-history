@@ -27,6 +27,9 @@
 (defn wipe-old-rewrite-jobs! [conn older-than-days]
   (wipe/wipe-old-rewrite-jobs! conn (Date.) older-than-days))
 
+(defn available-rollback-times [conn lookup-ref]
+  (rollback/available-times conn lookup-ref))
+
 (defn rollback! [conn lookup-ref t]
   (rollback/rollback! conn lookup-ref t))
 

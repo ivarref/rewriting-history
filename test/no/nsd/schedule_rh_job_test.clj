@@ -15,8 +15,7 @@
 
 (def schema
   (into impl/schema
-        #d/schema[[:tx/txInstant :one :instant]
-                  [:m/id :one :string :id]
+        #d/schema[[:m/id :one :string :id]
                   [:m/info :one :string]]))
 
 (def empty-conn u/empty-conn)

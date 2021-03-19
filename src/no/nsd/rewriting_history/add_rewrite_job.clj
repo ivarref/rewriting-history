@@ -16,7 +16,8 @@
 
 (defn add-job! [conn lookup-ref from-state to-pending-state new-history]
   (assert (vector? lookup-ref))
-  (assert (vector? new-history))
+  (assert (vector? new-history)
+          (str "expected new-history to be vector, was: " (pr-str new-history)))
   (let [id (pr-str lookup-ref)
         job-ref [:rh/lookup-ref id]
         org-history (impl/pull-flat-history-simple conn lookup-ref)
