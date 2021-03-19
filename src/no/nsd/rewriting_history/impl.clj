@@ -285,3 +285,23 @@
 
 (defn log-state-change [state lookup-ref]
   (log/info "state is now" state "for" lookup-ref))
+
+(comment
+  (def conn (-> reloaded.repl/system
+                :datomic
+                :conn)))
+
+(comment
+  (def first-t (->> (d/q '[:find [?t ...]
+                           :in $ ?ref
+                           :where
+                           [?e :rh/lookup-ref ?ref]
+                           [?e :rh/state :init ?t true]]
+                         (d/history (d/db conn))
+                         (pr-str [:Meldeskjema/ref "995695"]))
+                    (sort)
+                    (first))))
+
+(comment
+  (get-org-history (d/as-of (d/db conn) first-t)
+                   [:Meldeskjema/ref "995695"]))
