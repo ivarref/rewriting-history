@@ -52,12 +52,13 @@
                         (pr-str lookup-ref))
                    (map (fn [[inst t]] {inst [t]}))
                    (reduce (partial merge-with into) {})
-                   (map (fn [[k v]] [k (vec (sort v))]))
-                   (sort)
                    (vec))]
     (if (every? #(= 1 (count (second %))) times)
       (into (sorted-set) (mapv first times))
-      times)))
+      (do
+        (log/error "Did not get a single distinctive transaction id for :db/txInstant, aborting!")
+        (throw (ex-info "Did not get a single distinctive transaction id for :db/txInstant"
+                        {:times times}))))))
 
 (comment
   (available-times c [:m/id "id"]))
