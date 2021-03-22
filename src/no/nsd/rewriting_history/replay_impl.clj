@@ -22,33 +22,16 @@
 (defn process-job-step! [conn lookup-ref]
   (let [state (job-state conn lookup-ref)]
     (log/debug "processing state" state "for lookup-ref" lookup-ref "...")
-    (cond
-
-      (= :scheduled state)
-      (do (schedule-init/process-single-schedule! conn lookup-ref)
-          (job-state conn lookup-ref))
-
-      (= :init state)
-      (do (init/job-init! conn lookup-ref)
-          (job-state conn lookup-ref))
-
-      (= :rewrite-history state)
-      (do (rewrite/rewrite-history! conn lookup-ref)
-          (job-state conn lookup-ref))
-
-      (= :verify state)
-      (do (verify/verify-history! conn lookup-ref)
-          (job-state conn lookup-ref))
-
-      (= :done state)
-      (do
-        (log/info "reached :done state, exiting...")
-        nil)
-
-      :else
+    (case state
+      :scheduled (schedule-init/process-single-schedule! conn lookup-ref)
+      :init (init/job-init! conn lookup-ref)
+      :rewrite-history (rewrite/rewrite-history! conn lookup-ref)
+      :verify (verify/verify-history! conn lookup-ref)
+      :done (log/info "reached :done state")
       (do
         (log/error "unhandled job state:" state)
-        nil #_(throw (ex-info "unhandled job state" {:state state}))))))
+        (throw (ex-info "unhandled job state" {:state state}))))
+    (job-state conn lookup-ref)))
 
 (defn process-until-state [conn lookup-ref desired-state]
   (loop []
