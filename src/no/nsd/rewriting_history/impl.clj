@@ -175,7 +175,8 @@
                     [:tempid (str v)]
 
                     :else
-                    (do (log/error "could not find tempid" v)
+                    (do (log/info "could not find tempid" v)
+                        (log/info "eavto" eavto)
                         (str v)))]
     [op ent-id a value]))
 

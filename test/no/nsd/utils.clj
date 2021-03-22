@@ -108,7 +108,8 @@
 
 (defn clear []
   (.print System/out "\033[H\033[2J")
-  (.flush System/out))
+  (.flush System/out)
+  #_(println (str/join "*" (repeat 80 ""))))
 
 (defn pull-id [db id]
   (d/pull db '[:*] id))

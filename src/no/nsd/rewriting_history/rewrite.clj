@@ -45,7 +45,7 @@
        (take-while (fn [[e a v t o]] (<= t tmax)))
        (vec)))
 
-(defn rewrite-history! [conn lookup-ref]
+(defn rewrite-history-get-tx [conn lookup-ref]
   (assert (vector? lookup-ref))
   (let [new-history (impl/get-new-history conn lookup-ref)
         txes (impl/history->transactions conn new-history)
@@ -66,9 +66,10 @@
                                  (if (vector? e)
                                    (resolve-tempid conn lookup-ref oeav)
                                    oeav))))
-        save-tempids (conj (save-tempids-metadata new-hist-tx)
-                           {:rh/tempid-str (tx-max new-history (inc tx-index))
-                            :rh/tempid-ref "datomic.tx"})
+        save-tempids (save-tempids-metadata new-hist-tx)
+        #_(conj
+                {:rh/tempid-str (tx-max new-history (inc tx-index))
+                 :rh/tempid-ref "datomic.tx"})
         tx-done? (= (inc tx-index) (count txes))
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         new-state (if tx-done? :verify :rewrite-history)
@@ -84,13 +85,23 @@
                           [[:cas/contains db-id :rh/state #{:rewrite-history} new-state]])
                         new-hist-tx)
                 vec)]
+    {:tx tx
+     :new-state new-state
+     :expected-history expected-history
+     :actual-history actual-history}))
+
+(defn rewrite-history! [conn lookup-ref]
+  (assert (vector? lookup-ref))
+  (let [{:keys [tx
+                expected-history
+                actual-history
+                new-state]}
+        (rewrite-history-get-tx conn lookup-ref)]
     (log/debug "expected-history:" expected-history)
     (if (= expected-history actual-history)
       (do
-        (log/info "tx:\n" (with-out-str (binding [*print-length* 120]
-                                          (pprint/pprint tx))))
-        (log/info "tempids:" save-tempids)
-        (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
+        (log/debug "tx:\n" (with-out-str (binding [*print-length* 120]
+                                           (pprint/pprint tx))))
         (let [res @(d/transact conn tx)]
           (impl/log-state-change new-state lookup-ref)
           res))
@@ -98,7 +109,7 @@
         (log/error "expected history differs from actual history so far:")
         (log/error "expected history:\n" (with-out-str (pprint/pprint expected-history)))
         (log/error "actual history:" (with-out-str (pprint/pprint actual-history)))
-        @(d/transact conn [[:db/cas db-id :rh/state :rewrite-history :error]
-                           {:db/id db-id :rh/error (Date.)}])
+        @(d/transact conn [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :rewrite-history :error]
+                           {:db/id [:rh/lookup-ref (pr-str lookup-ref)] :rh/error (Date.)}])
         (impl/log-state-change :error lookup-ref)
-        {:expected-history (history-take-tx new-history tx-index)}))))
+        {:expected-history expected-history}))))
