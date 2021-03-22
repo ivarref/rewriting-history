@@ -6,13 +6,9 @@
             [no.nsd.utils :as u]
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.shorter-stacktrace]
+            [no.nsd.log-init]
             [no.nsd.spy :as sc]
             [clojure.pprint :as pprint]))
-
-(envelope/init!
-  {:min-level  [[#{"datomic.*" "com.datomic.*" "org.apache.*"} :warn]
-                [#{"*"} :info]]
-   :log-to-elk false})
 
 (deftest tx-meta-test
   (testing "Verify that transaction metadata is included in history"
