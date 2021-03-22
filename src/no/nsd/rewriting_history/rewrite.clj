@@ -66,10 +66,9 @@
                                  (if (vector? e)
                                    (resolve-tempid conn lookup-ref oeav)
                                    oeav))))
-        save-tempids (save-tempids-metadata new-hist-tx)
-        #_(conj
-                {:rh/tempid-str (tx-max new-history (inc tx-index))
-                 :rh/tempid-ref "datomic.tx"})
+        save-tempids (conj (save-tempids-metadata new-hist-tx)
+                           {:rh/tempid-str (str (tx-max new-history (inc tx-index)))
+                            :rh/tempid-ref "datomic.tx"})
         tx-done? (= (inc tx-index) (count txes))
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         new-state (if tx-done? :verify :rewrite-history)
