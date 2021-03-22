@@ -6,7 +6,7 @@
 (def chunk-size 10)
 
 (defn put-chunks! [conn job-ref expected-state attr items]
-  (log/info "saving attribute" attr "for" job-ref "of size" (count items) "...")
+  (log/debug "saving attribute" attr "for" job-ref "of size" (count items) "...")
   (let [chunks (partition-all chunk-size (into [] items))]
     (doseq [[idx chunk] (map-indexed vector chunks)]
       @(d/transact conn [[:cas/contains job-ref :rh/state #{expected-state} expected-state]

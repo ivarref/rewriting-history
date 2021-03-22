@@ -10,19 +10,47 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.schema :as schema]
             [no.nsd.rewriting-history.replay-impl :as replay]
-            [no.nsd.big-data :as data]))
+            [no.nsd.rewriting-history.add-rewrite-job :as add-job]
+            [no.nsd.big-data :as data]
+            [no.nsd.in-mem-excision-conn :as c]))
+
+(deftest test-conn
+  (let [conn (c/conn)]
+    (let [{:keys [tempids]} @(d/transact conn [{:db/id  "e"
+                                                :db/doc "doc"}])]
+      @(d/transact conn [{:db/excise (get tempids "e")}]))
+    #_@(d/transact conn impl/schema)
+    #_@(d/transact conn #d/schema[[:m/id :one :string :id]
+                                  [:m/ref :one :ref]])))
+
 
 (deftest datomic-tx-ref-test
-  (let [conn1 (u/empty-conn)]
-    @(d/transact conn1 impl/schema)
-    @(d/transact conn1 #d/schema[[:m/id :one :string :id]
-                                 [:m/ref :one :ref]])
+  (u/clear)
+  (let [conn (u/empty-stage-conn)]
+    #_@(d/transact conn [{:db/doc "asdf"}
+                         [:db/excise 123]])
+    @(d/transact conn impl/schema)
+    @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                [:m/ref :one :ref]])
 
-    @(d/transact conn1 [{:m/id "id" :m/ref "datomic.tx"}])
-    @(d/transact conn1 [{:m/id "id" :m/ref "datomic.tx"}])
+    @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
+    @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
 
-    (impl/apply-txes!
-      (u/empty-conn)
-      (impl/history->transactions
-        conn1
-        (rh/pull-flat-history conn1 [:m/id "id"])))))
+    (is (= (rh/pull-flat-history conn [:m/id "id"])
+           [[1 :tx/txInstant #inst "1973" 1 true]
+            [3 :m/id "id" 1 true]
+            [3 :m/ref 1 1 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
+            [3 :m/ref 1 2 false]
+            [3 :m/ref 2 2 true]]))
+
+    (rh/schedule-replacement! conn [:m/id "id"] "" "")
+    (rh/process-scheduled! conn)
+    #_(add-job/add-job! conn1)
+    #_(replay/process-until-state conn1 [:m/id "id"] :rewrite-history)
+
+    #_(impl/apply-txes!
+        (u/empty-conn)
+        (impl/history->transactions
+          conn1
+          (rh/pull-flat-history conn1 [:m/id "id"])))))

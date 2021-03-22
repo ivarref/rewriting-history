@@ -17,7 +17,7 @@
                   (mapv (fn [eid] {:db/excise eid}) eids-to-excise))
                 vec)]
     (log/debug "deleting initial eids:" eids-to-excise)
-    (log/info "excising old entities belonging to" lookup-ref "before history rewrite ...")
+    (log/debug "excising old entities belonging to" lookup-ref "before history rewrite ...")
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after))
       (impl/log-state-change :rewrite-history lookup-ref))))

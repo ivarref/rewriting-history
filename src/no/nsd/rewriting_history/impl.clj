@@ -127,9 +127,6 @@
   (let [tx-eids (into #{} (distinct (map get-t eavtos)))
         reg-eids (set/difference (into #{} (map first eavtos))
                                  tx-eids)
-        eid-map (merge
-                  (zipmap (sort tx-eids) (map (partial str "t_") (iterate inc 1)))
-                  (zipmap (sort reg-eids) (map (partial str "e_") (iterate inc 1))))
         eids (->> (reduce into
                           []
                           [(map first eavtos) (map get-t eavtos)])
@@ -178,7 +175,8 @@
                     [:tempid (str v)]
 
                     :else
-                    (str v))]
+                    (do (log/error "could not find tempid" v)
+                        (str v)))]
     [op ent-id a value]))
 
 (defn eavtos->transaction
@@ -187,12 +185,14 @@
         self-tempids (->> oeavs
                           (map second)
                           (filter string?)
-                          (into #{}))]
-    [(conj txout oeavs)
-     (into (sorted-set) (set/union tempids self-tempids))]))
+                          (into #{}))
+        new-tempids (into (sorted-set) (set/union tempids self-tempids))]
+    [(conj txout oeavs) new-tempids]))
 
 (defn history->transactions
   "history->transactions creates transactions based on eavtos and a database.
+
+  Returns a vector of OEAVs.
 
   It is only dependent on the database as far as looking up schema definitions,
   thus it does not matter if this function is called before or after initial excision."
@@ -219,7 +219,9 @@
 (defn apply-txes! [conn txes]
   (reduce
     (fn [prev-tempids tx]
+      (log/info "prev-tempids:" prev-tempids)
       (let [new-txes (mapv (partial resolve-tempid prev-tempids) tx)]
+        (log/info "tx:\n" (with-out-str (pprint/pprint new-txes)))
         (let [{:keys [tempids]} @(d/transact conn new-txes)]
           (merge prev-tempids tempids))))
     {}
@@ -285,23 +287,3 @@
 
 (defn log-state-change [state lookup-ref]
   (log/info "state is now" state "for" lookup-ref))
-
-(comment
-  (def conn (-> reloaded.repl/system
-                :datomic
-                :conn)))
-
-(comment
-  (def first-t (->> (d/q '[:find [?t ...]
-                           :in $ ?ref
-                           :where
-                           [?e :rh/lookup-ref ?ref]
-                           [?e :rh/state :init ?t true]]
-                         (d/history (d/db conn))
-                         (pr-str [:Meldeskjema/ref "995695"]))
-                    (sort)
-                    (first))))
-
-(comment
-  (get-org-history (d/as-of (d/db conn) first-t)
-                   [:Meldeskjema/ref "995695"]))

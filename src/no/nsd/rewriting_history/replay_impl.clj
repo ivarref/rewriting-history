@@ -21,7 +21,7 @@
 
 (defn process-job-step! [conn lookup-ref]
   (let [state (job-state conn lookup-ref)]
-    (log/info "processing state" state "for lookup-ref" lookup-ref "...")
+    (log/debug "processing state" state "for lookup-ref" lookup-ref "...")
     (cond
 
       (= :scheduled state)

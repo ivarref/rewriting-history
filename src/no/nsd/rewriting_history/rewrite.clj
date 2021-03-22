@@ -89,10 +89,7 @@
       (do
         (log/info "tx:\n" (with-out-str (binding [*print-length* 120]
                                           (pprint/pprint tx))))
-        (log/info "tempids:" (->> new-hist-tx
-                                  (map second)
-                                  (distinct)
-                                  (vec)))
+        (log/info "tempids:" save-tempids)
         (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
         (let [res @(d/transact conn tx)]
           (impl/log-state-change new-state lookup-ref)
