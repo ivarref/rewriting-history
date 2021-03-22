@@ -40,6 +40,11 @@
       (do (verify/verify-history! conn lookup-ref)
           (job-state conn lookup-ref))
 
+      (= :done state)
+      (do
+        (log/info "reached :done state, exiting...")
+        nil)
+
       :else
       (do
         (log/error "unhandled job state:" state)
