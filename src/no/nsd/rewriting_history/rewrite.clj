@@ -86,6 +86,8 @@
                         new-hist-tx)
                 vec)]
     {:tx tx
+     :tx-index tx-index
+     :new-history new-history
      :new-state new-state
      :expected-history expected-history
      :actual-history actual-history}))
@@ -95,7 +97,9 @@
   (let [{:keys [tx
                 expected-history
                 actual-history
-                new-state]}
+                new-state
+                new-history
+                tx-index]}
         (rewrite-history-get-tx conn lookup-ref)]
     (log/debug "expected-history:" expected-history)
     (if (= expected-history actual-history)
@@ -112,4 +116,4 @@
         @(d/transact conn [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :rewrite-history :error]
                            {:db/id [:rh/lookup-ref (pr-str lookup-ref)] :rh/error (Date.)}])
         (impl/log-state-change :error lookup-ref)
-        {:expected-history expected-history}))))
+        {:expected-history (history-take-tx new-history tx-index)}))))
