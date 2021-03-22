@@ -32,17 +32,18 @@
          nil))
    a v])
 
-(defn history-take-tx [history tx]
-  (let [tx-max (->> history
-                    (mapv (fn [[e a v t o]] t))
-                    (distinct)
-                    (sort)
-                    (take tx)
-                    (last))]
-    (when tx-max
-      (->> history
-           (take-while (fn [[e a v t o]] (<= t tx-max)))
-           (vec)))))
+(defn tx-max [history tx-index]
+  (->> history
+       (mapv (fn [[e a v t o]] t))
+       (distinct)
+       (sort)
+       (take tx-index)
+       (last)))
+
+(defn history-take-tx [history tmax]
+  (->> history
+       (take-while (fn [[e a v t o]] (<= t tmax)))
+       (vec)))
 
 (defn rewrite-history! [conn lookup-ref]
   (assert (vector? lookup-ref))
@@ -56,7 +57,8 @@
                       (d/db conn)
                       (pr-str lookup-ref))
         expected-history (some->>
-                           (history-take-tx new-history tx-index)
+                           (tx-max new-history tx-index)
+                           (history-take-tx new-history)
                            (impl/simplify-eavtos conn lookup-ref))
         actual-history (impl/pull-flat-history-simple conn lookup-ref)
         new-hist-tx (->> (nth txes tx-index)
@@ -64,7 +66,9 @@
                                  (if (vector? e)
                                    (resolve-tempid conn lookup-ref oeav)
                                    oeav))))
-        save-tempids (save-tempids-metadata new-hist-tx)
+        save-tempids (conj (save-tempids-metadata new-hist-tx)
+                           {:rh/tempid-str (tx-max new-history (inc tx-index))
+                            :rh/tempid-ref "datomic.tx"})
         tx-done? (= (inc tx-index) (count txes))
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         new-state (if tx-done? :verify :rewrite-history)

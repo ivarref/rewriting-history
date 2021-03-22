@@ -12,7 +12,7 @@
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.big-data :as data]))
 
-(deftest stage-test
+(deftest datomic-tx-ref-test
   (let [conn1 (u/empty-conn)]
     @(d/transact conn1 impl/schema)
     @(d/transact conn1 #d/schema[[:m/id :one :string :id]
