@@ -5,6 +5,6 @@
 
 (envelope/init!
   {:min-level  [[#{"datomic.*" "com.datomic.*" "org.apache.*"} :warn]
-                [#{"*"} (edn/read-string (System/getenv "TAOENSSO_TIMBRE_MIN_LEVEL_EDN")
-                                         ":info")]]
+                [#{"*"} (edn/read-string
+                          (System/getProperty "TAOENSSO_TIMBRE_MIN_LEVEL_EDN" ":info"))]]
    :log-to-elk false})
