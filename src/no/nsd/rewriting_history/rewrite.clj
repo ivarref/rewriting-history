@@ -16,16 +16,20 @@
 (defn resolve-tempid [conn lookup-ref [o [tempid tempid-str] a v]]
   (assert (and (string? tempid-str) (= :tempid tempid)))
   [o
-   (d/q '[:find ?tempid-ref .
-          :in $ ?lookup-ref ?tempid-str
-          :where
-          [?e :rh/lookup-ref ?lookup-ref]
-          [?e :rh/tempids ?tmpid]
-          [?tmpid :rh/tempid-str ?tempid-str]
-          [?tmpid :rh/tempid-ref ?tempid-ref]]
-        (d/db conn)
-        (pr-str lookup-ref)
-        tempid-str)
+   (if-let [tempid-ref (d/q '[:find ?tempid-ref .
+                              :in $ ?lookup-ref ?tempid-str
+                              :where
+                              [?e :rh/lookup-ref ?lookup-ref]
+                              [?e :rh/tempids ?tmpid]
+                              [?tmpid :rh/tempid-str ?tempid-str]
+                              [?tmpid :rh/tempid-ref ?tempid-ref]]
+                            (d/db conn)
+                            (pr-str lookup-ref)
+                            tempid-str)]
+     (do (log/debug "resolved" tempid-str "to" tempid-ref)
+         tempid-ref)
+     (do (log/error "Could not resolve tempid" tempid-str "for" lookup-ref)
+         nil))
    a v])
 
 (defn history-take-tx [history tx]
@@ -64,7 +68,12 @@
         tx-done? (= (inc tx-index) (count txes))
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         new-state (if tx-done? :verify :rewrite-history)
-        tx (->> (concat [[:db/cas db-id :rh/tx-index tx-index (inc tx-index)]
+        tx (->> (concat (->> new-hist-tx
+                             (map second)
+                             (filter string?)
+                             (distinct)
+                             (mapv (fn [tempid] {:db/id tempid})))
+                        [[:db/cas db-id :rh/tx-index tx-index (inc tx-index)]
                          {:db/id db-id :rh/tempids save-tempids}]
                         (if tx-done?
                           [[:db/cas db-id :rh/state :rewrite-history new-state]]
@@ -74,6 +83,12 @@
     (log/debug "expected-history:" expected-history)
     (if (= expected-history actual-history)
       (do
+        (log/info "tx:\n" (with-out-str (binding [*print-length* 120]
+                                          (pprint/pprint tx))))
+        (log/info "tempids:" (->> new-hist-tx
+                                  (map second)
+                                  (distinct)
+                                  (vec)))
         (log/info "applying transaction" (inc tx-index) "of total" (count txes) "transactions ...")
         (let [res @(d/transact conn tx)]
           (impl/log-state-change new-state lookup-ref)
