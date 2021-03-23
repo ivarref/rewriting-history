@@ -1,6 +1,5 @@
 (ns no.nsd.tx-metadata-test
   (:require [clojure.test :refer :all]
-            [no.nsd.envelope :as envelope]
             [datomic-schema.core]
             [datomic.api :as d]
             [no.nsd.utils :as u]
