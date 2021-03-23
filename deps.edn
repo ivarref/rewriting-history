@@ -4,7 +4,7 @@
 
  :aliases   {:test {:extra-paths ["test"]
                     :extra-deps  {ivarref/datomic-schema               {:mvn/version "0.2.0"}
-                                  lambdaisland/kaocha                  {:mvn/version "1.0.732"}
+                                  lambdaisland/kaocha                  {:mvn/version "1.0.829"}
                                   no.nsd/envelope                      {:mvn/version "0.2.4"}
                                   com.datomic/datomic-pro              {:mvn/version "1.0.6202" :exclusions [org.slf4j/slf4j-nop]}
                                   org.mariadb.jdbc/mariadb-java-client {:mvn/version "2.4.3"}
@@ -13,7 +13,7 @@
                                   rewrite-clj/rewrite-clj              {:mvn/version "0.6.1"}}
                     :jvm-opts    ["-DDISABLE_SPY=true"
                                   "-DTAOENSSO_TIMBRE_MIN_LEVEL_EDN=:warn"]
-                    :main-opts   ["--report" "stderr" "-m" "kaocha.runner" "--no-capture-output"]}
+                    :main-opts   ["--report" "stderr" "-m" "kaocha.runner"]}
 
              :jar    {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
                                                     :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}}
