@@ -25,7 +25,6 @@
                                     [:m/ref :one :ref]])))
 
 (deftest db-prepare-test
-  (u/clear)
   (with-redefs [init/excise-op (fn [eid] [:db/retractEntity eid])]
     (let [conn (u/empty-conn)]
       @(d/transact conn impl/schema)
@@ -44,8 +43,8 @@
               [3 :m/ref 2 2 true]]))
       (rh/schedule-replacement! conn [:m/id "id"] "" "")
       (replay/process-job-step! conn [:m/id "id"])
-      (u/break)
       (replay/process-until-state conn [:m/id "id"] :rewrite-history)
+      #_(replay/process-until-state conn [:m/id "id"] :done)
 
       #_(is (= (impl/get-new-history conn [:m/id "id"])
                [[1 :tx/txInstant #inst "1973" 1 true]
