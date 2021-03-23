@@ -9,28 +9,10 @@
   (->> tx
        (map second)
        (filter string?)
+       (remove #(= "datomic.tx" %))
        (map (fn [tempid] {:rh/tempid-str tempid
                           :rh/tempid-ref tempid}))
        (into #{})))
-
-(defn resolve-tempid [conn lookup-ref [o [tempid tempid-str] a v]]
-  (assert (and (string? tempid-str) (= :tempid tempid)))
-  [o
-   (if-let [tempid-ref (d/q '[:find ?tempid-ref .
-                              :in $ ?lookup-ref ?tempid-str
-                              :where
-                              [?e :rh/lookup-ref ?lookup-ref]
-                              [?e :rh/tempids ?tmpid]
-                              [?tmpid :rh/tempid-str ?tempid-str]
-                              [?tmpid :rh/tempid-ref ?tempid-ref]]
-                            (d/db conn)
-                            (pr-str lookup-ref)
-                            tempid-str)]
-     (do (log/debug "resolved" tempid-str "to" tempid-ref)
-         tempid-ref)
-     (do (log/error "Could not resolve tempid" tempid-str "for" lookup-ref)
-         nil))
-   a v])
 
 (defn tx-max [history tx-index]
   (->> history
@@ -44,6 +26,21 @@
   (->> history
        (take-while (fn [[e a v t o]] (<= t tmax)))
        (vec)))
+
+(defn get-tempids [conn lookup-ref]
+  (->> (d/q '[:find ?s ?r
+              :in $ ?ref
+              :where
+              [?e :rh/lookup-ref ?ref]
+              [?e :rh/tempids ?tid]
+              [?tid :rh/tempid-str ?s]
+              [?tid :rh/tempid-ref ?r]]
+            (impl/to-db conn)
+            (pr-str lookup-ref))
+       (into {})))
+
+(comment
+  (get-tempids c [:m/id "id"]))
 
 (defn rewrite-history-get-tx [conn lookup-ref]
   (assert (vector? lookup-ref))
@@ -61,11 +58,9 @@
                            (history-take-tx new-history)
                            (impl/simplify-eavtos conn lookup-ref))
         actual-history (impl/pull-flat-history-simple conn lookup-ref)
+        tempids (get-tempids conn lookup-ref)
         new-hist-tx (->> (nth txes tx-index)
-                         (mapv (fn [[o e a v :as oeav]]
-                                 (if (vector? e)
-                                   (resolve-tempid conn lookup-ref oeav)
-                                   oeav))))
+                         (mapv (partial impl/resolve-tempid tempids)))
         save-tempids (conj (save-tempids-metadata new-hist-tx)
                            {:rh/tempid-str (str (tx-max new-history (inc tx-index)))
                             :rh/tempid-ref "datomic.tx"})
@@ -87,6 +82,7 @@
     {:tx tx
      :tx-index tx-index
      :new-history new-history
+     :new-hist-tx new-hist-tx
      :new-state new-state
      :expected-history expected-history
      :actual-history actual-history}))
