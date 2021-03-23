@@ -1,4 +1,4 @@
-(ns no.nsd.datomic-generate-fn
+(ns no.nsd.dbfns.datomic-generate-fn
   (:require [clojure.test :refer :all]
             [datomic.api]
             [clojure.string :as str]

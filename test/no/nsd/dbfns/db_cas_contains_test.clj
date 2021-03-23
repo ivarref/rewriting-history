@@ -1,6 +1,6 @@
-(ns no.nsd.db-cas-contains-test
+(ns no.nsd.dbfns.db-cas-contains-test
   (:require [clojure.test :refer :all]
-            [no.nsd.datomic-generate-fn :as genfn]
+            [no.nsd.dbfns.datomic-generate-fn :as genfn]
             [no.nsd.utils :as u]
             [no.nsd.log-init]
             [datomic-schema.core]

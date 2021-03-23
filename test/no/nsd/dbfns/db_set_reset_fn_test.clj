@@ -1,4 +1,4 @@
-(ns no.nsd.db-set-reset-fn-test
+(ns no.nsd.dbfns.db-set-reset-fn-test
   (:require [clojure.test :refer :all]
             [no.nsd.log-init]
             [no.nsd.shorter-stacktrace]
@@ -6,7 +6,7 @@
             [datomic.api :as d]
             [no.nsd.utils :as u]
             [clojure.tools.logging :as log]
-            [no.nsd.datomic-generate-fn :as genfn]
+            [no.nsd.dbfns.datomic-generate-fn :as genfn]
             [no.nsd.rewriting-history.dbfns.set-reset :as s])
   (:import (java.util.concurrent ExecutionException)))
 

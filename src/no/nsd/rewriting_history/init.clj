@@ -3,6 +3,9 @@
             [clojure.tools.logging :as log]
             [no.nsd.rewriting-history.impl :as impl]))
 
+(defn excise-op [eid]
+  {:db/excise eid})
+
 (defn job-init! [conn lookup-ref]
   (assert (vector? lookup-ref))
   (let [eids-to-excise (d/q '[:find [?eid ...]
@@ -14,7 +17,7 @@
                             (pr-str lookup-ref))
         tx (->> (concat
                   [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :init :rewrite-history]]
-                  (mapv (fn [eid] {:db/excise eid}) eids-to-excise))
+                  (mapv excise-op eids-to-excise))
                 vec)]
     (log/debug "deleting initial eids:" eids-to-excise)
     (log/debug "excising old entities belonging to" lookup-ref "before history rewrite ...")

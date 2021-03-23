@@ -1,6 +1,6 @@
-(ns no.nsd.db-some-retract-fn-test
+(ns no.nsd.dbfns.db-some-retract-fn-test
   (:require [clojure.test :refer :all]
-            [no.nsd.datomic-generate-fn :as genfn]
+            [no.nsd.dbfns.datomic-generate-fn :as genfn]
             [no.nsd.rewriting-history.dbfns.some-retract :as s]
             [no.nsd.utils :as u]
             [no.nsd.shorter-stacktrace]

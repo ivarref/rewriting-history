@@ -1,6 +1,6 @@
-(ns no.nsd.db-set-union-fn-test
+(ns no.nsd.dbfns.db-set-union-fn-test
   (:require [clojure.test :refer :all]
-            [no.nsd.datomic-generate-fn :as genfn]
+            [no.nsd.dbfns.datomic-generate-fn :as genfn]
             [no.nsd.rewriting-history.dbfns.set-union :as s]
             [no.nsd.utils :as u]
             [no.nsd.shorter-stacktrace]
