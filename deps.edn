@@ -1,24 +1,27 @@
-{:deps      {}
+{:deps    {}
 
- :paths     ["src"]
+ :paths   ["src"]
 
- :aliases   {:test {:extra-paths ["test"]
-                    :extra-deps  {ivarref/datomic-schema               {:mvn/version "0.2.0"}
-                                  lambdaisland/kaocha                  {:mvn/version "1.0.829"}
-                                  no.nsd/envelope                      {:mvn/version "0.2.4"}
-                                  com.datomic/datomic-pro              {:mvn/version "1.0.6202" :exclusions [org.slf4j/slf4j-nop]}
-                                  org.mariadb.jdbc/mariadb-java-client {:mvn/version "2.4.3"}
-                                  io.rkn/conformity                    {:mvn/version "0.5.4"}
-                                  vvvvalvalval/scope-capture           {:mvn/version "0.3.2"}
-                                  rewrite-clj/rewrite-clj              {:mvn/version "0.6.1"}}
+ :aliases {:test   {:extra-paths ["test"]
+                    :extra-deps  {ivarref/datomic-schema                  {:mvn/version "0.2.0"}
+                                  lambdaisland/kaocha                     {:mvn/version "1.0.829"}
+                                  com.taoensso/timbre                     {:mvn/version "5.1.2"}
+                                  com.fzakaria/slf4j-timbre               {:mvn/version "0.3.21"}
+                                  org.clojure/tools.logging               {:mvn/version "1.1.0"}
+                                  clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
+                                  com.datomic/datomic-pro                 {:mvn/version "1.0.6202" :exclusions [org.slf4j/slf4j-nop]}
+                                  org.mariadb.jdbc/mariadb-java-client    {:mvn/version "2.4.3"}
+                                  io.rkn/conformity                       {:mvn/version "0.5.4"}
+                                  vvvvalvalval/scope-capture              {:mvn/version "0.3.2"}
+                                  rewrite-clj/rewrite-clj                 {:mvn/version "0.6.1"}}
                     :jvm-opts    ["-DDISABLE_SPY=true"
                                   "-DTAOENSSO_TIMBRE_MIN_LEVEL_EDN=:warn"]
                     :main-opts   ["--report" "stderr" "-m" "kaocha.runner"]}
 
-             :jar    {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
-                                                    :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}}
-                      :main-opts  ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "target/out.jar"]}
+           :jar    {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
+                                                  :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}}
+                    :main-opts  ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "target/out.jar"]}
 
-             :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.3"}}
-                      :main-opts  ["-m" "deps-deploy.deps-deploy" "deploy"
-                                   "target/out.jar" "true"]}}}
+           :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.3"}}
+                    :main-opts  ["-m" "deps-deploy.deps-deploy" "deploy"
+                                 "target/out.jar" "true"]}}}
