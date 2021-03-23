@@ -11,6 +11,11 @@
            (java.util Date UUID)
            (datomic Connection)))
 
+(defn pprint [x]
+  (binding [pprint/*print-right-margin* 120]
+    (pprint/pprint x))
+  x)
+
 (defn year->Date [yr]
   (Date/from
     (-> (LocalDate/parse (str yr "-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))
@@ -28,9 +33,12 @@
       (syncIndex [_ var1] (.syncIndex conn var1))
       (syncSchema [_ var1] (.syncSchema conn var1))
       (syncExcise [_ var1] (.syncExcise conn var1))
-      (transact [_ var1] (.transact conn (conj var1
-                                               {:db/id        "datomic.tx"
-                                                :db/txInstant (year->Date (swap! yr inc))})))
+      (transact [_ var1]
+        (let [finaltx (conj var1
+                            {:db/id        "datomic.tx"
+                             :db/txInstant (year->Date (swap! yr inc))})]
+          #_(pprint finaltx)
+          (.transact conn finaltx)))
       (transactAsync [_ var1] (.transactAsync conn (conj var1
                                                          {:db/id        "datomic.tx"
                                                           :db/txInstant (year->Date (swap! yr inc))})))
@@ -87,11 +95,6 @@
     (d/create-database uri)
     (conn-with-fake-tx-time-2 (d/connect uri))))
 
-(defn pprint [x]
-  (binding [pprint/*print-right-margin* 80]
-    (pprint/pprint x))
-  x)
-
 (defn empty-stage-conn
   ([db-name]
    (assert (string? db-name))
@@ -107,7 +110,7 @@
    (empty-stage-conn "ivr-test")))
 
 (defn break []
-  (println (str/join "*" (repeat 60 ""))))
+  (log/info (str/join "*" (repeat 60 ""))))
 
 (defn clear []
   (.print System/out "\033[H\033[2J")

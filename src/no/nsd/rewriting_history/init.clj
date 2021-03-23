@@ -1,7 +1,8 @@
 (ns no.nsd.rewriting-history.init
   (:require [datomic.api :as d]
             [clojure.tools.logging :as log]
-            [no.nsd.rewriting-history.impl :as impl]))
+            [no.nsd.rewriting-history.impl :as impl]
+            [clojure.pprint :as pprint]))
 
 (defn excise-op [eid]
   {:db/excise eid})
@@ -21,6 +22,7 @@
                 vec)]
     (log/debug "deleting initial eids:" eids-to-excise)
     (log/debug "excising old entities belonging to" lookup-ref "before history rewrite ...")
+    (log/info "tx is:\n" (with-out-str (pprint/pprint tx)))
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after))
       (impl/log-state-change :rewrite-history lookup-ref))))
