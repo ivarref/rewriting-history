@@ -144,7 +144,7 @@
                       v)
                     (get eid-map t)
                     o])))
-      {:original-eids (vec (sort (vec (set/union tx-eids reg-eids))))
+      {:original-eids (vec (sort (vec reg-eids)))
        :lookup-ref    lookup-ref})))
 
 (defn pull-flat-history-simple [db lookup-ref]
