@@ -54,15 +54,15 @@
 
     #_@(d/transact conn [[:db/add "jalla" :db/id "datomic.tx"]])
 
-    (is (= (u/pprint (impl/history->transactions
-                       conn
-                       (impl/get-new-history conn [:m/id "id"])))
-           #_[[[:db/add "datomic.tx:1" :tx/txInstant #inst "1973"]
-               [:db/add "3" :m/id "id"]
-               [:db/add "3" :m/ref "datomic.tx"]]
-              [[:db/add "datomic.tx:2" :tx/txInstant #inst "1974"]
-               [:db/retract [:tempid "3"] :m/ref [:tempid "datomic.tx:1"]]
-               [:db/add [:tempid "3"] :m/ref "datomic.tx"]]]))))
+    #_(is (= (u/pprint (impl/history->transactions
+                         conn
+                         (impl/get-new-history conn [:m/id "id"])))
+             #_[[[:db/add "datomic.tx:1" :tx/txInstant #inst "1973"]
+                 [:db/add "3" :m/id "id"]
+                 [:db/add "3" :m/ref "datomic.tx"]]
+                [[:db/add "datomic.tx:2" :tx/txInstant #inst "1974"]
+                 [:db/retract [:tempid "3"] :m/ref [:tempid "datomic.tx:1"]]
+                 [:db/add [:tempid "3"] :m/ref "datomic.tx"]]]))))
 
 
 
