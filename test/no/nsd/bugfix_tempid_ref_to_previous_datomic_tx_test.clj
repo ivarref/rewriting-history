@@ -12,8 +12,7 @@
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.add-rewrite-job :as add-job]
             [no.nsd.rewriting-history.rewrite :as rewrite]
-            [no.nsd.big-data :as data]
-            [no.nsd.in-mem-excision-conn :as c]))
+            [no.nsd.big-data :as data]))
 
 #_(deftest test-conn
     (let [conn (c/conn)]
