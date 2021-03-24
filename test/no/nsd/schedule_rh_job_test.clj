@@ -1,8 +1,6 @@
 (ns no.nsd.schedule-rh-job-test
   (:require [clojure.test :refer :all]
             [no.nsd.utils :as u]
-            [no.nsd.shorter-stacktrace]
-            [no.nsd.log-init]
             [datomic-schema.core]
             [no.nsd.rewriting-history :as rh]
             [clojure.tools.logging :as log]
@@ -10,8 +8,7 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-init :as schedule]
-            [no.nsd.rewriting-history.init :as init]
-            [taoensso.timbre :as timbre]))
+            [no.nsd.rewriting-history.init :as init]))
 
 (def schema
   (into impl/schema
@@ -30,17 +27,17 @@
 
 (deftest schedule-rh-job-test
   (testing "Verify that the most basic scheduling of string replacement works"
-    (let [conn1 (empty-conn)
+    (let [conn (empty-conn)
           conn2 (empty-conn)]
 
-      @(d/transact conn1 schema)
+      @(d/transact conn schema)
       @(d/transact conn2 schema)
 
-      @(d/transact conn1 [{:m/id "id" :m/info "original-data"}])
-      @(d/transact conn1 [{:m/id "id" :m/info "bad-data"}])
-      @(d/transact conn1 [{:m/id "id" :m/info "good-data"}])
+      @(d/transact conn [{:m/id "id" :m/info "original-data"}])
+      @(d/transact conn [{:m/id "id" :m/info "bad-data"}])
+      @(d/transact conn [{:m/id "id" :m/info "good-data"}])
 
-      (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
+      (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
         (is (= org-history
                [[1 :tx/txInstant #inst "1972" 1 true]
                 [4 :m/id "id" 1 true]
@@ -54,39 +51,33 @@
 
         (is (= [{:match       "bad-data"
                  :replacement "corrected-data"}]
-               (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")))
+               (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
 
         ; duplicates are ignored
         (is (= [{:match       "bad-data"
                  :replacement "corrected-data"}]
-               (rh/schedule-replacement! conn1 [:m/id "id"] "bad-data" "corrected-data")))
+               (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
 
         ; schedule something by mistake
         (is (= [{:match       "a"
                  :replacement "oops"}
                 {:match       "bad-data"
                  :replacement "corrected-data"}]
-               (rh/schedule-replacement! conn1 [:m/id "id"] "a" "oops")))
+               (rh/schedule-replacement! conn [:m/id "id"] "a" "oops")))
 
         ; abort the mistake
         (is (= [{:match       "bad-data"
                  :replacement "corrected-data"}]
-               (rh/cancel-replacement! conn1 [:m/id "id"] "a" "oops")))
+               (rh/cancel-replacement! conn [:m/id "id"] "a" "oops")))
 
         ; Prepare for re-write
-        (schedule/process-single-schedule! conn1 [:m/id "id"])
-        (init/job-init! conn1 [:m/id "id"])
+        (schedule/process-single-schedule! conn [:m/id "id"])
+        (init/job-init! conn [:m/id "id"])
 
-        ; In memory datomic does not have excision, so we need to fake
-        ; it using a different connection:
-        (impl/apply-txes! conn2
-                          (->> (rh/pull-flat-history conn1 [:rh/lookup-ref (pr-str [:m/id "id"])])
-                               (impl/history->transactions conn1)))
-        ; conn2 now only holds the rewrite data. That is the original data has been "excised".
+        ; in memory database now uses retractEntity for excision
+        (replay/process-until-state conn [:m/id "id"] :done)
 
-        (replay/process-until-state conn2 [:m/id "id"] :done)
-
-        (is (= (rh/pull-flat-history conn2 [:m/id "id"])
+        (is (= (rh/pull-flat-history conn [:m/id "id"])
                [[1 :tx/txInstant #inst "1972" 1 true]
                 [4 :m/id "id" 1 true]
                 [4 :m/info "original-data" 1 true]
