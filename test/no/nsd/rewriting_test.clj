@@ -1,29 +1,28 @@
 (ns no.nsd.rewriting-test
   (:require [clojure.test :refer :all]
             [datomic.api :as d]
-            [datomic-schema.core :as ds]
+            [datomic-schema.core]
             [no.nsd.utils :as u]
             [no.nsd.rewriting-history.impl :as impl]
-            [no.nsd.log-init]
-            [no.nsd.shorter-stacktrace]
             [clojure.pprint :as pprint]
             [no.nsd.rewriting-history :as rh]))
 
 (deftest basic-history-pull-test
-  (let [schema #d/schema[[:m/id :one :string :id]
-                         [:m/info :one :string]
-                         [:m/address :one :ref :component]
-                         [:m/vedlegg :many :ref :component]
-                         [:m/type :one :ref]
-                         [:type/standard :enum]
-                         [:type/special :enum]
-                         [:vedlegg/id :one :string :id]
-                         [:vedlegg/info :one :string]
-                         [:addr/country :one :ref :component]
-                         [:country/name :one :string :id]
-                         [:country/region :one :string]
-                         [:tx/txInstant :one :instant]]
-        conn (u/empty-conn schema)]
+  (let [conn (u/empty-conn)]
+    @(d/transact conn (reduce into []
+                              [#d/schema[[:m/id :one :string :id]
+                                         [:m/info :one :string]
+                                         [:m/address :one :ref :component]
+                                         [:m/vedlegg :many :ref :component]
+                                         [:m/type :one :ref]
+                                         [:type/standard :enum]
+                                         [:type/special :enum]
+                                         [:vedlegg/id :one :string :id]
+                                         [:vedlegg/info :one :string]
+                                         [:addr/country :one :ref :component]
+                                         [:country/name :one :string :id]
+                                         [:country/region :one :string]]
+                               impl/schema]))
 
     @(d/transact conn [{:m/id      "id-1"
                         :m/info    "hello world"
@@ -79,9 +78,5 @@
               [8 :country/region "Europe" 3 true]
               [9 :addr/country 8 3 true]]
              fh))
-      (let [txes (impl/history->transactions conn fh)
-            conn (u/empty-conn schema)]
-        (impl/apply-txes! conn txes)
-        (is (= fh (rh/pull-flat-history conn [:m/id "id-1"])))))))
-
-
+      (u/rewrite-noop! conn [:m/id "id-1"])
+      (is (= fh (rh/pull-flat-history conn [:m/id "id-1"]))))))
