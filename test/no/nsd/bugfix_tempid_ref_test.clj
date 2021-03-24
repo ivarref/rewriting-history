@@ -25,46 +25,45 @@
                                     [:m/ref :one :ref]])))
 
 (deftest db-prepare-test
-  (with-redefs [init/excise-op (fn [eid] [:db/retractEntity eid])]
-    (let [conn (u/empty-conn)]
-      @(d/transact conn impl/schema)
-      @(d/transact conn #d/schema[[:m/id :one :string :id]
-                                  [:m/ref :one :ref]])
+  (let [conn (u/empty-conn)]
+    @(d/transact conn impl/schema)
+    @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                [:m/ref :one :ref]])
 
-      @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
-      @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
+    @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
+    @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
 
-      (is (= (rh/pull-flat-history conn [:m/id "id"])
+    (is (= (rh/pull-flat-history conn [:m/id "id"])
+           [[1 :tx/txInstant #inst "1973" 1 true]
+            [3 :m/id "id" 1 true]
+            [3 :m/ref 1 1 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
+            [3 :m/ref 1 2 false]
+            [3 :m/ref 2 2 true]]))
+    (rh/schedule-replacement! conn [:m/id "id"] "" "")
+    (replay/process-job-step! conn [:m/id "id"])
+    (replay/process-until-state conn [:m/id "id"] :rewrite-history)
+    #_(replay/process-until-state conn [:m/id "id"] :done)
+
+    #_(is (= (impl/get-new-history conn [:m/id "id"])
              [[1 :tx/txInstant #inst "1973" 1 true]
               [3 :m/id "id" 1 true]
               [3 :m/ref 1 1 true]
               [2 :tx/txInstant #inst "1974" 2 true]
               [3 :m/ref 1 2 false]
               [3 :m/ref 2 2 true]]))
-      (rh/schedule-replacement! conn [:m/id "id"] "" "")
-      (replay/process-job-step! conn [:m/id "id"])
-      (replay/process-until-state conn [:m/id "id"] :rewrite-history)
-      #_(replay/process-until-state conn [:m/id "id"] :done)
 
-      #_(is (= (impl/get-new-history conn [:m/id "id"])
-               [[1 :tx/txInstant #inst "1973" 1 true]
-                [3 :m/id "id" 1 true]
-                [3 :m/ref 1 1 true]
-                [2 :tx/txInstant #inst "1974" 2 true]
-                [3 :m/ref 1 2 false]
-                [3 :m/ref 2 2 true]]))
+    #_@(d/transact conn [[:db/add "jalla" :db/id "datomic.tx"]])
 
-      #_@(d/transact conn [[:db/add "jalla" :db/id "datomic.tx"]])
-
-      #_(is (= (u/pprint (impl/history->transactions
-                           conn
-                           (impl/get-new-history conn [:m/id "id"])))
-               #_[[[:db/add "datomic.tx:1" :tx/txInstant #inst "1973"]
-                   [:db/add "3" :m/id "id"]
-                   [:db/add "3" :m/ref "datomic.tx"]]
-                  [[:db/add "datomic.tx:2" :tx/txInstant #inst "1974"]
-                   [:db/retract [:tempid "3"] :m/ref [:tempid "datomic.tx:1"]]
-                   [:db/add [:tempid "3"] :m/ref "datomic.tx"]]])))))
+    #_(is (= (u/pprint (impl/history->transactions
+                         conn
+                         (impl/get-new-history conn [:m/id "id"])))
+             #_[[[:db/add "datomic.tx:1" :tx/txInstant #inst "1973"]
+                 [:db/add "3" :m/id "id"]
+                 [:db/add "3" :m/ref "datomic.tx"]]
+                [[:db/add "datomic.tx:2" :tx/txInstant #inst "1974"]
+                 [:db/retract [:tempid "3"] :m/ref [:tempid "datomic.tx:1"]]
+                 [:db/add [:tempid "3"] :m/ref "datomic.tx"]]]))))
 
 
 

@@ -22,6 +22,13 @@
         (.atStartOfDay (ZoneId/of "UTC"))
         (.toInstant))))
 
+(defn transform-excise [tx]
+  (log/info tx)
+  (if (and (map? tx)
+           (= [:db/excise] (vec (keys tx))))
+    [:db/retractEntity (:db/excise tx)]
+    tx))
+
 (defn conn-with-fake-tx-time [conn]
   (let [yr (atom 1970)]
     (reify Connection
@@ -34,14 +41,14 @@
       (syncSchema [_ var1] (.syncSchema conn var1))
       (syncExcise [_ var1] (.syncExcise conn var1))
       (transact [_ var1]
-        (let [finaltx (conj var1
+        (let [finaltx (conj (mapv transform-excise var1)
                             {:db/id        "datomic.tx"
                              :db/txInstant (year->Date (swap! yr inc))})]
-          #_(pprint finaltx)
           (.transact conn finaltx)))
-      (transactAsync [_ var1] (.transactAsync conn (conj var1
-                                                         {:db/id        "datomic.tx"
-                                                          :db/txInstant (year->Date (swap! yr inc))})))
+      (transactAsync [_ var1]
+        (.transactAsync conn (conj (mapv transform-excise var1)
+                                   {:db/id        "datomic.tx"
+                                    :db/txInstant (year->Date (swap! yr inc))})))
       (txReportQueue [_] (.txReportQueue conn))
       (removeTxReportQueue [_] (.removeTxReportQueue conn))
       (gcStorage [_ var1] (.gcStorage conn var1))
