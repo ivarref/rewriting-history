@@ -13,6 +13,7 @@
             [no.nsd.rewriting-history.add-rewrite-job :as add-job]
             [no.nsd.rewriting-history.rewrite :as rewrite]
             [no.nsd.rewriting-history.init :as init]
+            [no.nsd.rewriting-history.tx :as tx]
             [no.nsd.big-data :as data]))
 
 #_(deftest test-conn
@@ -43,6 +44,24 @@
     (rh/schedule-replacement! conn [:m/id "id"] "" "")
     (replay/process-job-step! conn [:m/id "id"])
     (replay/process-until-state conn [:m/id "id"] :rewrite-history)
+    (is (= (tx/generate-tx conn
+                           [:m/id "id"]
+                           (impl/get-new-history conn [:m/id "id"]))
+           [[[:db/add "datomic.tx" :tx/txInstant #inst "1973"]
+             [:db/add "3" :m/id "id"]
+             [:db/add "3" :m/ref "datomic.tx"]
+             [:set/union
+              [:rh/lookup-ref "[:m/id \"id\"]"]
+              :rh/tempids
+              #{#:rh{:tempid-str "1", :tempid-ref "datomic.tx"}
+                #:rh{:tempid-str "3", :tempid-ref "3"}}]]
+            [[:db/add "datomic.tx" :tx/txInstant #inst "1974"]
+             [:db/retract [:tempid "3"] :m/ref [:tempid "1"]]
+             [:db/add [:tempid "3"] :m/ref "datomic.tx"]
+             [:set/union [:rh/lookup-ref "[:m/id \"id\"]"]
+              :rh/tempids #{#:rh{:tempid-str "2" :tempid-ref "datomic.tx"}}]]]))
+
+
     #_(replay/process-until-state conn [:m/id "id"] :done)
 
     #_(is (= (impl/get-new-history conn [:m/id "id"])
