@@ -1,4 +1,4 @@
-(ns no.nsd.bugfix-tempid-ref-to-previous-datomic-tx-test
+(ns no.nsd.bugfix-tempid-ref-test
   (:require [clojure.test :refer :all]
             [no.nsd.utils :as u]
             [no.nsd.log-init]
