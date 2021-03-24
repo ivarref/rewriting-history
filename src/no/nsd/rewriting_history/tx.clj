@@ -5,28 +5,6 @@
 
 ; Generate transactions from a given history
 
-(defn save-tempids-metadata [tx]
-  (->> tx
-       (map second)
-       (filter string?)
-       (remove #(= "datomic.tx" %))
-       (map (fn [tempid] {:rh/tempid-str tempid
-                          :rh/tempid-ref tempid}))
-       (into #{})))
-
-(defn tx-max [history tx-index]
-  (->> history
-       (mapv (fn [[e a v t o]] t))
-       (distinct)
-       (sort)
-       (take tx-index)
-       (last)))
-
-(defn history-take-tx [history tmax]
-  (->> history
-       (take-while (fn [[e a v t o]] (<= t tmax)))
-       (vec)))
-
 (defn eavto->oeav-tx
   [db prev-tempids [e a v t o :as eavto]]
   (let [op (if o :db/add :db/retract)
@@ -35,7 +13,7 @@
                      "datomic.tx"
 
                      (contains? prev-tempids (str e))
-                     [:tempid (str e)]
+                     (with-meta [:tempid (str e)] {:rewrite true})
 
                      :else
                      (str e))
@@ -47,16 +25,14 @@
                     "datomic.tx"
 
                     (contains? prev-tempids (str v))
-                    [:tempid (str v)]
+                    (with-meta [:tempid (str v)] {:rewrite true})
 
                     :else
-                    (do (log/info "could not find tempid" v)
-                        (log/info "eavto" eavto)
-                        (str v)))]
+                    (str v))]
     [op ent-id a value]))
 
 (defn eavtos->transaction
-  [db lookup-ref prev-tempids eavtos]
+  [db lookup-ref tx-count prev-tempids [tx-index eavtos]]
   (let [p-tempids @prev-tempids
         self-tempids (->> eavtos
                           (map first)
@@ -71,23 +47,25 @@
                                                    (if (= e t)
                                                      "datomic.tx"
                                                      (str e)))}))
-                         (into #{}))]
-
+                         (into #{}))
+        db-id [:rh/lookup-ref (pr-str lookup-ref)]
+        tx-done? (= (inc tx-index) tx-count)]
     (swap! prev-tempids set/union self-tempids)
-    (conj (mapv (partial eavto->oeav-tx db p-tempids) eavtos)
-          [:set/union [:rh/lookup-ref (pr-str lookup-ref)] :rh/tempids new-tempids])))
+    (reduce into
+            []
+            [(when-not tx-done?
+               [[:db/cas db-id :rh/tx-index tx-index (inc tx-index)]])
+             (mapv (partial eavto->oeav-tx db p-tempids) eavtos)
+             [[:set/union db-id :rh/tempids new-tempids]]
+             (if tx-done?
+               [[:db/cas db-id :rh/state :rewrite-history :verify]]
+               [[:cas/contains db-id :rh/state #{:rewrite-history} :rewrite-history]])])))
 
 (defn generate-tx
-  "history->transactions creates transactions based on eavtos and a database.
-
-  Returns a vector of OEAVs.
-
-  It is only dependent on the database as far as looking up schema definitions,
-  thus it does not matter if this function is called before or after initial excision."
   [db lookup-ref eavtos]
   (assert (vector? lookup-ref))
   (let [db (impl/to-db db)
         txes (partition-by impl/get-t eavtos)
         tempids (atom {})]
-    (mapv (partial eavtos->transaction db lookup-ref tempids) txes)))
-
+    (mapv (partial eavtos->transaction db lookup-ref (count txes) tempids)
+          (map-indexed vector txes))))
