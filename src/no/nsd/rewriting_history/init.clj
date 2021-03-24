@@ -22,7 +22,7 @@
                 vec)]
     (log/debug "deleting initial eids:" eids-to-excise)
     (log/debug "excising old entities belonging to" lookup-ref "before history rewrite ...")
-    (log/info "tx is:\n" (with-out-str (pprint/pprint tx)))
+    (log/debug "tx is:\n" (with-out-str (pprint/pprint tx)))
     (let [{:keys [db-after]} @(d/transact conn tx)]
       @(d/sync-excise conn (d/basis-t db-after))
       (impl/log-state-change :rewrite-history lookup-ref))))

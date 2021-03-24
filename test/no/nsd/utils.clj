@@ -23,7 +23,6 @@
         (.toInstant))))
 
 (defn transform-excise [tx]
-  (log/info tx)
   (if (and (map? tx)
            (= [:db/excise] (vec (keys tx))))
     [:db/retractEntity (:db/excise tx)]
