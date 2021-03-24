@@ -1,12 +1,9 @@
 (ns no.nsd.component-attribute-test
   (:require [clojure.test :refer :all]
-            [datomic-schema.core]
             [no.nsd.utils :as u]
-            [no.nsd.log-init]
+            [datomic-schema.core]
             [datomic.api :as d]
-            [no.nsd.rewriting-history :as rh]
-            [no.nsd.shorter-stacktrace]
-            [no.nsd.rewriting-history.impl :as impl]))
+            [no.nsd.rewriting-history :as rh]))
 
 (deftest component-attribute-test
   (testing "Verify component attribute gets new entity id if we do not specify :db/id"

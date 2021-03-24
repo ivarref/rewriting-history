@@ -6,6 +6,8 @@
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [clojure.test :as test]
+            [no.nsd.log-init]
+            [no.nsd.shorter-stacktrace]
             [no.nsd.rewriting-history :as rh])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
