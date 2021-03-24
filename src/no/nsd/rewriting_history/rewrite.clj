@@ -3,8 +3,10 @@
             [datomic.api :as d]
             [clojure.tools.logging :as log]
             [no.nsd.rewriting-history.tx :as tx]
-            [clojure.walk :as walk])
-  (:import (datomic Connection)))
+            [clojure.walk :as walk]
+            [clojure.pprint :as pprint])
+  (:import (datomic Connection)
+           (java.util Date)))
 
 (defn get-tempids [conn lookup-ref]
   (->> (d/q '[:find ?s ?r
@@ -32,6 +34,19 @@
         v))
     tx))
 
+(defn tx-max [history tx-index]
+  (->> history
+       (mapv (fn [[e a v t o]] t))
+       (distinct)
+       (sort)
+       (take tx-index)
+       (last)))
+
+(defn history-take-tx [history tmax]
+  (->> history
+       (take-while (fn [[e a v t o]] (<= t tmax)))
+       (vec)))
+
 (defn rewrite-history! [conn lookup-ref]
   (assert (vector? lookup-ref))
   (assert (instance? Connection conn))
@@ -45,6 +60,20 @@
         history (impl/get-new-history conn lookup-ref)
         txes (tx/generate-tx conn lookup-ref history)
         tx (nth txes tx-index)
-        tx-resolved (resolve-tempids tx (get-tempids conn lookup-ref))]
+        tx-resolved (resolve-tempids tx (get-tempids conn lookup-ref))
+        expected-history (some->>
+                           (tx-max history tx-index)
+                           (history-take-tx history)
+                           (impl/simplify-eavtos conn lookup-ref))
+        actual-history (impl/pull-flat-history-simple conn lookup-ref)]
     (log/info "rewrite history tx" (inc tx-index) "of total" (count txes) "transactions ...")
-    @(d/transact conn tx-resolved)))
+    (if (= expected-history actual-history)
+      @(d/transact conn tx-resolved)
+      (do
+        (log/error "expected history differs from actual history so far:")
+        (log/error "expected history:\n" (with-out-str (pprint/pprint expected-history)))
+        (log/error "actual history:" (with-out-str (pprint/pprint actual-history)))
+        @(d/transact conn [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :rewrite-history :error]
+                           {:db/id [:rh/lookup-ref (pr-str lookup-ref)] :rh/error (Date.)}])
+        (impl/log-state-change :error lookup-ref)
+        {:expected-history (history-take-tx history tx-index)}))))
