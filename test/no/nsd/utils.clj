@@ -56,6 +56,41 @@
       (gcStorage [_ var1] (.gcStorage conn var1))
       (release [_] (.release conn)))))
 
+(defn days->Date [days]
+  (Date/from
+    (-> (LocalDate/parse (str"1970-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))
+        (.atStartOfDay (ZoneId/of "UTC"))
+        (.plusDays days)
+        (.toInstant))))
+
+(defn conn-with-fake-tx-time-2 [conn transform-excise?]
+  (let [days (atom 0)]
+    (reify Connection
+      (requestIndex [_] (.requestIndex conn))
+      (db [_] (.db conn))
+      (log [_] (.log conn))
+      (sync [_] (.sync conn))
+      (sync [_ var1] (.sync conn var1))
+      (syncIndex [_ var1] (.syncIndex conn var1))
+      (syncSchema [_ var1] (.syncSchema conn var1))
+      (syncExcise [_ var1] (.syncExcise conn var1))
+      (transact [_ var1] (.transact conn (conj (mapv (if transform-excise? transform-excise identity) var1)
+                                               {:db/id        "datomic.tx"
+                                                :db/txInstant (days->Date (swap! days inc))})))
+      (transactAsync [_ var1] (.transactAsync conn (conj (mapv (if transform-excise? transform-excise identity) var1)
+                                                         {:db/id        "datomic.tx"
+                                                          :db/txInstant (days->Date (swap! days inc))})))
+      (txReportQueue [_] (.txReportQueue conn))
+      (removeTxReportQueue [_] (.removeTxReportQueue conn))
+      (gcStorage [_ var1] (.gcStorage conn var1))
+      (release [_] (.release conn)))))
+
+(defn empty-conn-days-txtime []
+  (let [uri (str "datomic:mem://hello-world-" (UUID/randomUUID))]
+    (d/delete-database uri)
+    (d/create-database uri)
+    (conn-with-fake-tx-time-2 (d/connect uri) true)))
+
 (defn empty-conn
   ([]
    (let [uri (str "datomic:mem://hello-world-" (UUID/randomUUID))]
