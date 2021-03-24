@@ -29,7 +29,7 @@
     [:db/retractEntity (:db/excise tx)]
     tx))
 
-(defn conn-with-fake-tx-time [conn]
+(defn conn-with-fake-tx-time [conn transform-excise?]
   (let [yr (atom 1970)]
     (reify Connection
       (requestIndex [_] (.requestIndex conn))
@@ -41,12 +41,12 @@
       (syncSchema [_ var1] (.syncSchema conn var1))
       (syncExcise [_ var1] (.syncExcise conn var1))
       (transact [_ var1]
-        (let [finaltx (conj (mapv transform-excise var1)
+        (let [finaltx (conj (mapv (if transform-excise? transform-excise identity) var1)
                             {:db/id        "datomic.tx"
                              :db/txInstant (year->Date (swap! yr inc))})]
           (.transact conn finaltx)))
       (transactAsync [_ var1]
-        (.transactAsync conn (conj (mapv transform-excise var1)
+        (.transactAsync conn (conj (mapv (if transform-excise? transform-excise identity) var1)
                                    {:db/id        "datomic.tx"
                                     :db/txInstant (year->Date (swap! yr inc))})))
       (txReportQueue [_] (.txReportQueue conn))
@@ -54,14 +54,12 @@
       (gcStorage [_ var1] (.gcStorage conn var1))
       (release [_] (.release conn)))))
 
-(defn empty-conn-for-uri [uri]
-  (d/delete-database uri)
-  (d/create-database uri)
-  (conn-with-fake-tx-time (d/connect uri)))
-
 (defn empty-conn
   ([]
-   (empty-conn-for-uri (str "datomic:mem://hello-world-" (UUID/randomUUID))))
+   (let [uri (str "datomic:mem://hello-world-" (UUID/randomUUID))]
+     (d/delete-database uri)
+     (d/create-database uri)
+     (conn-with-fake-tx-time (d/connect uri) true)))
   ([schema]
    (let [conn (empty-conn)]
      @(d/transact conn schema)
@@ -77,7 +75,7 @@
        (let [uri (str "datomic:sql://" db-name "?" jdbc-uri)]
          (d/delete-database uri)
          (d/create-database uri)
-         (conn-with-fake-tx-time (d/connect uri))))))
+         (conn-with-fake-tx-time (d/connect uri) false)))))
   ([]
    (empty-stage-conn "ivr-test")))
 
