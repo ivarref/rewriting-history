@@ -61,3 +61,30 @@
             [2 :tx/txInstant #inst "1974" 2 true]
             [3 :m/ref 1 2 false]
             [3 :m/ref 2 2 true]]))))
+
+(deftest loop-test
+  (let [conn (u/empty-conn)]
+    @(d/transact conn impl/schema)
+    @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                [:m/ref :one :ref]])
+
+    @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
+    @(d/transact conn [{:m/id "id" :m/ref "datomic.tx"}])
+
+    (is (= (rh/pull-flat-history conn [:m/id "id"])
+           [[1 :tx/txInstant #inst "1973" 1 true]
+            [3 :m/id "id" 1 true]
+            [3 :m/ref 1 1 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
+            [3 :m/ref 1 2 false]
+            [3 :m/ref 2 2 true]]))
+    (rh/schedule-replacement! conn [:m/id "id"] "" "")
+    (replay/process-until-state conn [:m/id "id"] :rewrite-history)
+    (rewrite/rewrite-history-loop! conn [:m/id "id"])
+    (is (= (rh/pull-flat-history conn [:m/id "id"])
+           [[1 :tx/txInstant #inst "1973" 1 true]
+            [3 :m/id "id" 1 true]
+            [3 :m/ref 1 1 true]
+            [2 :tx/txInstant #inst "1974" 2 true]
+            [3 :m/ref 1 2 false]
+            [3 :m/ref 2 2 true]]))))

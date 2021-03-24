@@ -91,7 +91,8 @@
         ; Fake excision
         @(d/transact conn2 [{:rh/lookup-ref (pr-str [:m/id "id"]) :rh/state :rewrite-history}])
 
-        (replay/process-job-step! conn2 [:m/id "id"])
+        (binding [rewrite/*loop* false]
+          (replay/process-job-step! conn2 [:m/id "id"]))
 
         (is (= (rh/pull-flat-history conn2 [:m/id "id"])
                [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
@@ -101,15 +102,11 @@
         @(d/transact conn2 [{:m/id   "id"
                              :m/info "oh no somebody wrote data in the middle of a re-write!"}])
 
-        (let [{:keys [expected-history]}
-              (timbre/with-level
-                :fatal
-                (rewrite/rewrite-history! conn2 [:m/id "id"]))]
-          (is (= expected-history
-                 [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
-                  [4 :m/id "id" 1 true]
-                  [4 :m/info "original-data" 1 true]]))
-          (is (= :error (replay/job-state conn2 [:m/id "id"]))))))))
+        (timbre/with-level
+          :fatal
+          (replay/process-until-state conn2 [:m/id "id"] :error))
+
+        (is (= :error (replay/job-state conn2 [:m/id "id"])))))))
 
 (deftest verify-replay-history-job-test
   (testing "Verify is fine with writes just after last re-write has occurred"

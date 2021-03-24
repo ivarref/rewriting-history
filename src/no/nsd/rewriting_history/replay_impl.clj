@@ -25,7 +25,7 @@
     (case state
       :scheduled (schedule-init/process-single-schedule! conn lookup-ref)
       :init (init/job-init! conn lookup-ref)
-      :rewrite-history (rewrite/rewrite-history! conn lookup-ref)
+      :rewrite-history (rewrite/rewrite-history-loop! conn lookup-ref)
       :verify (verify/verify-history! conn lookup-ref)
       :done (log/info "reached :done state")
       (do

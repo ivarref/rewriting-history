@@ -77,3 +77,28 @@
                            {:db/id [:rh/lookup-ref (pr-str lookup-ref)] :rh/error (Date.)}])
         (impl/log-state-change :error lookup-ref)
         {:expected-history (history-take-tx history tx-index)}))))
+
+(def ^:dynamic *loop* true)
+
+(defn rewrite-history-loop! [conn lookup-ref]
+  (assert (vector? lookup-ref))
+  (assert (instance? Connection conn))
+  (let [tx-index (d/q '[:find ?tx-index .
+                        :in $ ?ref
+                        :where
+                        [?e :rh/lookup-ref ?ref]
+                        [?e :rh/tx-index ?tx-index]]
+                      (d/db conn)
+                      (pr-str lookup-ref))
+        history (impl/get-new-history conn lookup-ref)
+        txes (vec (drop tx-index (tx/generate-tx conn lookup-ref history)))
+        tempids (get-tempids conn lookup-ref)
+        start-time (System/currentTimeMillis)]
+    (loop [[[idx tx] & rest] (map-indexed vector txes)
+           tempids tempids]
+      (let [{:keys [db-after]} @(d/transact conn (resolve-tempids tx tempids))]
+        (when (and (not-empty rest) *loop*)
+          (recur rest (get-tempids db-after lookup-ref)))))
+    (let [spent-time (- (System/currentTimeMillis) start-time)]
+      (log/info "spent" spent-time "ms on reapplying transactions"))
+    (impl/log-state-change :verify lookup-ref)))
