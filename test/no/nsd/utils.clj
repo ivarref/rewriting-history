@@ -5,7 +5,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
-            [clojure.test :as test])
+            [clojure.test :as test]
+            [no.nsd.rewriting-history :as rh])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
            (java.util Date UUID)
@@ -108,3 +109,7 @@
               (when-not v#
                 (log/error "got error message" emsg#))
               v#)))
+
+(defn rewrite-noop! [conn lookup-ref]
+  (rh/schedule-replacement! conn lookup-ref "" "")
+  (rh/process-scheduled! conn))
