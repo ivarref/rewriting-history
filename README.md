@@ -33,22 +33,22 @@ entity and its children to change.
                    #:db{:ident :m/info :cardinality :db.cardinality/one :valueType :db.type/string}])
 
 ; Add initial data
-@(d/transact conn [{:m/id "id" :m/info "original-data"}])
+@(d/transact conn [{:m/id "id" :m/info "initial-data"}])
 
-; Mistakingly add some data that we will want to remove 
+; Mistakingly add sensitive data that we will want to censor 
 @(d/transact conn [{:m/id "id" :m/info "sensitive-data"}])
 
 ; Add more data
 @(d/transact conn [{:m/id "id" :m/info "good-data"}])
 
-; Schedule a correction
+; Schedule a replacement
 (rh/schedule-replacement! conn [:m/id "id"] "sensitive-data" "censored-data")
 
 ; Process scheduled replacements
 (rh/process-scheduled! conn)
 
 ; Verify that the string "sensitive-data" is gone from the history of the database:
-(assert (= #{"original-data" "censored-data" "good-data"}
+(assert (= #{"initial-data" "censored-data" "good-data"}
            (into #{} (d/q '[:find [?v ...]
                             :in $
                             :where
@@ -78,8 +78,17 @@ as she/he likes.
 * :db/idents will not be excised during history rewriting and is thus considered permanent.
 
 ## Limitations
+ 
+* Entity and transactions IDs will be replaced during rewriting of history. 
+  If external systems depend on or worse stores these values, things will break.
 
-Re-playing the transaction history must use several transactions. It's not possible to
-both excise and re-play the entire history in one go. Thus this is a source
-of bugs if ordinary writes happen to the same identity as it is being rewritten.
-It will however be detected at the end of replaying of the history.
+* `db/txInstant` of `datomic.tx` will have new values. 
+Thus using `(d/as-of db #inst"2021-...")` does not make sense.  
+The original value is stored in `tx/txInstant`.
+
+* Potential source of incorrect history:
+  Re-playing the transaction history must use several transactions. It's not possible to
+  both excise and re-play the entire history in one go. Thus this is a source
+  of bugs if ordinary writes happen to the same entity as it is being rewritten.
+  It will however be detected at the end of replaying of the history.
+ 
