@@ -10,7 +10,7 @@ This library can rewrite the history of top level entities.
 A top level entity is an entity that is not referred by any other external entities.
 That is to say: no other entities is dependent on its existence.
 
-## 1 minute example
+## 1-minute example
 
 ```clojure
 (require '[no.nsd.rewriting-history :as rh])
@@ -77,6 +77,13 @@ as she/he likes.
 * Regular and component references is supported.
 
 * :db/idents will not be excised during history rewriting and is thus considered permanent.
+
+## Warning
+
+`rewriting-history` does not, and does not try to, detect whether or not
+the given top level entities are in fact top level entities that
+are independent of everything else. If they are not truly independent,
+you will break your database. Proceed with caution!
 
 ## Limitations and shortcomings
  
