@@ -12,9 +12,54 @@ That is to say: no other entities is dependent on its existence.
 This is important because the rewriting will cause the entity ID of the top level
 entity and its children to change.
 
+## 1 minute example
+
+```clojure
+(require '[no.nsd.rewriting-history :as rh])
+(require '[datomic.api :as d])
+
+; Create a new datomic connection.
+; This needs to be a real database as in memory datomic does not have excision support
+(def conn (let [uri "datomic:sql://rh-demo?REAL_JDBC_URL_HERE"]
+            (d/delete-database uri)
+            (d/create-database uri)
+            (d/connect uri)))
+
+; Init rewriting-history schema
+(rh/init-schema! conn)
+
+; Init demo schema
+@(d/transact conn [#:db{:ident :m/id   :cardinality :db.cardinality/one :valueType :db.type/string :unique :db.unique/identity}
+                   #:db{:ident :m/info :cardinality :db.cardinality/one :valueType :db.type/string}])
+
+; Add initial data
+@(d/transact conn [{:m/id "id" :m/info "original-data"}])
+
+; Mistakingly add some data that we will want to remove 
+@(d/transact conn [{:m/id "id" :m/info "sensitive-data"}])
+
+; Add more data
+@(d/transact conn [{:m/id "id" :m/info "good-data"}])
+
+; Schedule a correction
+(rh/schedule-replacement! conn [:m/id "id"] "sensitive-data" "censored-data")
+
+; Process scheduled replacements
+(rh/process-scheduled! conn)
+
+; Verify that the string "sensitive-data" is gone from the history of the database:
+(assert (= #{"original-data" "censored-data" "good-data"}
+           (into #{} (d/q '[:find [?v ...]
+                            :in $
+                            :where
+                            [?e :m/id "id"]
+                            [?e :m/info ?v]]
+                          (d/history (d/db conn))))))
+```
+
 ## Rationale
 
-Regular Datomic excision does not remove retractions of non-existent entities 
+Regular Datomic excision does not remove retractions of non-existent entities
 that are part of the first transaction in the new history.
 This means that sensitive data can be left in the history database as retractions.
 
@@ -35,5 +80,6 @@ as she/he likes.
 ## Limitations
 
 Re-playing the transaction history must use several transactions. It's not possible to
-both excise and re-play the entire history in one go. Thus this is a potential source
-of bugs.
+both excise and re-play the entire history in one go. Thus this is a source
+of bugs if ordinary writes happen to the same identity as it is being rewritten.
+It will however be detected at the end of replaying of the history.
