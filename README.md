@@ -80,10 +80,10 @@ as she/he likes.
 ## Limitations
  
 * Entity and transactions IDs will be replaced during rewriting of history. 
-  If external systems depend on or worse stores these values, things will break.
+  If external systems directly depend on, or worse stores, these values, things will break.
 
-* `db/txInstant` of `datomic.tx` will have new values. 
-Thus using `(d/as-of db #inst"2021-...")` does not make sense.  
+* `db/txInstant` of `datomic.tx` will have new values.
+Thus using `(d/as-of db #inst"2021-...")` does not make sense.
 The original value is stored in `tx/txInstant`.
 
 * Potential source of incorrect history:
