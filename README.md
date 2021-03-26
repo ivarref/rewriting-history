@@ -2,15 +2,13 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/no.nsd/rewriting-history.svg)](https://clojars.org/no.nsd/rewriting-history)
 
-A library to rewrite Datomic history.
+A library to rewrite Datomic history. On-prem only.
 
 ![Shoe-banging incident](Khruschev_shoe_fake.jpg "Shoe-banging incident")
 
 This library can rewrite the history of top level entities.
 A top level entity is an entity that is not referred by any other external entities.
 That is to say: no other entities is dependent on its existence.
-This is important because the rewriting will cause the entity ID of the top level
-entity and its children to change.
 
 ## 1 minute example
 
@@ -66,6 +64,9 @@ This means that sensitive data can be left in the history database as retraction
 See [rationale_test.clj](test/no/nsd/rationale_test.clj) for a demonstration
 of this problem.
 
+Regular Datomic excision is also fairly coarse-grained, not allowing to make
+tiny edits to the history.
+
 This library aims to solve this problem, and leave the user free to rewrite the history
 as she/he likes.
 
@@ -109,11 +110,7 @@ See [get_else_tx_instant_test.clj](test/no/nsd/get_else_tx_instant_test.clj) for
 
 ### Potential source of incorrect history: Concurrent ordinary writes during history rewriting
 
-You can assert that your entities are in state
-`#{:scheduled :done nil}`. You will need to apply
-this to all of your write transactions.
-
-Another option is to run `rh/process-scheduled!` at a time
+One option is to run `rh/process-scheduled!` at a time
 when ordinary writes is unlikely.
 You may use the [recurring-cup](https://github.com/ivarref/recurring-cup) scheduler 
 like the following:
@@ -132,7 +129,23 @@ like the following:
 
 Disclaimer: I'm the author of `recurring-cup`.
 
+TODO document assert strategy.
+
 ## API
 
 The public API can be found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rewriting_history.clj).
 
+## License
+
+Copyright © 2021 Ivar Refsdal
+
+This program and the accompanying materials are made available under the
+terms of the Eclipse Public License 2.0 which is available at
+http://www.eclipse.org/legal/epl-2.0.
+
+This Source Code may also be made available under the following Secondary
+Licenses when the conditions for such availability set forth in the Eclipse
+Public License, v. 2.0 are satisfied: GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or (at your
+option) any later version, with the GNU Classpath Exception which is available
+at https://www.gnu.org/software/classpath/license.html.
