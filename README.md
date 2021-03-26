@@ -79,8 +79,8 @@ as she/he likes.
 
 ## Limitations and shortcomings
  
-* Entity and transactions IDs will be replaced during rewriting of history. 
-  If external systems directly depend on, or worse stores, these values, things will break.
+* Entity and transaction IDs will be replaced during rewriting of history. 
+  If external systems directly depend on, or worse, store, these values, things will break.
 
 * `db/txInstant` of `datomic.tx` will have new values.
 Thus using `(d/as-of db #inst"<some date>")` does not make sense.
@@ -92,21 +92,29 @@ The original value is stored in `tx/txInstant`.
   of bugs if ordinary writes happen to the same entity as it is being rewritten.
   It will however be detected at the end of replaying of the history.
 
-## Overcoming shortcomings
+## Alleviating the shortcomings
 
 ### db/txInstant
 
 If your datomic find queries uses `db/txInstant`, you will need to update
-them to support `tx/txInstant`. It can be done using `get-else`.
+them to support `tx/txInstant`. If for example your query looks like
+`(d/q '[... [?tx :db/txInstant ?inst]`, it should be updated to:
 
-### Concurrent ordinary writes during history rewriting
+```
+[?tx :db/txInstant ?inst-default]
+[(get-else $ ?tx :tx/txInstant ?inst-default) ?inst]
+```
+
+See [get_else_tx_instant_test.clj](test/no/nsd/get_else_tx_instant_test.clj) for a demonstration.
+
+### Potential source of incorrect history: Concurrent ordinary writes during history rewriting
 
 You can assert that your entities are in state
 `#{:scheduled :done nil}`. You will need to apply
 this to all of your write transactions.
 
 Another option is to run `rh/process-scheduled!` at a time
-when ordinary writes (probably) do not happen.
+when ordinary writes is unlikely.
 You may use the [recurring-cup](https://github.com/ivarref/recurring-cup) scheduler 
 like the following:
 
@@ -122,9 +130,9 @@ like the following:
     (rh/process-scheduled! conn)))
 ```
 
-Disclaimer: I'm also the author of `recurring-cup`.
+Disclaimer: I'm the author of `recurring-cup`.
 
 ## API
 
-The public API is found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rewriting_history.clj).
+The public API can be found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rewriting_history.clj).
 
