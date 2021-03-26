@@ -17,6 +17,7 @@ rm temp1
 for entry in temp*
 do
   perl -pe 's|\QREAL_JDBC_URL_HERE\E|'$(cat ../.stage-url.txt)'|g' $entry > $entry.clj
+  rm $entry
   echo "Running $entry.clj ..."
   clojure -Sdeps '{:deps {no.nsd/rewriting-history             {:mvn/version "'$VERSION'"}
                           com.datomic/datomic-pro              {:mvn/version "1.0.6202"}
@@ -25,4 +26,5 @@ do
   -M \
   -e "$(cat $entry.clj)\n(d/release conn)\n(shutdown-agents)\n(System/exit 0)" || { echo "$entry.clj Failed!"; exit 1; }
   echo "Running $entry.clj ... OK!"
+  rm $entry.clj
 done

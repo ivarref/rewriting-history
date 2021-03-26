@@ -10,3 +10,4 @@ tree.txt
 stage-schema.edn
 *.pom.asc
 rewriting-history*.pom
+temp/
