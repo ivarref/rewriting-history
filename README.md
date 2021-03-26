@@ -77,13 +77,13 @@ as she/he likes.
 
 * :db/idents will not be excised during history rewriting and is thus considered permanent.
 
-## Limitations
+## Limitations and shortcomings
  
 * Entity and transactions IDs will be replaced during rewriting of history. 
   If external systems directly depend on, or worse stores, these values, things will break.
 
 * `db/txInstant` of `datomic.tx` will have new values.
-Thus using `(d/as-of db #inst"2021-...")` does not make sense.
+Thus using `(d/as-of db #inst"<some date>")` does not make sense.
 The original value is stored in `tx/txInstant`.
 
 * Potential source of incorrect history:
@@ -91,4 +91,40 @@ The original value is stored in `tx/txInstant`.
   both excise and re-play the entire history in one go. Thus this is a source
   of bugs if ordinary writes happen to the same entity as it is being rewritten.
   It will however be detected at the end of replaying of the history.
- 
+
+## Overcoming shortcomings
+
+### db/txInstant
+
+If your datomic find queries uses `db/txInstant`, you will need to update
+them to support `tx/txInstant`. It can be done using `get-else`.
+
+### Concurrent ordinary writes during history rewriting
+
+You can assert that your entities are in state
+`#{:scheduled :done nil}`. You will need to apply
+this to all of your write transactions.
+
+Another option is to run `rh/process-scheduled!` at a time
+when ordinary writes (probably) do not happen.
+You may use the [recurring-cup](https://github.com/ivarref/recurring-cup) scheduler 
+like the following:
+
+```clojure
+(require '[ivarref.recurring-cup :as cup])
+(require '[no.nsd.rewriting-history :as rh])
+(def conn "...")
+(cup/start!)
+(cup/schedule!
+  ::rewrite-history
+  (cup/daily {:hour 3 :timezone "Europe/Oslo"})
+  (fn []
+    (rh/process-scheduled! conn)))
+```
+
+Disclaimer: I'm also the author of `recurring-cup`.
+
+## API
+
+The public API is found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rewriting_history.clj).
+

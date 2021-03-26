@@ -20,11 +20,12 @@ do
   rm $entry
   echo "Running $entry.clj ..."
   clojure -Sdeps '{:deps {no.nsd/rewriting-history             {:mvn/version "'$VERSION'"}
+                          ivarref/recurring-cup                {:mvn/version "0.4.52"}
                           com.datomic/datomic-pro              {:mvn/version "1.0.6202"}
                           org.mariadb.jdbc/mariadb-java-client {:mvn/version "2.4.3"}}
                    :mvn/repos {"my.datomic.com" {:url "https://my.datomic.com/repo"}}}'\
   -M \
-  -e "$(cat $entry.clj)\n(d/release conn)\n(shutdown-agents)\n(System/exit 0)" || { echo "$entry.clj Failed!"; exit 1; }
+  -e "(require '[datomic.api :as d]) $(cat $entry.clj)\n\n(shutdown-agents)\n(System/exit 0)" || { echo "$entry.clj Failed!"; exit 1; }
   echo "Running $entry.clj ... OK!"
   rm $entry.clj
 done
