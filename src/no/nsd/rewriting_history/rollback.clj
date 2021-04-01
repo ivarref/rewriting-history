@@ -37,7 +37,7 @@
       (log/info "checking t ... OK")
       (let [new-history (impl/get-org-history (impl/as-of conn t) lookup-ref)]
         (log/info "adding rollback job...")
-        (add-job/add-job! conn lookup-ref #{:ok-rollback :done} :pending-rollback new-history)
+        (add-job/add-job! conn lookup-ref #{:scheduled :ok-rollback :done} :pending-rollback new-history)
         (log/info "adding rollback job... OK!")
         (log/info "replaying history of" lookup-ref "...")
         (replay/process-until-state conn lookup-ref :done)

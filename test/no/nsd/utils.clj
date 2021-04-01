@@ -33,28 +33,30 @@
 
 (defn conn-with-fake-tx-time [conn transform-excise?]
   (let [yr (atom 1970)]
-    (reify Connection
-      (requestIndex [_] (.requestIndex conn))
-      (db [_] (.db conn))
-      (log [_] (.log conn))
-      (sync [_] (.sync conn))
-      (sync [_ var1] (.sync conn var1))
-      (syncIndex [_ var1] (.syncIndex conn var1))
-      (syncSchema [_ var1] (.syncSchema conn var1))
-      (syncExcise [_ var1] (.syncExcise conn var1))
-      (transact [_ var1]
-        (let [finaltx (conj (mapv (if transform-excise? transform-excise identity) var1)
-                            {:db/id        "datomic.tx"
-                             :db/txInstant (year->Date (swap! yr inc))})]
-          (.transact conn finaltx)))
-      (transactAsync [_ var1]
-        (.transactAsync conn (conj (mapv (if transform-excise? transform-excise identity) var1)
-                                   {:db/id        "datomic.tx"
-                                    :db/txInstant (year->Date (swap! yr inc))})))
-      (txReportQueue [_] (.txReportQueue conn))
-      (removeTxReportQueue [_] (.removeTxReportQueue conn))
-      (gcStorage [_ var1] (.gcStorage conn var1))
-      (release [_] (.release conn)))))
+    (with-meta
+      (reify Connection
+        (requestIndex [_] (.requestIndex conn))
+        (db [_] (.db conn))
+        (log [_] (.log conn))
+        (sync [_] (.sync conn))
+        (sync [_ var1] (.sync conn var1))
+        (syncIndex [_ var1] (.syncIndex conn var1))
+        (syncSchema [_ var1] (.syncSchema conn var1))
+        (syncExcise [_ var1] (.syncExcise conn var1))
+        (transact [_ var1]
+          (let [finaltx (conj (mapv (if transform-excise? transform-excise identity) var1)
+                              {:db/id        "datomic.tx"
+                               :db/txInstant (year->Date (swap! yr inc))})]
+            (.transact conn finaltx)))
+        (transactAsync [_ var1]
+          (.transactAsync conn (conj (mapv (if transform-excise? transform-excise identity) var1)
+                                     {:db/id        "datomic.tx"
+                                      :db/txInstant (year->Date (swap! yr inc))})))
+        (txReportQueue [_] (.txReportQueue conn))
+        (removeTxReportQueue [_] (.removeTxReportQueue conn))
+        (gcStorage [_ var1] (.gcStorage conn var1))
+        (release [_] (.release conn)))
+      {:now-fn (fn [] (year->Date (inc @yr)))})))
 
 (defn days->Date [days]
   (Date/from
@@ -149,4 +151,4 @@
 
 (defn rewrite-noop! [conn lookup-ref]
   (rh/schedule-replacement! conn lookup-ref "" "")
-  (rh/process-scheduled! conn))
+  (rh/rewrite-scheduled! conn))

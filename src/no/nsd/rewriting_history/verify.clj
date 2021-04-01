@@ -14,11 +14,14 @@
         ok-replay? (= expected-history current-history)
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         new-state (if ok-replay? :done :error)
+        now-fn (or
+                 (some-> conn meta :now-fn)
+                 (fn [] (Date.)))
         tx (if ok-replay?
              [[:db/cas db-id :rh/state :verify new-state]
-              {:db/id db-id :rh/done (Date.)}]
+              {:db/id db-id :rh/done (now-fn)}]
              [[:db/cas db-id :rh/state :verify new-state]
-              {:db/id db-id :rh/error (Date.)}])]
+              {:db/id db-id :rh/error (now-fn)}])]
     (if ok-replay?
       (do
         @(d/transact conn tx))

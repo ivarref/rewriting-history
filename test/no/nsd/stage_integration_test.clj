@@ -46,7 +46,7 @@
               [4 :m/info "good-data" 3 true]]))
 
       (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")
-      (rh/process-scheduled! conn)
+      (rh/rewrite-scheduled! conn)
 
       (is (= #{"original-data" "corrected-data" "good-data"} (db-values-set conn)))
 

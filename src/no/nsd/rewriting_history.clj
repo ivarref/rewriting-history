@@ -9,22 +9,30 @@
 
 ; public API
 
+(def schema impl/schema)
+
 (defn init-schema! [conn]
   (impl/init-schema! conn))
 
-(defn schedule-replacement! [conn lookup-ref match replacement]
+(defn schedule-replacement!
+  "Schedule a replacement of ^String match with ^String replacement
+  for lookup-ref.
+  This will create or update a rewrite-job that will need to be triggered
+  at a later stage using process-scheduled!"
+  [conn lookup-ref match replacement]
   (schedule/schedule-replacement! conn lookup-ref match replacement))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
+  "Cancel a scheduled replacement for lookup-ref."
   (schedule/cancel-replacement! conn lookup-ref match replacement))
 
 (defn pending-replacements [conn lookup-ref]
   (schedule/pending-replacements (d/db conn) lookup-ref))
 
-(defn process-scheduled! [conn]
+(defn rewrite-scheduled! [conn]
   (replay/process-state! conn :scheduled))
 
-(defn wipe-old-rewrite-jobs! [conn older-than-days]
+(defn excise-old-rewrite-jobs! [conn older-than-days]
   (wipe/wipe-old-rewrite-jobs! conn (Date.) older-than-days))
 
 (defn available-rollback-times [conn lookup-ref]
@@ -35,7 +43,10 @@
 
 ; convenience methods
 
-(defn pull-flat-history [db lookup-ref]
+(defn pull-flat-history
+  "Returns a vector of all the EAVTOs that are reachable from lookup-ref,
+  i.e. the full history of lookup-ref, with normalized values for E and T."
+  [db lookup-ref]
   (impl/pull-flat-history-simple db lookup-ref))
 
 (defn get-org-history [db lookup-ref]

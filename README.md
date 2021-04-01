@@ -43,7 +43,7 @@ That is to say: no other entities is dependent on its existence.
 (rh/schedule-replacement! conn [:m/id "id"] "sensitive-data" "censored-data")
 
 ; Process scheduled replacements
-(rh/process-scheduled! conn)
+(rh/rewrite-scheduled! conn)
 
 ; Verify that the string "sensitive-data" is gone from the history of the database:
 (assert (= #{"initial-data" "censored-data" "good-data"}
@@ -72,11 +72,127 @@ as she/he likes.
 
 ## Features
 
-* Graph / loop structures is supported.
+* Replace a substring with another substring in all historical values. 
+
+* Arbitrary nested structures is supported.
 
 * Regular and component references is supported.
 
 * :db/idents will not be excised during history rewriting and is thus considered permanent.
+
+## Using rewriting-history
+
+A Datomic database is a set of datoms.
+A Datom contains five values:
+
+* E: entity ID
+* A: attribute
+* V: value
+* T: transaction id
+* O: transaction operation, true meaning add and false retract.
+
+Consider the data from the above example:
+
+```clojure
+(def conn ,,,)
+@(d/transact conn [{:m/id "id" :m/info "initial-data"}])
+@(d/transact conn [{:m/id "id" :m/info "sensitive-data"}])
+@(d/transact conn [{:m/id "id" :m/info "good-data"}])
+```
+
+What does the history of `[:m/id "id"]` look like?
+
+```clojure
+(require '[no.nsd.rewriting-history :as rh])
+(rh/pull-flat-history conn [:m/id "id"])
+=>
+[; First transaction:
+ [1 :tx/txInstant #inst"1973-01-01T00:00:00.000-00:00" 1 true]
+ [4 :m/id "id" 1 true]
+ [4 :m/info "initial-data" 1 true]
+ 
+ ; Second transaction:
+ [2 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 2 true]
+ [4 :m/info "initial-data" 2 false]
+ [4 :m/info "sensitive-data" 2 true] ; << sensitive data!
+ 
+ ; Third transaction:
+ [3 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 3 true]
+ [4 :m/info "sensitive-data" 3 false] ; << sensitive data!
+ [4 :m/info "good-data" 3 true]]
+```
+
+`pull-flat-history` returns a vector of EAVTOs with normalized values for E and T.
+
+After scheduling a replacement and processing scheduled jobs, 
+the new history will look like the following:
+
+```clojure
+(rh/schedule-replacement! conn [:m/id "id"] "sensitive" "censored")
+(rh/rewrite-scheduled! conn)
+(rh/pull-flat-history conn [:m/id "id"])
+=>
+[[1 :tx/txInstant #inst"1973-01-01T00:00:00.000-00:00" 1 true]
+ [4 :m/id "id" 1 true]
+ [4 :m/info "initial-data" 1 true]
+ 
+ [2 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 2 true]
+ [4 :m/info "initial-data" 2 false]
+ [4 :m/info "censored-data" 2 true] ; << fixed!
+ 
+ [3 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 3 true]
+ [4 :m/info "censored-data" 3 false] ; << fixed!
+ [4 :m/info "good-data" 3 true]]
+```
+
+`schedule-replacement!` adds a pending replacement of `sensitive`
+with `censored` for lookup-ref `[:m/id "id"]`. 
+`rewrite-scheduled!` triggers actual rewriting of all scheduled jobs.
+
+### Cancelling pending changes
+
+It's possible to cancel pending replacements:
+```clojure
+(rh/schedule-replacement! conn [:m/id "id"] "a" "b")
+=> [{:match "a", :replacement "b"}]
+(rh/cancel-replacement! conn [:m/id "id"] "a" "b")
+=> []
+```
+
+### Rolling back to previous states
+
+rewriting-history stores both the original history and the new history
+in the database before rewriting takes place.
+Thus it is possible to rollback to earlier states as long as that data
+has not been excised:
+
+```clojure
+(rh/available-rollback-times conn [:m/id "id"])
+=> #{#inst"1981-01-01T00:00:00.000-00:00"}
+(rh/rollback! conn [:m/id "id"] #inst"1981")
+(rh/pull-flat-history conn [:m/id "id"])
+=>
+[[1 :tx/txInstant #inst"1973-01-01T00:00:00.000-00:00" 1 true]
+ [4 :m/id "id" 1 true]
+ [4 :m/info "initial-data" 1 true]
+ [2 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 2 true]
+ [4 :m/info "initial-data" 2 false]
+ [4 :m/info "sensitive-data" 2 true]
+ [3 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 3 true]
+ [4 :m/info "sensitive-data" 3 false]
+ [4 :m/info "good-data" 3 true]]
+```
+
+### Cleaning up
+
+It's obviously not good if sensitive data remains in the rewriting job data.
+Here is how to excise old rewrite-jobs that are older than 90 days:
+
+```clojure
+(rh/excise-old-rewrite-jobs! conn 90)
+(rh/available-rollback-times conn [:m/id "id"])
+=> #{}
+```
 
 ## Warning
 
