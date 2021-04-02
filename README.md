@@ -27,8 +27,13 @@ That is to say: no other entities is dependent on its existence.
 (rh/init-schema! conn)
 
 ; Init demo schema
-@(d/transact conn [#:db{:ident :m/id   :cardinality :db.cardinality/one :valueType :db.type/string :unique :db.unique/identity}
-                   #:db{:ident :m/info :cardinality :db.cardinality/one :valueType :db.type/string}])
+@(d/transact conn [#:db{:ident       :m/id   
+                        :cardinality :db.cardinality/one
+                        :valueType   :db.type/string
+                        :unique      :db.unique/identity}
+                   #:db{:ident       :m/info
+                        :cardinality :db.cardinality/one
+                        :valueType   :db.type/string}])
 
 ; Add initial data
 @(d/transact conn [{:m/id "id" :m/info "initial-data"}])
