@@ -59,11 +59,12 @@
     (throw (ex-info "cannot schedule replacement on entity that has failed!"
                     {:lookup-ref lookup-ref})))
   (let [id (pr-str lookup-ref)
-        res (-> @(d/transact conn
-                             [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
-                              [:set/disj [:rh/lookup-ref id] :rh/replace {:rh/match       (pr-str match)
-                                                                          :rh/replacement (pr-str replacement)}]])
-                :db-after
-                (pending-replacements lookup-ref))]
-    (impl/log-state-change :scheduled lookup-ref)
-    res))
+        {:keys [db-after]} @(d/transact
+                              conn
+                              [[:set/disj-if-empty [:rh/lookup-ref id]
+                                :rh/replace {:rh/match       (pr-str match)
+                                             :rh/replacement (pr-str replacement)}
+                                [[:some/retract [:rh/lookup-ref id] :rh/state]]
+                                [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]]]])]
+    (impl/log-state-change (impl/job-state db-after lookup-ref) lookup-ref)
+    (pending-replacements db-after lookup-ref)))

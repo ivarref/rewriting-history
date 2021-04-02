@@ -9,18 +9,8 @@
             [no.nsd.rewriting-history.schedule-init :as schedule-init]
             [clojure.pprint :as pprint]))
 
-(defn job-state [conn lookup-ref]
-  (assert (vector? lookup-ref))
-  (d/q '[:find ?state .
-         :in $ ?lookup-ref
-         :where
-         [?e :rh/lookup-ref ?lookup-ref]
-         [?e :rh/state ?state]]
-       (d/db conn)
-       (pr-str lookup-ref)))
-
 (defn process-job-step! [conn lookup-ref]
-  (let [state (job-state conn lookup-ref)]
+  (let [state (impl/job-state conn lookup-ref)]
     (log/debug "processing state" state "for lookup-ref" lookup-ref "...")
     (case state
       :scheduled (schedule-init/process-single-schedule! conn lookup-ref)
@@ -31,12 +21,12 @@
       (do
         (log/error "unhandled job state:" state)
         (throw (ex-info "unhandled job state" {:state state}))))
-    (job-state conn lookup-ref)))
+    (impl/job-state conn lookup-ref)))
 
 (defn process-until-state [conn lookup-ref desired-state]
   (loop []
     (process-job-step! conn lookup-ref)
-    (let [new-state (job-state conn lookup-ref)]
+    (let [new-state (impl/job-state conn lookup-ref)]
       (cond (= new-state :error)
             :error
 

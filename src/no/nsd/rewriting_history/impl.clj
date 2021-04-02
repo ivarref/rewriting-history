@@ -29,6 +29,16 @@
        (to-db db)
        (first lookup-ref-or-eid) (second lookup-ref-or-eid)))
 
+(defn job-state [conn lookup-ref]
+  (assert (vector? lookup-ref))
+  (d/q '[:find ?state .
+         :in $ ?lookup-ref
+         :where
+         [?e :rh/lookup-ref ?lookup-ref]
+         [?e :rh/state ?state]]
+       (to-db conn)
+       (pr-str lookup-ref)))
+
 (declare eid->eavto-set)
 
 (defn db-ident [db eid]

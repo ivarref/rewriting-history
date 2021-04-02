@@ -106,7 +106,7 @@
           :fatal
           (replay/process-until-state conn2 [:m/id "id"] :error))
 
-        (is (= :error (replay/job-state conn2 [:m/id "id"])))))))
+        (is (= :error (impl/job-state conn2 [:m/id "id"])))))))
 
 (deftest verify-replay-history-job-test
   (testing "Verify is fine with writes just after last re-write has occurred"
@@ -133,4 +133,4 @@
 
         (replay/process-job-step! conn2 [:m/id "id"])
 
-        (is (= :done (replay/job-state conn2 [:m/id "id"])))))))
+        (is (= :done (impl/job-state conn2 [:m/id "id"])))))))
