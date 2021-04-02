@@ -17,7 +17,6 @@
 
 (def empty-conn u/empty-conn)
 
-
 (deftest schedule-rh-bad-input-test
   (testing "Verify that missing lookup ref throws exception"
     (let [conn1 (empty-conn)]
@@ -27,12 +26,8 @@
 
 (deftest schedule-rh-job-test
   (testing "Verify that the most basic scheduling of string replacement works"
-    (let [conn (empty-conn)
-          conn2 (empty-conn)]
-
+    (let [conn (empty-conn)]
       @(d/transact conn schema)
-      @(d/transact conn2 schema)
-
       @(d/transact conn [{:m/id "id" :m/info "original-data"}])
       @(d/transact conn [{:m/id "id" :m/info "bad-data"}])
       @(d/transact conn [{:m/id "id" :m/info "good-data"}])
@@ -74,7 +69,7 @@
         (schedule/process-single-schedule! conn [:m/id "id"])
         (init/job-init! conn [:m/id "id"])
 
-        ; in memory database now uses retractEntity for excision
+        ; in memory database uses retractEntity for excision
         (replay/process-until-state conn [:m/id "id"] :done)
 
         (is (= (rh/pull-flat-history conn [:m/id "id"])
@@ -87,4 +82,23 @@
                 [3 :tx/txInstant #inst "1974" 3 true]
                 [4 :m/info "corrected-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))))))
+
+(deftest cancelling-everything-also-cancels-job
+  (let [conn (empty-conn)]
+    @(d/transact conn schema)
+    @(d/transact conn [{:m/id "id" :m/info "original-data"}])
+    @(d/transact conn [{:m/id "id" :m/info "bad-data"}])
+    @(d/transact conn [{:m/id "id" :m/info "good-data"}])
+
+    (is (= [{:match       "bad-data"
+             :replacement "corrected-data"}]
+           (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
+
+    (is (= :scheduled (impl/job-state conn [:m/id "id"])))
+
+    (is (= []
+           (rh/cancel-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
+
+    (is (nil? (impl/job-state conn [:m/id "id"])))))
+
 
