@@ -42,7 +42,7 @@ That is to say: no other entities is dependent on its existence.
 ; Schedule a replacement
 (rh/schedule-replacement! conn [:m/id "id"] "sensitive-data" "censored-data")
 
-; Process scheduled replacements
+; Rewrite scheduled replacements
 (rh/rewrite-scheduled! conn)
 
 ; Verify that the string "sensitive-data" is gone from the history of the database:
@@ -80,10 +80,10 @@ as she/he likes.
 
 * :db/idents will not be excised during history rewriting and is thus considered permanent.
 
-## Using rewriting-history
+## Basic usage and background
 
 A Datomic database is a set of datoms.
-A Datom contains five values:
+A datom contains five values:
 
 * E: entity ID
 * A: attribute
@@ -107,22 +107,23 @@ What does the history of `[:m/id "id"]` look like?
 (rh/pull-flat-history conn [:m/id "id"])
 =>
 [; First transaction:
- [1 :tx/txInstant #inst"1973-01-01T00:00:00.000-00:00" 1 true]
+ [1 :tx/txInstant #inst"1973" 1 true]
  [4 :m/id "id" 1 true]
  [4 :m/info "initial-data" 1 true]
  
  ; Second transaction:
- [2 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 2 true]
+ [2 :tx/txInstant #inst"1974" 2 true]
  [4 :m/info "initial-data" 2 false]
  [4 :m/info "sensitive-data" 2 true] ; << sensitive data!
  
  ; Third transaction:
- [3 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 3 true]
+ [3 :tx/txInstant #inst"1975" 3 true]
  [4 :m/info "sensitive-data" 3 false] ; << sensitive data!
  [4 :m/info "good-data" 3 true]]
 ```
 
 `pull-flat-history` returns a vector of EAVTOs with normalized values for E and T.
+This is the history, as seen by rewriting-history, that will be rewritten.
 
 After scheduling a replacement and processing scheduled jobs, 
 the new history will look like the following:
@@ -132,15 +133,15 @@ the new history will look like the following:
 (rh/rewrite-scheduled! conn)
 (rh/pull-flat-history conn [:m/id "id"])
 =>
-[[1 :tx/txInstant #inst"1973-01-01T00:00:00.000-00:00" 1 true]
+[[1 :tx/txInstant #inst"1973" 1 true]
  [4 :m/id "id" 1 true]
  [4 :m/info "initial-data" 1 true]
  
- [2 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 2 true]
+ [2 :tx/txInstant #inst"1974" 2 true]
  [4 :m/info "initial-data" 2 false]
  [4 :m/info "censored-data" 2 true] ; << fixed!
  
- [3 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 3 true]
+ [3 :tx/txInstant #inst"1975" 3 true]
  [4 :m/info "censored-data" 3 false] ; << fixed!
  [4 :m/info "good-data" 3 true]]
 ```
@@ -151,7 +152,7 @@ with `censored` for lookup-ref `[:m/id "id"]`.
 
 ### Cancelling pending changes
 
-It's possible to cancel pending replacements:
+It's possible to cancel a pending replacement:
 ```clojure
 (rh/schedule-replacement! conn [:m/id "id"] "a" "b")
 => [{:match "a", :replacement "b"}]
@@ -168,18 +169,18 @@ has not been excised:
 
 ```clojure
 (rh/available-rollback-times conn [:m/id "id"])
-=> #{#inst"1981-01-01T00:00:00.000-00:00"}
+=> #{#inst"1981"}
 (rh/rollback! conn [:m/id "id"] #inst"1981")
 (rh/pull-flat-history conn [:m/id "id"])
 =>
-[[1 :tx/txInstant #inst"1973-01-01T00:00:00.000-00:00" 1 true]
+[[1 :tx/txInstant #inst"1973" 1 true]
  [4 :m/id "id" 1 true]
  [4 :m/info "initial-data" 1 true]
- [2 :tx/txInstant #inst"1974-01-01T00:00:00.000-00:00" 2 true]
+ [2 :tx/txInstant #inst"1974" 2 true]
  [4 :m/info "initial-data" 2 false]
- [4 :m/info "sensitive-data" 2 true]
- [3 :tx/txInstant #inst"1975-01-01T00:00:00.000-00:00" 3 true]
- [4 :m/info "sensitive-data" 3 false]
+ [4 :m/info "sensitive-data" 2 true] ; << sensitive data is back
+ [3 :tx/txInstant #inst"1975" 3 true]
+ [4 :m/info "sensitive-data" 3 false] ; << sensitive data is back
  [4 :m/info "good-data" 3 true]]
 ```
 
