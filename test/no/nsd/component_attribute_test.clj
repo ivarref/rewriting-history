@@ -8,7 +8,7 @@
 (deftest component-attribute-test
   (testing "Verify component attribute gets new entity id if we do not specify :db/id"
     (let [conn (u/empty-conn)]
-      (rh/init-schema! conn)
+      @(d/transact rh/schema conn)
       @(d/transact conn #d/schema[[:m/id :one :string :id]
                                   [:m/address :one :ref :component]
                                   [:m/country :one :ref :component]

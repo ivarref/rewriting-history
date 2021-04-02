@@ -12,7 +12,7 @@
 
 (deftest stage-data-test
   (let [conn (u/empty-conn-days-txtime)]
-    (rh/init-schema! conn)
+    @(d/transact conn rh/schema)
     @(d/transact conn schema/schema)
     (let [new-hist sd/data
           mref [:Meldeskjema/ref "be0bc167-8015-4104-af21-0727ffb3d95d"]]

@@ -11,9 +11,6 @@
 
 (def schema impl/schema)
 
-(defn init-schema! [conn]
-  (impl/init-schema! conn))
-
 (defn schedule-replacement!
   "Schedule a replacement of ^String match with ^String replacement
   for lookup-ref.
