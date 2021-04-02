@@ -14,4 +14,5 @@
                    fns/set-reset
                    fns/set-union
                    fns/some-retract
-                   fns/cas-contains]))
+                   fns/cas-contains
+                   fns/set-disj-if-empty-fn]))

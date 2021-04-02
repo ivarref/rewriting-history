@@ -19,6 +19,8 @@
 (defn set-disj-if-empty-fn [db lookup-ref attr value if-empty-tx if-some-tx]
   (let [value (to-clojure-types value)
         lookup-ref (to-clojure-types lookup-ref)
+        if-empty-tx (to-clojure-types if-empty-tx)
+        if-some-tx (to-clojure-types if-some-tx)
         _ (assert (vector? lookup-ref))
         _ (assert (map? value))
         _ (assert (keyword? attr))
@@ -58,10 +60,11 @@
                                   (reduced (:db/id cand))))
                               nil
                               curr-set)
-            is-empty (and found-eid (= 1 (count curr-set)))]
+            is-empty? (or (and found-eid (= 1 (count curr-set)))
+                          (empty? curr-set))]
         (reduce into []
                 [(when found-eid [[:db/retract lookup-ref attr found-eid]])
-                 (if is-empty if-empty-tx if-some-tx)])))))
+                 (if is-empty? if-empty-tx if-some-tx)])))))
 
 (defn set-disj-if-empty [lookup-ref attr value if-empty-tx if-some-tx]
   [:set/disj-if-empty lookup-ref attr value if-empty-tx if-some-tx])

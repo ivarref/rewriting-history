@@ -3,10 +3,12 @@
             [no.nsd.dbfns.datomic-generate-fn :as genfn]
             [no.nsd.utils :as u]
             [datomic.api :as d]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [no.nsd.rewriting-history :as rh]
+            [no.nsd.rewriting-history.dbfns.set-disj-if-empty :as s]))
 
 (defn db-fn
-  ([] (db-fn false))
+  ([] (db-fn true))
   ([generate]
    (genfn/generate-function
      'no.nsd.rewriting-history.dbfns.set-disj-if-empty/set-disj-if-empty-fn
@@ -83,3 +85,54 @@
                   (sort)
                   (vec))
              ["a" "c"])))))
+
+(deftest set-disj-should-ok-tests-2
+  (testing "if empty"
+    (let [conn (u/empty-conn)]
+      @(d/transact conn rh/schema)
+      @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
+                                                  [:m/state :one :keyword]
+                                                  [:m/set :many :ref :component]
+                                                  [:e/a :one :string]]))
+      @(d/transact conn [{:m/id "id" :m/state :pending}])
+      (is (= (s/set-disj-if-empty-fn (d/db conn)
+                                     [:m/id "id"]
+                                     :m/set {:e/a "nothing"}
+                                     [[:some/retract [:m/id "id"] :m/state]]
+                                     nil)
+             [[:some/retract [:m/id "id"] :m/state]]))
+      @(d/transact conn [(s/set-disj-if-empty [:m/id "id"]
+                                              :m/set {:e/a "nothing"}
+                                              [[:some/retract [:m/id "id"] :m/state]]
+                                              nil)])
+      (is (nil? (d/q '[:find ?state .
+                       :where
+                       [?e :m/id "id"]
+                       [?e :m/state ?state]]
+                     (d/db conn))))))
+
+  (testing "if some"
+    (let [conn (u/empty-conn)]
+      @(d/transact conn rh/schema)
+      @(d/transact conn (into [(db-fn)] #d/schema[[:m/id :one :string :id]
+                                                  [:m/state :one :keyword]
+                                                  [:m/set :many :ref :component]
+                                                  [:e/a :one :string]]))
+      @(d/transact conn [{:m/id "id" :m/state :pending
+                          :m/set #{{:e/a "a"}}}])
+      (is (= (s/set-disj-if-empty-fn (d/db conn)
+                                     [:m/id "id"]
+                                     :m/set {:e/a "nothing"}
+                                     nil
+                                     [{:m/id "id" :m/state :scheduled}])
+             [#:m{:id "id", :state :scheduled}]))
+      @(d/transact conn [(s/set-disj-if-empty [:m/id "id"]
+                                              :m/set {:e/a "nothing"}
+                                              [[:some/retract [:m/id "id"] :m/state]]
+                                              [{:m/id "id" :m/state :scheduled}])])
+      (is (= :scheduled (d/q '[:find ?state .
+                               :where
+                               [?e :m/id "id"]
+                               [?e :m/state ?state]]
+                             (d/db conn)))))))
+
