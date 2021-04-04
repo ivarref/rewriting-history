@@ -24,7 +24,7 @@ That is to say: no other entities is dependent on its existence.
             (d/connect uri)))
 
 ; Init rewriting-history schema
-(rh/init-schema! conn)
+@(d/transact conn rh/schema)
 
 ; Init demo schema
 @(d/transact conn [#:db{:ident       :m/id   
@@ -99,7 +99,6 @@ A datom contains five values:
 Consider the data from the above example:
 
 ```clojure
-(def conn ,,,)
 @(d/transact conn [{:m/id "id" :m/info "initial-data"}])
 @(d/transact conn [{:m/id "id" :m/info "sensitive-data"}])
 @(d/transact conn [{:m/id "id" :m/info "good-data"}])
@@ -157,7 +156,7 @@ with `censored` for lookup-ref `[:m/id "id"]`.
 
 ### Cancelling pending changes
 
-It's possible to cancel a pending replacement:
+A pending replacement may be cancelled like so:
 ```clojure
 (rh/schedule-replacement! conn [:m/id "id"] "a" "b")
 => [{:match "a", :replacement "b"}]
@@ -181,9 +180,11 @@ has not been excised:
 [[1 :tx/txInstant #inst"1973" 1 true]
  [4 :m/id "id" 1 true]
  [4 :m/info "initial-data" 1 true]
+ 
  [2 :tx/txInstant #inst"1974" 2 true]
  [4 :m/info "initial-data" 2 false]
  [4 :m/info "sensitive-data" 2 true] ; << sensitive data is back
+ 
  [3 :tx/txInstant #inst"1975" 3 true]
  [4 :m/info "sensitive-data" 3 false] ; << sensitive data is back
  [4 :m/info "good-data" 3 true]]
@@ -191,7 +192,7 @@ has not been excised:
 
 ### Cleaning up
 
-It's obviously not good if sensitive data remains in the rewriting job data.
+It's obviously not good if sensitive data remains in the rewrite job data.
 Here is how to excise old rewrite-jobs that are older than 90 days:
 
 ```clojure
@@ -199,6 +200,14 @@ Here is how to excise old rewrite-jobs that are older than 90 days:
 (rh/available-rollback-times conn [:m/id "id"])
 => #{}
 ```
+
+### Using tx/txInstant
+
+...
+
+### Putting it all together
+
+...
 
 ## Warning
 
