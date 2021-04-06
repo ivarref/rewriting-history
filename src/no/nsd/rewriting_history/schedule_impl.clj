@@ -12,7 +12,7 @@
               [?e :rh/replace ?r]
               [?r :rh/match ?match]
               [?r :rh/replacement ?replacement]]
-            db
+            (impl/to-db db)
             (pr-str lookup-ref))
        (map (partial mapv edn/read-string))
        (map (partial zipmap [:match :replacement]))

@@ -3,8 +3,7 @@
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.wipe :as wipe]
-            [no.nsd.rewriting-history.rollback :as rollback]
-            [datomic.api :as d])
+            [no.nsd.rewriting-history.rollback :as rollback])
   (:import (java.util Date)))
 
 ; public API
@@ -24,14 +23,14 @@
 
 (defn pending-replacements [conn lookup-ref]
   "Get pending replacements for lookup-ref."
-  (schedule/pending-replacements (d/db conn) lookup-ref))
+  (schedule/pending-replacements conn lookup-ref))
 
 (defn rewrite-scheduled! [conn]
-  "Process all rewrite-jobs that are scheduled." 
+  "Process all rewrite-jobs that are scheduled."
   (replay/process-state! conn :scheduled))
 
 (defn excise-old-rewrite-jobs! [conn older-than-days]
-  "Excise all rewrite-job metadata."
+  "Excise all rewrite-job metadata that are older than older-than-days days."
   (wipe/wipe-old-rewrite-jobs! conn (Date.) older-than-days))
 
 (defn available-rollback-times [conn lookup-ref]
