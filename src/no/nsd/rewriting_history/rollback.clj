@@ -12,18 +12,19 @@
   (assert (some? (impl/resolve-lookup-ref conn [:rh/lookup-ref (pr-str lookup-ref)])))
   (assert (or (instance? Date t) (pos-int? t)))
   (if (instance? Date t)
-    (do
-      (log/info "resolving t ...")
-      (rollback! conn lookup-ref
-                 (d/q '[:find ?t .
-                        :in $ ?lookup-ref ?inst
-                        :where
-                        [?e :rh/lookup-ref ?lookup-ref]
-                        [?e :rh/state :init ?t true]
-                        [?t :db/txInstant ?inst]]
-                      (impl/history conn)
-                      (pr-str lookup-ref)
-                      t)))
+    (if-let [t (d/q '[:find ?t .
+                      :in $ ?lookup-ref ?inst
+                      :where
+                      [?e :rh/lookup-ref ?lookup-ref]
+                      [?e :rh/state :init ?t true]
+                      [?t :db/txInstant ?inst]]
+                    (impl/history conn)
+                    (pr-str lookup-ref)
+                    t)]
+      (rollback! conn lookup-ref t)
+      (do
+        (log/error "Could not resolve inst " t)
+        (throw (ex-info (str "Could not resolve inst " t) {:inst t}))))
     (do
       (assert (= t (d/q '[:find ?t .
                           :in $ ?lookup-ref ?t
