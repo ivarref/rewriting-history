@@ -175,6 +175,7 @@
          #:db{:ident :rh/match :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/replacement :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/eid :cardinality :db.cardinality/many :valueType :db.type/long}
+         #:db{:ident :rh/excised-eid :cardinality :db.cardinality/many :valueType :db.type/long}
          #:db{:ident :rh/org-history :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
          #:db{:ident :rh/new-history :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
          #:db{:ident :rh/state :cardinality :db.cardinality/one :valueType :db.type/keyword :index true}

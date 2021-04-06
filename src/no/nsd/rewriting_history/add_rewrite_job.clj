@@ -22,6 +22,7 @@
         org-history (impl/pull-flat-history-simple conn lookup-ref)
         tx [[:cas/contains job-ref :rh/state from-state pending-state]
             [:set/reset job-ref :rh/eid #{}]
+            [:set/reset job-ref :rh/excised-eid #{}]
             [:set/reset job-ref :rh/org-history #{}]
             [:set/reset job-ref :rh/new-history #{}]
             [:set/reset job-ref :rh/replace #{}]

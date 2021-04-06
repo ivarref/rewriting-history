@@ -54,10 +54,10 @@
 
     ; it is possible to rollback the rollback:
     (is (= (rh/available-rollback-times conn [:m/id "id"])
-           #{#inst "1981" #inst "1991"}))
+           #{#inst "1981" #inst "1992"}))
 
     ; rollback the rollback:
-    (rh/rollback! conn [:m/id "id"] #inst"1991")
+    (rh/rollback! conn [:m/id "id"] #inst"1992")
     (replay/process-until-state conn [:m/id "id"] :done)
     (is (= (rh/pull-flat-history conn [:m/id "id"])
            [[1 :tx/txInstant #inst "1973" 1 true]
