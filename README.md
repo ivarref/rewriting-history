@@ -203,7 +203,10 @@ Here is how to excise old rewrite-jobs that are older than 90 days:
 
 ### Using tx/txInstant
 
-...
+The astute reader will have noticed that the documentation so far has used
+`:tx/txInstant` and not `:db/txInstant` as one might expect.
+This is because it is unfortunately not possible to arbitrary specify `:db/txInstant`
+during rewriting of history.
 
 ### Putting it all together
 

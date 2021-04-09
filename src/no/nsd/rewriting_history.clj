@@ -25,6 +25,15 @@
   "Get pending replacements for lookup-ref."
   (schedule/pending-replacements conn lookup-ref))
 
+(defn all-pending-replacements [conn]
+  "Get all pending replacements in the form of
+   [{:db-id     ident
+     :id-value  ref
+     :match ...
+     :replacement ...}
+    ...]"
+  (schedule/all-pending-replacements conn))
+
 (defn rewrite-scheduled! [conn]
   "Process all rewrite-jobs that are scheduled."
   (replay/process-state! conn :scheduled))

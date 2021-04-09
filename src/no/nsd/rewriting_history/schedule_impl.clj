@@ -20,6 +20,24 @@
        (sort-by pr-str)
        (vec)))
 
+(defn all-pending-replacements [db]
+  (->> (d/q '[:find ?lookup-ref ?match ?replacement
+              :where
+              [?e :rh/lookup-ref ?lookup-ref]
+              [?e :rh/replace ?r]
+              [?r :rh/match ?match]
+              [?r :rh/replacement ?replacement]]
+            (impl/to-db db))
+       (map (partial mapv edn/read-string))
+       (map (partial zipmap [:lookup-ref :match :replacement]))
+       (map #(-> %
+                 (assoc :db-id (first (:lookup-ref %)))
+                 (assoc :id-value (second (:lookup-ref %)))
+                 (dissoc :lookup-ref)))
+       (map (partial into (sorted-map)))
+       (sort-by pr-str)
+       (vec)))
+
 (defn schedule-replacement! [conn lookup-ref match replacement]
   (assert (vector? lookup-ref))
   (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
