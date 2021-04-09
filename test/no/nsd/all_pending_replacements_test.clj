@@ -10,19 +10,19 @@
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/info :one :string]])
 
-    @(d/transact conn [{:m/id "id" :m/info "original-data"}])
-    @(d/transact conn [{:m/id "id" :m/info "bad-data"}])
-    @(d/transact conn [{:m/id "id" :m/info "good-data"}])
+    @(d/transact conn [{:m/id "id1" :m/info "original-data"}])
+    @(d/transact conn [{:m/id "id1" :m/info "bad-data"}])
+    @(d/transact conn [{:m/id "id1" :m/info "good-data"}])
 
     @(d/transact conn [{:m/id "id2" :m/info "really-bad-data"}])
 
-    (rh/schedule-replacement! conn [:m/id "id"] "bad" "correct")
-    (rh/schedule-replacement! conn [:m/id "id"] "data" "dataa")
-    (rh/schedule-replacement! conn [:m/id "id2"] "really-bad" "really-good")
+    (rh/schedule-replacement! conn [:m/id "id1"] "bad" "correct")
+    (rh/schedule-replacement! conn [:m/id "id1"] "data" "dataa")
+    (rh/schedule-replacement! conn [:m/id "id2"] "a" "really-good")
 
-    (is (= [{:db-id :m/id, :id-value "id", :match "bad", :replacement "correct"}
-            {:db-id :m/id, :id-value "id", :match "data", :replacement "dataa"}
-            {:db-id :m/id, :id-value "id2", :match "really-bad", :replacement "really-good"}]
+    (is (= [{:attr :m/id, :ref "id1", :match "bad", :replacement "correct"}
+            {:attr :m/id, :ref "id1", :match "data", :replacement "dataa"}
+            {:attr :m/id, :ref "id2", :match "a", :replacement "really-good"}]
            (rh/all-pending-replacements conn)))))
 
 (deftest no-match-should-be-a-noop

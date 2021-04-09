@@ -46,9 +46,9 @@
 
 (defn all-pending-replacements [conn]
   "Get all pending replacements in the form of
-   [{:db-id     ident
-     :id-value  ref
-     :match ...
+   [{:attr        attr
+     :ref         ref
+     :match       ...
      :replacement ...}
     ...]"
   (schedule/all-pending-replacements conn))

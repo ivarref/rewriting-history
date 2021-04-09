@@ -44,24 +44,34 @@
                 [4 :m/info "bad-data" 3 false]
                 [4 :m/info "good-data" 3 true]]))
 
-        (is (= [{:match       "bad-data"
+        (is (= [{:attr        :m/id
+                 :ref         "id"
+                 :match       "bad-data"
                  :replacement "corrected-data"}]
                (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
 
         ; duplicates are ignored
-        (is (= [{:match       "bad-data"
+        (is (= [{:attr        :m/id
+                 :ref         "id"
+                 :match       "bad-data"
                  :replacement "corrected-data"}]
                (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
 
         ; schedule something by mistake
-        (is (= [{:match       "a"
+        (is (= [{:attr        :m/id
+                 :ref         "id"
+                 :match       "a"
                  :replacement "oops"}
-                {:match       "bad-data"
+                {:attr        :m/id
+                 :ref         "id"
+                 :match       "bad-data"
                  :replacement "corrected-data"}]
                (rh/schedule-replacement! conn [:m/id "id"] "a" "oops")))
 
         ; abort the mistake
-        (is (= [{:match       "bad-data"
+        (is (= [{:attr        :m/id
+                 :ref         "id"
+                 :match       "bad-data"
                  :replacement "corrected-data"}]
                (rh/cancel-replacement! conn [:m/id "id"] "a" "oops")))
 
@@ -90,7 +100,9 @@
     @(d/transact conn [{:m/id "id" :m/info "bad-data"}])
     @(d/transact conn [{:m/id "id" :m/info "good-data"}])
 
-    (is (= [{:match       "bad-data"
+    (is (= [{:attr        :m/id
+             :ref         "id"
+             :match       "bad-data"
              :replacement "corrected-data"}]
            (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")))
 
