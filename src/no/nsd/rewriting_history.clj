@@ -3,19 +3,38 @@
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.wipe :as wipe]
-            [no.nsd.rewriting-history.rollback :as rollback])
+            [no.nsd.rewriting-history.rollback :as rollback]
+            [clojure.string :as str])
   (:import (java.util Date)))
 
 ; public API
 
 (def schema impl/schema)
 
+(declare pull-flat-history)
+(declare pending-replacements)
+
 (defn schedule-replacement!
   "Schedule a replacement of ^String match with ^String replacement
   for lookup-ref.
   Creates or updates a rewrite-job."
   [conn lookup-ref match replacement]
-  (schedule/schedule-replacement! conn lookup-ref match replacement))
+  (assert (string? match))
+  (assert (string? replacement))
+  (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
+          (str "Expected to find lookup-ref " lookup-ref))
+  (let [curr-history (pull-flat-history conn lookup-ref)
+        found-match-in-history? (->> curr-history
+                                     (map (fn [[e a v t o]] v))
+                                     (filter string?)
+                                     (into #{})
+                                     (reduce (fn [_ v]
+                                               (when (str/includes? v match)
+                                                 (reduced true)))
+                                             false))]
+    (if found-match-in-history?
+      (schedule/schedule-replacement! conn lookup-ref match replacement)
+      (pending-replacements conn lookup-ref))))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
   "Cancel a scheduled replacement for lookup-ref. Updates an existing rewrite-job."

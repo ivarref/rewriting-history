@@ -24,3 +24,15 @@
             {:db-id :m/id, :id-value "id", :match "data", :replacement "dataa"}
             {:db-id :m/id, :id-value "id2", :match "really-bad", :replacement "really-good"}]
            (rh/all-pending-replacements conn)))))
+
+(deftest no-match-should-be-a-noop
+  (let [conn (u/empty-conn)]
+    @(d/transact conn rh/schema)
+    @(d/transact conn #d/schema[[:m/id :one :string :id]
+                                [:m/info :one :string]])
+
+    @(d/transact conn [{:m/id "id" :m/info "no match"}])
+
+    (rh/schedule-replacement! conn [:m/id "id"] "missing" "missing2")
+
+    (is (= [] (rh/all-pending-replacements conn)))))
