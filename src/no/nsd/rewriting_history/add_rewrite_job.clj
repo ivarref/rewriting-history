@@ -1,7 +1,8 @@
 (ns no.nsd.rewriting-history.add-rewrite-job
   (:require [clojure.tools.logging :as log]
             [datomic.api :as d]
-            [no.nsd.rewriting-history.impl :as impl]))
+            [no.nsd.rewriting-history.impl :as impl]
+            [no.nsd.rewriting-history.dbfns.set-reset :as sr]))
 
 (def chunk-size 10)
 
@@ -20,23 +21,18 @@
   (let [id (pr-str lookup-ref)
         job-ref [:rh/lookup-ref id]
         org-history (impl/pull-flat-history-simple conn lookup-ref)
-        txes [[:set/reset job-ref :rh/eid #{}]
-              [:set/reset job-ref :rh/excised-eid #{}]
-              [:set/reset job-ref :rh/org-history #{}]
-              [:set/reset job-ref :rh/new-history #{}]
-              [:set/reset job-ref :rh/replace #{}]
-              [:set/reset job-ref :rh/tempids #{}]
-              [:some/retract job-ref :rh/done]
-              [:some/retract job-ref :rh/error]
-              {:rh/lookup-ref id
-               :rh/tx-index   0}]]
-    (doseq [[idx tx] (map-indexed vector txes)]
-      @(d/transact conn (conj [[:cas/contains job-ref
-                                :rh/state (if (= idx 0)
-                                            (conj from-state pending-state)
-                                            #{pending-state})
-                                pending-state]]
-                              tx)))
+        attrs [:rh/eid :rh/excised-eid :rh/org-history :rh/new-history :rh/replace :rh/tempids]]
+    @(d/transact conn [[:cas/contains job-ref :rh/state (conj from-state pending-state) pending-state]])
+    (doseq [attr attrs]
+      (doseq [chunk (partition-all chunk-size (sr/set-reset conn job-ref attr #{}))]
+        @(d/transact conn (conj chunk
+                                [:cas/contains job-ref :rh/state #{pending-state} pending-state])))
+      (assert (= 1 (count (sr/set-reset conn job-ref attr #{})))))
+    @(d/transact conn [[:cas/contains job-ref :rh/state #{pending-state} pending-state]
+                       [:some/retract job-ref :rh/done]
+                       [:some/retract job-ref :rh/error]
+                       {:rh/lookup-ref id
+                        :rh/tx-index   0}])
     (impl/log-state-change pending-state lookup-ref)
     (put-chunks! conn job-ref pending-state :rh/eid (into #{} (-> org-history meta :original-eids)))
     (put-chunks! conn job-ref pending-state :rh/org-history (impl/history->set org-history))

@@ -34,7 +34,7 @@
     (u/rewrite-noop! conn [:m/id "id"])
 
     ; rewriting-history cannot set :db/txInstant arbitrarly:
-    (is (= #{#inst"1973" #inst"1990"}
+    (is (= #{#inst"1973" #inst"1989"}
            (into #{} (d/q '[:find [?inst ...]
                             :in $
                             :where
