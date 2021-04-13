@@ -80,3 +80,6 @@
 (defn get-org-history [db lookup-ref]
   "Get the original flat history of lookup-ref as it was before rewriting started."
   (impl/get-org-history db lookup-ref))
+
+(defn get-job-state [conn lookup-ref]
+  (impl/job-state conn lookup-ref))
