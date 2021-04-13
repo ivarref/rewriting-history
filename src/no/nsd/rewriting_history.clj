@@ -4,7 +4,8 @@
             [no.nsd.rewriting-history.schedule-impl :as schedule]
             [no.nsd.rewriting-history.wipe :as wipe]
             [no.nsd.rewriting-history.rollback :as rollback]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.tools.logging :as log])
   (:import (java.util Date)))
 
 ; public API
@@ -32,9 +33,12 @@
                                                (when (str/includes? v match)
                                                  (reduced true)))
                                              false))]
-    (if found-match-in-history?
-      (schedule/schedule-replacement! conn lookup-ref match replacement)
-      (pending-replacements conn lookup-ref))))
+    (cond (and (empty? match)
+               (not-empty replacement))
+          (do (log/warn "empty match given and non-empty replacement given, ignoring")
+              (pending-replacements conn lookup-ref))
+          found-match-in-history? (schedule/schedule-replacement! conn lookup-ref match replacement)
+          :else (pending-replacements conn lookup-ref))))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
   "Cancel a scheduled replacement for lookup-ref. Updates an existing rewrite-job."
