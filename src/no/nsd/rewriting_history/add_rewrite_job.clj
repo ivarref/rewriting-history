@@ -24,9 +24,11 @@
         attrs [:rh/eid :rh/excised-eid :rh/org-history :rh/new-history :rh/replace :rh/tempids]]
     @(d/transact conn [[:cas/contains job-ref :rh/state (conj from-state pending-state) pending-state]])
     (doseq [attr attrs]
-      (doseq [chunk (partition-all chunk-size (sr/set-reset conn job-ref attr #{}))]
-        @(d/transact conn (conj chunk
-                                [:cas/contains job-ref :rh/state #{pending-state} pending-state])))
+      (let [[fst & to-reset] (sr/set-reset conn job-ref attr #{})]
+        (doseq [chunk (partition-all chunk-size to-reset)]
+          @(d/transact conn (conj (vec chunk)
+                                  [:cas/contains job-ref :rh/state #{pending-state} pending-state]
+                                  fst))))
       (assert (= 1 (count (sr/set-reset conn job-ref attr #{})))))
     @(d/transact conn [[:cas/contains job-ref :rh/state #{pending-state} pending-state]
                        [:some/retract job-ref :rh/done]

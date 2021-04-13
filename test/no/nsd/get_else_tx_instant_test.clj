@@ -6,6 +6,7 @@
 
 (deftest get-else-tx-instant-test
   (let [conn (u/empty-conn)]
+    #_(ft/auto-inc! conn (fn [{:keys [years]}] (swap! years inc)))
     @(d/transact conn impl/schema)
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/info :one :string]])
@@ -34,7 +35,7 @@
     (u/rewrite-noop! conn [:m/id "id"])
 
     ; rewriting-history cannot set :db/txInstant arbitrarly:
-    (is (= #{#inst"1973" #inst"1989"}
+    (is (= #{#inst"1973" #inst"1984"}
            (into #{} (d/q '[:find [?inst ...]
                             :in $
                             :where
