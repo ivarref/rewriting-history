@@ -4,7 +4,7 @@
             [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.dbfns.set-reset :as sr]))
 
-(def chunk-size 10)
+(def chunk-size 100)
 
 (defn put-chunks! [conn job-ref expected-state attr items]
   (log/debug "saving attribute" attr "for" job-ref "of size" (count items) "...")

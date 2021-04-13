@@ -7,7 +7,7 @@
 (defn excise-op [eid]
   {:db/excise eid})
 
-(def chunk-size 10)
+(def chunk-size 100)
 
 (defn job-init! [conn lookup-ref]
   (assert (vector? lookup-ref))
