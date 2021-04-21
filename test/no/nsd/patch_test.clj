@@ -29,7 +29,6 @@
                        (rh/assoc-lookup-ref [:fil/id fil-uuid]
                                             :fil/id #uuid"00000000-0000-0000-0000-000000000000"
                                             :fil/name "deleted.txt"))]
-      (u/pprint new-hist)
       (is (= [[1 :tx/txInstant #inst "1973" 1 true]
               [2 :m/files 3 1 true]
               [2 :m/id "id" 1 true]
