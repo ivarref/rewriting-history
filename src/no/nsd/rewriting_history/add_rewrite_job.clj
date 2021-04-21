@@ -21,7 +21,8 @@
   (let [id (pr-str lookup-ref)
         job-ref [:rh/lookup-ref id]
         org-history (impl/pull-flat-history-simple conn lookup-ref)
-        attrs [:rh/eid :rh/excised-eid :rh/org-history :rh/new-history :rh/replace :rh/tempids]]
+        attrs [:rh/eid :rh/excised-eid :rh/org-history :rh/new-history :rh/replace
+               :rh/tempids :rh/patch-add :rh/patch-remove]]
     @(d/transact conn [[:cas/contains job-ref :rh/state (conj from-state pending-state) pending-state]])
     (doseq [attr attrs]
       (let [[fst & to-reset] (sr/set-reset conn job-ref attr #{})]

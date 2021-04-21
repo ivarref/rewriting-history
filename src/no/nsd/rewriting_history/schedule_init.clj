@@ -21,6 +21,22 @@
    t
    o])
 
+(defn get-patch [db lookup-ref attr]
+  (->> (d/q '[:find ?ee ?a ?v ?t ?o
+              :in $ ?lookup-ref ?attr
+              :where
+              [?e :rh/lookup-ref ?lookup-ref]
+              [?e ?attr ?p]
+              [?p :rh/e ?ee]
+              [?p :rh/a ?a]
+              [?p :rh/v ?v]
+              [?p :rh/t ?t]
+              [?p :rh/o ?o]]
+            db
+            (pr-str lookup-ref)
+            attr)
+       (mapv (partial mapv edn/read-string))))
+
 (defn process-single-schedule! [conn lookup-ref]
   (let [replacements (->> (d/q '[:find ?r ?match ?replacement
                                  :in $ ?lookup-ref
@@ -33,6 +49,13 @@
                                (pr-str lookup-ref))
                           (mapv (fn [[eid m r]] [eid (edn/read-string m) (edn/read-string r)]))
                           (mapv (partial zipmap [:eid :match :replacement])))
+        patch-add (into [] (get-patch (d/db conn) lookup-ref :rh/patch-add))
+        patch-remove (into #{} (get-patch (d/db conn) lookup-ref :rh/patch-remove))
         new-history (->> (impl/pull-flat-history-simple conn lookup-ref)
-                         (mapv (partial replace-eavto replacements)))]
+                         (into patch-add)
+                         (mapv (partial replace-eavto replacements))
+                         (remove #(contains? patch-remove %))
+                         (sort-by (fn [[e a v t o]] [t e a o v]))
+                         (vec))]
+    (log/info patch-remove)
     (add-job/add-job! conn lookup-ref #{:scheduled} :pending-init new-history)))
