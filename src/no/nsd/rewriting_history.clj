@@ -2,6 +2,7 @@
   (:require [no.nsd.rewriting-history.impl :as impl]
             [no.nsd.rewriting-history.replay-impl :as replay]
             [no.nsd.rewriting-history.schedule-impl :as schedule]
+            [no.nsd.rewriting-history.patch :as patch]
             [no.nsd.rewriting-history.wipe :as wipe]
             [no.nsd.rewriting-history.rollback :as rollback]
             [clojure.string :as str]
@@ -44,29 +45,10 @@
 
 (defn schedule-patch!
   [conn lookup-ref org-history new-history]
-  (assert (vector? lookup-ref))
-  (assert (vector? org-history))
-  (assert (vector? new-history))
-  (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
-          (str "Expected to find lookup-ref " lookup-ref))
-  (if (= org-history new-history)
-    nil
-    (let [new-history (into #{} new-history)
-          org-history (into #{} org-history)
-          to-add (set/difference new-history org-history)
-          to-remove (set/difference org-history new-history)
-          id (pr-str lookup-ref)
-          doseq! (fn [attr s]
-                   (doseq [[e a v t o] s]
-                     (let [m #:rh{:e (pr-str e)
-                                  :a (pr-str a)
-                                  :v (pr-str v)
-                                  :t (pr-str t)
-                                  :o (pr-str o)}]
-                       @(d/transact conn [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
-                                          [:set/union [:rh/lookup-ref id] attr #{m}]]))))]
-      (doseq! :rh/patch-add to-add)
-      (doseq! :rh/patch-remove to-remove))))
+  (patch/schedule-patch! conn lookup-ref org-history new-history))
+
+(defn all-pending-patches [conn]
+  (patch/all-pending-patches conn))
 
 (defn cancel-replacement! [conn lookup-ref match replacement]
   "Cancel a scheduled replacement for lookup-ref. Updates an existing rewrite-job."
