@@ -60,7 +60,7 @@
       @(d/transact conn [{:m/id "i2" :m/files
                                 {:db/id "fil"
                                  :fil/id #uuid"00000000-1111-2222-3333-000000000000"
-                                 :fil/name "streng-hemmeleg.txt"}}])
+                                 :fil/name "strengt-hemmeleg.txt"}}])
       (rh/schedule-patch! conn
                           [:m/id "i2"]
                           (rh/pull-flat-history conn [:m/id "i2"])
@@ -75,7 +75,7 @@
                {:e "3", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}],
               :remove
               [{:e "3", :a ":fil/id", :v "#uuid \"00000000-1111-2222-3333-000000000000\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
-               {:e "3", :a ":fil/name", :v "\"streng-hemmeleg.txt\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
+               {:e "3", :a ":fil/name", :v "\"strengt-hemmeleg.txt\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
                {:e "3", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
                {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]}
             (rh/all-pending-patches conn)))
