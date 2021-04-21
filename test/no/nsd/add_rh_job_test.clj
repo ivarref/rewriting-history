@@ -1,9 +1,6 @@
 (ns no.nsd.add-rh-job-test
   (:require [clojure.test :refer :all]
             [no.nsd.utils :as u]
-            [no.nsd.shorter-stacktrace]
-            [no.nsd.log-init]
-            [datomic-schema.core]
             [no.nsd.rewriting-history :as rh]
             [clojure.tools.logging :as log]
             [datomic.api :as d]
