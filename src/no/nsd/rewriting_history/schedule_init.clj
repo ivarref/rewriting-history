@@ -57,5 +57,4 @@
                          (remove #(contains? patch-remove %))
                          (sort-by (fn [[e a v t o]] [t e a o v]))
                          (vec))]
-    (log/info patch-remove)
     (add-job/add-job! conn lookup-ref #{:scheduled} :pending-init new-history)))
