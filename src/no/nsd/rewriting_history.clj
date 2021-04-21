@@ -101,14 +101,20 @@
   "Rollback lookup-ref to a previous ^java.util.Date t."
   (rollback/rollback! conn lookup-ref t))
 
-(defn assoc-eid [eavtos eid a v]
+(defn assoc-lookup-ref [eavtos [attr idval] & kvs]
   (assert (vector? eavtos))
-  (->> eavtos
-       (mapv (fn [[e aa _v t o :as eavto]]
-               (if (and (= e eid)
-                        (= aa a))
-                 [e a v t o]
-                 eavto)))))
+  (let [new-vals (into {} (mapv vec (partition 2 kvs)))]
+    (if-let [eid (->> eavtos
+                      (filter (fn [[e a v t o]]
+                                (and (= a attr)
+                                     (= v idval))))
+                      (ffirst))]
+      (->> eavtos
+           (mapv (fn [[e a v t o :as eavto]]
+                   (if (= e eid)
+                     [e a (get new-vals a v) t o]
+                     eavto))))
+      eavtos)))
 
 ; convenience methods
 
