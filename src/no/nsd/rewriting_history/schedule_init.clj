@@ -21,12 +21,13 @@
    t
    o])
 
-(defn get-patch [db lookup-ref attr]
+(defn get-patch [db lookup-ref patch-op]
   (->> (d/q '[:find ?ee ?a ?v ?t ?o
-              :in $ ?lookup-ref ?attr
+              :in $ ?lookup-ref ?patch-op
               :where
               [?e :rh/lookup-ref ?lookup-ref]
-              [?e ?attr ?p]
+              [?e :rh/patch ?p]
+              [?p :rh/patch-op ?patch-op]
               [?p :rh/e ?ee]
               [?p :rh/a ?a]
               [?p :rh/v ?v]
@@ -34,7 +35,7 @@
               [?p :rh/o ?o]]
             db
             (pr-str lookup-ref)
-            attr)
+            patch-op)
        (mapv (partial mapv edn/read-string))))
 
 (defn process-single-schedule! [conn lookup-ref]
@@ -49,8 +50,8 @@
                                (pr-str lookup-ref))
                           (mapv (fn [[eid m r]] [eid (edn/read-string m) (edn/read-string r)]))
                           (mapv (partial zipmap [:eid :match :replacement])))
-        patch-add (into [] (get-patch (d/db conn) lookup-ref :rh/patch-add))
-        patch-remove (into #{} (get-patch (d/db conn) lookup-ref :rh/patch-remove))
+        patch-add (into [] (get-patch (d/db conn) lookup-ref true))
+        patch-remove (into #{} (get-patch (d/db conn) lookup-ref false))
         new-history (->> (impl/pull-flat-history-simple conn lookup-ref)
                          (into patch-add)
                          (mapv (partial replace-eavto replacements))

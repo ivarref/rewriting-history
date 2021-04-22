@@ -178,8 +178,7 @@
          #:db{:ident :rh/excised-eid :cardinality :db.cardinality/many :valueType :db.type/long}
          #:db{:ident :rh/org-history :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
          #:db{:ident :rh/new-history :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
-         #:db{:ident :rh/patch-add :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
-         #:db{:ident :rh/patch-remove :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
+         #:db{:ident :rh/patch :cardinality :db.cardinality/many :valueType :db.type/ref :isComponent true}
          #:db{:ident :rh/state :cardinality :db.cardinality/one :valueType :db.type/keyword :index true}
          #:db{:ident :rh/done :cardinality :db.cardinality/one :valueType :db.type/instant}
          #:db{:ident :rh/error :cardinality :db.cardinality/one :valueType :db.type/instant}
@@ -191,7 +190,9 @@
          #:db{:ident :rh/a :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/v :cardinality :db.cardinality/one :valueType :db.type/string}
          #:db{:ident :rh/t :cardinality :db.cardinality/one :valueType :db.type/string}
-         #:db{:ident :rh/o :cardinality :db.cardinality/one :valueType :db.type/string}]
+         #:db{:ident :rh/o :cardinality :db.cardinality/one :valueType :db.type/string}
+         #:db{:ident :rh/patch-op :cardinality :db.cardinality/one :valueType :db.type/boolean}
+         #:db{:ident :rh/tag :cardinality :db.cardinality/one :valueType :db.type/string}]
         fn-schema/schema))
 
 (defn init-schema! [conn]

@@ -48,6 +48,10 @@
   [conn lookup-ref org-history new-history]
   (patch/schedule-patch! conn lookup-ref org-history new-history))
 
+(defn cancel-patch!
+  [conn lookup-ref org-history new-history]
+  (patch/cancel-patch! conn lookup-ref org-history new-history))
+
 (defn all-pending-patches [conn]
   (patch/all-pending-patches conn))
 
