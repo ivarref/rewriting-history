@@ -8,7 +8,8 @@
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [clojure.set :as set]
-            [datomic.api :as d])
+            [datomic.api :as d]
+            [clojure.pprint :as pprint])
   (:import (java.util Date)))
 
 ; public API
@@ -87,15 +88,35 @@
   (assert (vector? eavtos))
   (let [new-vals (into {} (mapv vec (partition 2 kvs)))]
     (if-let [eid (->> eavtos
-                      (filter (fn [[e a v t o]]
+                      (filter (fn [[_e a v _t o]]
                                 (and (= a attr)
-                                     (= v idval))))
+                                     (= v idval)
+                                     o)))
                       (ffirst))]
-      (->> eavtos
-           (mapv (fn [[e a v t o :as eavto]]
-                   (if (= e eid)
-                     [e a (get new-vals a v) t o]
-                     eavto))))
+      (let [[_e _a _v start-tx _] (->> eavtos
+                                       (filter (fn [[e a v t o]]
+                                                 (and (= a attr)
+                                                      (= v idval)
+                                                      o)))
+                                       (first))
+            old-eavtos (->> eavtos
+                            (filter (fn [[e a _v t _o]]
+                                      (and (>= t start-tx)
+                                           (= e eid)
+                                           (contains? (into #{} (keys new-vals)) a))))
+                            (group-by second)
+                            (vals)
+                            (mapcat (fn [v]
+                                      (let [[_e _a _v _t o] (first v)]
+                                        (assert (true? o) "Expected first tx to be assert"))
+                                      (take 2 v)))
+                            (vec))
+            new-eavtos (->> old-eavtos
+                            (mapv (fn [[e a _v t o]]
+                                    [e a (get new-vals a) t o])))
+            change (zipmap old-eavtos new-eavtos)]
+        (->> eavtos
+             (mapv (fn [eavto] (get change eavto eavto)))))
       eavtos)))
 
 ; convenience methods

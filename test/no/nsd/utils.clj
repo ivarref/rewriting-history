@@ -16,7 +16,7 @@
 
 (defn pprint [x]
   (binding [pprint/*print-right-margin* 120]
-    (pprint/pprint x))
+    (log/info (str "\n" (str/trim (with-out-str (pprint/pprint x))))))
   x)
 
 (defn year->Date [yr]
@@ -149,6 +149,9 @@
                     e#))]
          (log/debug "error message was" (ex-message t#))
          (ex-message t#)))))
+
+(defn ignore-txInstant [eavtos]
+  (filterv #(not= :tx/txInstant (second %)) eavtos))
 
 (defmacro is-assert-msg [msg & body]
   `(test/is (let [emsg# (ex-msg ~@body)
