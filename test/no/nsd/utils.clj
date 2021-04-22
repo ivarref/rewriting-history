@@ -20,6 +20,12 @@
     (log/info (str "\n" (str/trim (with-out-str (pprint/pprint x))))))
   x)
 
+(defn hp [x]
+  (binding [pprint/*print-right-margin* 120
+            log-init/*override-color* true]
+    (log/info (str "\n" (str/trim (with-out-str (pprint/pprint x))))))
+  x)
+
 (defn year->Date [yr]
   (Date/from
     (-> (LocalDate/parse (str yr "-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))

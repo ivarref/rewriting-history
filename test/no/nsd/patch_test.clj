@@ -45,74 +45,44 @@
               [4 :fil/name "new.txt" 2 true]]
              (u/ignore-txInstant new-hist)))
       (is (= {:add
-                      [{:e "4", :a ":fil/id", :v "#uuid \"00000000-0000-0000-0000-000000000000\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"00000000-0000-0000-0000-000000000000\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
+                      [{:e "4", :a ":fil/id", :v "uid:0", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/id", :v "uid:0", :t "2", :o "false", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "2", :o "false", :ref "[:m/id id]"}],
               :remove
-                      [{:e "4", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
-              :status "Scheduled patch"
-              :tags   ["[:delete-file #uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"]"]}
-             (rh/schedule-patch! conn [:m/id "id"] [:delete-file fil-uuid] hist new-hist)))
+                      [{:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "secret.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "2", :o "false", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "secret.txt", :t "2", :o "false", :ref "[:m/id id]"}],
+              :status "Scheduled patch",
+              :tags ["[:delete-file uid:f3a0530b-6645-475f-b5ab-4000849fc2b9]"]}
+             (u/abbr (rh/schedule-patch! conn [:m/id "id"] [:delete-file fil-uuid] hist new-hist))))
       (is (= {:add
-                      [{:e "4", :a ":fil/id", :v "#uuid \"00000000-0000-0000-0000-000000000000\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"00000000-0000-0000-0000-000000000000\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
+                     [{:e "4", :a ":fil/id", :v "uid:0", :t "1", :o "true", :ref "[:m/id id]"}
+                      {:e "4", :a ":fil/name", :v "deleted.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                      {:e "4", :a ":fil/id", :v "uid:0", :t "2", :o "false", :ref "[:m/id id]"}
+                      {:e "4", :a ":fil/name", :v "deleted.txt", :t "2", :o "false", :ref "[:m/id id]"}],
               :remove
-                      [{:e "4", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
-              :status "No changes"
-              :tags   ["[:delete-file #uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"]"]}
-             (rh/schedule-patch! conn [:m/id "id"] [:delete-file fil-uuid] hist new-hist)))
+                     [{:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "1", :o "true", :ref "[:m/id id]"}
+                      {:e "4", :a ":fil/name", :v "secret.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                      {:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "2", :o "false", :ref "[:m/id id]"}
+                      {:e "4", :a ":fil/name", :v "secret.txt", :t "2", :o "false", :ref "[:m/id id]"}],
+              :status "No changes",
+              :tags ["[:delete-file uid:f3a0530b-6645-475f-b5ab-4000849fc2b9]"]}
+             (u/abbr (rh/schedule-patch! conn [:m/id "id"] [:delete-file fil-uuid] hist new-hist))))
       (is (= {:add
-                      [{:e "4", :a ":fil/id", :v "#uuid \"00000000-0000-0000-0000-000000000000\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"00000000-0000-0000-0000-000000000000\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
+                      [{:e "4", :a ":fil/id", :v "uid:0", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/id", :v "uid:0", :t "2", :o "false", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "2", :o "false", :ref "[:m/id id]"}],
               :remove
-                      [{:e "4", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
-              :status "List"
-              :tags   ["[:delete-file #uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"]"]}
-             (rh/all-pending-patches conn)))
+                      [{:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "secret.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "2", :o "false", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "secret.txt", :t "2", :o "false", :ref "[:m/id id]"}],
+              :status "List",
+              :tags ["[:delete-file uid:f3a0530b-6645-475f-b5ab-4000849fc2b9]"]}
+             (u/abbr (rh/all-pending-patches conn))))
 
       @(d/transact conn [{:m/id "i2" :m/files
                                 {:db/id    "fil"
@@ -127,33 +97,23 @@
                                                :fil/id #uuid"00000000-0000-0000-1111-000000000000"
                                                :fil/name "deleted2.txt"))
       (is (= {:add
-                      [{:e "3", :a ":fil/id", :v "#uuid \"00000000-0000-0000-1111-000000000000\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
-                       {:e "3", :a ":fil/name", :v "\"deleted2.txt\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
-                       {:e "4", :a ":fil/id", :v "#uuid \"00000000-0000-0000-0000-000000000000\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"00000000-0000-0000-0000-000000000000\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"deleted.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
+                      [{:e "3", :a ":fil/id", :v "uid:00000000-0000-0000-1111-000000000000", :t "1", :o "true", :ref "[:m/id i2]"}
+                       {:e "3", :a ":fil/name", :v "deleted2.txt", :t "1", :o "true", :ref "[:m/id i2]"}
+                       {:e "4", :a ":fil/id", :v "uid:0", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/id", :v "uid:0", :t "2", :o "false", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "2", :o "false", :ref "[:m/id id]"}],
               :remove
-                      [{:e "3", :a ":fil/id", :v "#uuid \"00000000-1111-2222-3333-000000000000\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
-                       {:e "3", :a ":fil/name", :v "\"strengt-hemmeleg.txt\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
-                       {:e "4", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-                       {:e   "4",
-                        :a   ":fil/id",
-                        :v   "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"",
-                        :t   "2",
-                        :o   "false",
-                        :ref "[:m/id \"id\"]"}
-                       {:e "4", :a ":fil/name", :v "\"secret.txt\"", :t "2", :o "false", :ref "[:m/id \"id\"]"}],
-              :status "List"
-              :tags   ["[:delete-file #uuid \"00000000-1111-2222-3333-000000000000\"]"
-                       "[:delete-file #uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"]"]}
-             (rh/all-pending-patches conn)))
+                      [{:e "3", :a ":fil/id", :v "uid:00000000-1111-2222-3333-000000000000", :t "1", :o "true", :ref "[:m/id i2]"}
+                       {:e "3", :a ":fil/name", :v "strengt-hemmeleg.txt", :t "1", :o "true", :ref "[:m/id i2]"}
+                       {:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "secret.txt", :t "1", :o "true", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/id", :v "uid:f3a0530b-6645-475f-b5ab-4000849fc2b9", :t "2", :o "false", :ref "[:m/id id]"}
+                       {:e "4", :a ":fil/name", :v "secret.txt", :t "2", :o "false", :ref "[:m/id id]"}],
+              :status "List",
+              :tags
+                      ["[:delete-file uid:00000000-1111-2222-3333-000000000000]" "[:delete-file uid:f3a0530b-6645-475f-b5ab-4000849fc2b9]"]}
+             (u/abbr (rh/all-pending-patches conn))))
       (rh/rewrite-scheduled! conn)
       (is (= new-hist
              (rh/pull-flat-history conn [:m/id "id"]))))))
