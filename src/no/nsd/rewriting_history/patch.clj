@@ -6,6 +6,24 @@
             [clojure.edn :as edn]
             [clojure.tools.logging :as log]))
 
+(defn get-tags [conn lookup-ref]
+  (->> (d/q '[:find [?p ...]
+              :in $ ?lookup-ref
+              :where
+              [?e :rh/lookup-ref ?lookup-ref]
+              [?e :rh/patch ?p]]
+            (impl/to-db conn)
+            (pr-str lookup-ref))
+       (d/q '[:find [?tag ...]
+              :in $ [?eid ...]
+              :where
+              [?e :rh/patch ?eid ?tx true]
+              [?tx :rh/tag ?tag ?tx true]]
+            (impl/history conn))
+       (distinct)
+       (sort)
+       (vec)))
+
 (defn get-res [conn lookup-ref]
   (let [get-attr (fn [patch-op]
                    (->> (schedule-init/get-patch (d/db conn) lookup-ref patch-op)
@@ -16,10 +34,11 @@
                         (vec)))]
     (sorted-map
       :add (get-attr true)
-      :remove (get-attr false))))
+      :remove (get-attr false)
+      :tags (get-tags conn lookup-ref))))
 
 (defn schedule-patch!
-  [conn lookup-ref org-history new-history]
+  [conn lookup-ref tag org-history new-history]
   (assert (vector? lookup-ref))
   (assert (vector? org-history))
   (assert (vector? new-history))
@@ -33,14 +52,16 @@
         id (pr-str lookup-ref)
         doseq! (fn [patch-op s]
                  (doseq [[e a v t o] s]
-                   (let [m #:rh{:e (pr-str e)
-                                :a (pr-str a)
-                                :v (pr-str v)
-                                :t (pr-str t)
-                                :o (pr-str o)
+                   (let [m #:rh{:e        (pr-str e)
+                                :a        (pr-str a)
+                                :v        (pr-str v)
+                                :t        (pr-str t)
+                                :o        (pr-str o)
                                 :patch-op patch-op}]
                      @(d/transact conn [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
-                                        [:set/union [:rh/lookup-ref id] :rh/patch #{m}]]))))
+                                        [:set/union [:rh/lookup-ref id] :rh/patch #{m}]
+                                        {:db/id  "datomic.tx"
+                                         :rh/tag (pr-str tag)}]))))
         _ (doseq! true to-add)
         _ (doseq! false to-remove)
         new-patch-values (get-res conn lookup-ref)]
@@ -50,6 +71,7 @@
                   :status (if (= new-patch-values old-patch-values)
                             "No changes"
                             "Scheduled patch")
+                  :tags []
                   :add []
                   :remove [])
                 new-patch-values)))
@@ -69,11 +91,11 @@
         id (pr-str lookup-ref)
         doseq! (fn [patch-op s]
                  (doseq [[e a v t o] s]
-                   (let [m #:rh{:e (pr-str e)
-                                :a (pr-str a)
-                                :v (pr-str v)
-                                :t (pr-str t)
-                                :o (pr-str o)
+                   (let [m #:rh{:e        (pr-str e)
+                                :a        (pr-str a)
+                                :v        (pr-str v)
+                                :t        (pr-str t)
+                                :o        (pr-str o)
                                 :patch-op patch-op}]
                      @(d/transact conn [[:set/disj-if-empty [:rh/lookup-ref id]
                                          :rh/patch m
@@ -89,7 +111,8 @@
                             "No changes"
                             "Cancelled patch")
                   :add []
-                  :remove [])
+                  :remove []
+                  :tags [])
                 new-patch-values)))
 
 (defn all-pending-patches [conn]
@@ -104,4 +127,8 @@
          (mapv edn/read-string)
          (sort)
          (map (partial get-res conn))
-         (reduce (partial merge-with into) (sorted-map :status "List" :add [] :remove [])))))
+         (reduce (partial merge-with into) (sorted-map
+                                             :status "List"
+                                             :add []
+                                             :remove []
+                                             :tags [])))))
