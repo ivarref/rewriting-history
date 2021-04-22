@@ -65,8 +65,32 @@
         new-history (into #{} new-history)
         org-history (into #{} org-history)
         to-add (set/difference new-history org-history)
-        to-remove (set/difference org-history new-history)]
-    nil))
+        to-remove (set/difference org-history new-history)
+        id (pr-str lookup-ref)
+        doseq! (fn [patch-op s]
+                 (doseq [[e a v t o] s]
+                   (let [m #:rh{:e (pr-str e)
+                                :a (pr-str a)
+                                :v (pr-str v)
+                                :t (pr-str t)
+                                :o (pr-str o)
+                                :patch-op patch-op}]
+                     @(d/transact conn [[:set/disj-if-empty [:rh/lookup-ref id]
+                                         :rh/patch m
+                                         [[:some/retract [:rh/lookup-ref id] :rh/state]]
+                                         [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]]]]))))
+        _ (doseq! true to-add)
+        _ (doseq! false to-remove)
+        new-patch-values (get-res conn lookup-ref)]
+    (impl/log-state-change (impl/job-state (d/db conn) lookup-ref) lookup-ref)
+    (merge-with into
+                (sorted-map
+                  :status (if (= new-patch-values old-patch-values)
+                            "No changes"
+                            "Cancelled patch")
+                  :add []
+                  :remove [])
+                new-patch-values)))
 
 (defn all-pending-patches [conn]
   (let [db (impl/to-db conn)]
