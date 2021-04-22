@@ -115,6 +115,63 @@
                   :tags [])
                 new-patch-values)))
 
+(defn cancel-patch-tag!
+  [conn tag]
+  (let [db (impl/to-db conn)
+        eids (->> (d/q '[:find [?p ...]
+                         :in $
+                         :where
+                         [?e :rh/patch ?p]]
+                       db)
+                  (d/q '[:find [?eid ...]
+                         :in $ ?tag [?eid ...]
+                         :where
+                         [_ :rh/patch ?eid ?tx true]
+                         [?tx :rh/tag ?tag ?tx true]]
+                       (impl/history db)
+                       (pr-str tag))
+                  (distinct)
+                  (sort)
+                  (vec))
+        eid->lookup-ref (->> (d/q '[:find ?p ?lref
+                                    :in $ [?p ...]
+                                    :where
+                                    [?e :rh/patch ?p]
+                                    [?e :rh/lookup-ref ?lref]]
+                                  db
+                                  eids)
+                             (into {}))
+        dest-lrefs (distinct (vals eid->lookup-ref))
+        id (some->> eid->lookup-ref
+                    not-empty
+                    vals
+                    first)]
+    (if (not-empty eids)
+      (do
+        (assert (= 1 (count dest-lrefs))
+                (str "Expected a single destination lookup-ref for tag " tag))
+        (let [old-patch-values (get-res conn (edn/read-string id))]
+          (doseq [eid eids]
+            @(d/transact conn [[:set/disj-if-empty [:rh/lookup-ref id]
+                                :rh/patch (dissoc (d/pull db '[:*] eid) :db/id)
+                                [[:some/retract [:rh/lookup-ref id] :rh/state]]
+                                [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]]]]))
+          (let [new-patch-values (get-res conn (edn/read-string id))]
+            (merge-with into
+                        (sorted-map
+                          :status (if (= new-patch-values old-patch-values)
+                                    "No changes"
+                                    "Cancelled patch")
+                          :add []
+                          :remove []
+                          :tags [])
+                        new-patch-values))))
+      (sorted-map
+        :status "No changes"
+        :tags []
+        :add []
+        :remove []))))
+
 (defn all-pending-patches [conn]
   (let [db (impl/to-db conn)]
     (->> (d/q '[:find [?lref ...]

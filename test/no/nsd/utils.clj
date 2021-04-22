@@ -8,7 +8,8 @@
             [clojure.test :as test]
             [no.nsd.log-init :as log-init]
             [no.nsd.shorter-stacktrace]
-            [no.nsd.rewriting-history :as rh])
+            [no.nsd.rewriting-history :as rh]
+            [clojure.walk :as walk])
   (:import (java.time.format DateTimeFormatter)
            (java.time LocalDate ZoneId)
            (java.util Date UUID)
@@ -60,7 +61,7 @@
 
 (defn days->Date [days]
   (Date/from
-    (-> (LocalDate/parse (str"1970-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))
+    (-> (LocalDate/parse (str "1970-01-01") (DateTimeFormatter/ofPattern "yyyy-mm-DD"))
         (.atStartOfDay (ZoneId/of "UTC"))
         (.plusDays days)
         (.toInstant))))
@@ -163,3 +164,20 @@
 (defn rewrite-noop! [conn lookup-ref]
   (rh/schedule-replacement! conn lookup-ref "" "")
   (rh/rewrite-scheduled! conn))
+
+(def uuid-0 #uuid"00000000-0000-0000-0000-000000000000")
+(def uuid-1 #uuid"00000000-0000-0000-0000-000000000001")
+(def uuid-2 #uuid"00000000-0000-0000-0000-000000000002")
+(def uuid-3 #uuid"00000000-0000-0000-0000-000000000003")
+(def uuid-4 #uuid"00000000-0000-0000-0000-000000000004")
+
+(defn abbr [m]
+  (walk/postwalk
+    (fn [e]
+      (if (string? e)
+        (-> e
+            (str/replace "00000000-0000-0000-0000-00000000000" "")
+            (str/replace "\"" "")
+            (str/replace "#uuid " "uid:"))
+        e))
+    m))
