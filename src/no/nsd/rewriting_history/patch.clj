@@ -55,4 +55,4 @@
          (mapv edn/read-string)
          (sort)
          (map (partial get-res conn))
-         (reduce (partial merge-with into) {}))))
+         (reduce (partial merge-with into) (sorted-map :add [] :remove [])))))
