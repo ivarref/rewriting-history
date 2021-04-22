@@ -6,7 +6,7 @@
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [clojure.test :as test]
-            [no.nsd.log-init]
+            [no.nsd.log-init :as log-init]
             [no.nsd.shorter-stacktrace]
             [no.nsd.rewriting-history :as rh])
   (:import (java.time.format DateTimeFormatter)
@@ -125,6 +125,14 @@
   (.print System/out "\033[H\033[2J")
   (.flush System/out)
   (break))
+
+(defmacro highlight [& body]
+  `(let [v# (atom nil)]
+     (binding [log-init/*override-color* true]
+       (break)
+       (reset! v# (do ~@body))
+       (break))
+     @v#))
 
 (defn pull-id [db id]
   (d/pull db '[:*] id))

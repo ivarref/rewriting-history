@@ -3,7 +3,8 @@
             [no.nsd.rewriting-history.impl :as impl]
             [datomic.api :as d]
             [clojure.set :as set]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [clojure.tools.logging :as log]))
 
 (defn get-res [conn lookup-ref]
   (let [get-attr (fn [attr]
@@ -24,24 +25,32 @@
   (assert (vector? new-history))
   (assert (some? (impl/resolve-lookup-ref conn lookup-ref))
           (str "Expected to find lookup-ref " lookup-ref))
-  (when (not= org-history new-history)
-    (let [new-history (into #{} new-history)
-          org-history (into #{} org-history)
-          to-add (set/difference new-history org-history)
-          to-remove (set/difference org-history new-history)
-          id (pr-str lookup-ref)
-          doseq! (fn [attr s]
-                   (doseq [[e a v t o] s]
-                     (let [m #:rh{:e (pr-str e)
-                                  :a (pr-str a)
-                                  :v (pr-str v)
-                                  :t (pr-str t)
-                                  :o (pr-str o)}]
-                       @(d/transact conn [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
-                                          [:set/union [:rh/lookup-ref id] attr #{m}]]))))
-          _ (doseq! :rh/patch-add to-add)
-          _ (doseq! :rh/patch-remove to-remove)]))
-  (get-res conn lookup-ref))
+  (let [old-patch-values (get-res conn lookup-ref)
+        new-history (into #{} new-history)
+        org-history (into #{} org-history)
+        to-add (set/difference new-history org-history)
+        to-remove (set/difference org-history new-history)
+        id (pr-str lookup-ref)
+        doseq! (fn [attr s]
+                 (doseq [[e a v t o] s]
+                   (let [m #:rh{:e (pr-str e)
+                                :a (pr-str a)
+                                :v (pr-str v)
+                                :t (pr-str t)
+                                :o (pr-str o)}]
+                     @(d/transact conn [[:cas/contains [:rh/lookup-ref id] :rh/state #{:scheduled :done nil} :scheduled]
+                                        [:set/union [:rh/lookup-ref id] attr #{m}]]))))
+        _ (doseq! :rh/patch-add to-add)
+        _ (doseq! :rh/patch-remove to-remove)
+        new-patch-values (get-res conn lookup-ref)]
+    (merge-with into
+                (sorted-map
+                  :status (if (= new-patch-values old-patch-values)
+                            "No changes"
+                            "Scheduled patch")
+                  :add []
+                  :remove [])
+                new-patch-values)))
 
 (defn all-pending-patches [conn]
   (let [db (impl/to-db conn)]
@@ -55,4 +64,4 @@
          (mapv edn/read-string)
          (sort)
          (map (partial get-res conn))
-         (reduce (partial merge-with into) (sorted-map :add [] :remove [])))))
+         (reduce (partial merge-with into) (sorted-map :status "List" :add [] :remove [])))))

@@ -40,21 +40,24 @@
                {:e "3", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}],
               :remove
               [{:e "3", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]}
+               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]
+              :status "Scheduled patch"}
              (rh/schedule-patch! conn [:m/id "id"] hist new-hist)))
       (is (= {:add
               [{:e "3", :a ":fil/id", :v "#uuid \"00000000-0000-0000-0000-000000000000\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
                {:e "3", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}],
               :remove
               [{:e "3", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]}
+               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]
+              :status "No changes"}
              (rh/schedule-patch! conn [:m/id "id"] hist new-hist)))
       (is (= {:add
               [{:e "3", :a ":fil/id", :v "#uuid \"00000000-0000-0000-0000-000000000000\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
                {:e "3", :a ":fil/name", :v "\"deleted.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}],
               :remove
               [{:e "3", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]}
+               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]
+              :status "List"}
              (rh/all-pending-patches conn)))
 
       @(d/transact conn [{:m/id "i2" :m/files
@@ -77,7 +80,8 @@
               [{:e "3", :a ":fil/id", :v "#uuid \"00000000-1111-2222-3333-000000000000\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
                {:e "3", :a ":fil/name", :v "\"strengt-hemmeleg.txt\"", :t "1", :o "true", :ref "[:m/id \"i2\"]"}
                {:e "3", :a ":fil/id", :v "#uuid \"f3a0530b-6645-475f-b5ab-4000849fc2b9\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}
-               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]}
+               {:e "3", :a ":fil/name", :v "\"secret.txt\"", :t "1", :o "true", :ref "[:m/id \"id\"]"}]
+              :status "List"}
             (rh/all-pending-patches conn)))
       (rh/rewrite-scheduled! conn)
       (is (= new-hist

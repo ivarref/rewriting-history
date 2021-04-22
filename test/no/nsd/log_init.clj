@@ -9,13 +9,17 @@
   {:warn colors/red
    :error colors/red})
 
+(def ^:dynamic *override-color* nil)
+
 (defn local-console-format-fn
   "A simpler log format, suitable for readable logs during development. colorized stacktraces"
   [data]
   (let [{:keys [level ?err  msg_ ?ns-str ?file hostname_
                 timestamp_ ?line context]} data
         ts     (force timestamp_)]
-    (let [color-f (get level-colors level str)]
+    (let [color-f (if (nil? *override-color*)
+                    (get level-colors level str)
+                    colors/green)]
       (cond-> (str #_(str ?ns-str ":" ?line)
                    (color-f (str/upper-case (name level)))
                    " "
