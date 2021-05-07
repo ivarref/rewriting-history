@@ -141,3 +141,14 @@
 
 (defn get-job-state [conn lookup-ref]
   (impl/job-state conn lookup-ref))
+
+(defn get-state-count [conn]
+  (let [db (impl/to-db conn)]
+    (->> (d/q '[:find ?state ?e
+                :in $
+                :where
+                [?e :rh/lookup-ref ?lref]
+                [?e :rh/state ?state]]
+              db)
+         (map (fn [[state _]] {state 1}))
+         (reduce (partial merge-with +) (sorted-map)))))
