@@ -139,6 +139,10 @@
   "Get the original flat history of lookup-ref as it was before rewriting started."
   (impl/get-org-history db lookup-ref))
 
+(defn get-new-history [db lookup-ref]
+  "Get the expected flat history of lookup-ref before rewriting started."
+  (impl/get-new-history db lookup-ref))
+
 (defn get-job-state [conn lookup-ref]
   (impl/job-state conn lookup-ref))
 
