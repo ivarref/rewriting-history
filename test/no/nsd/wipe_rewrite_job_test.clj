@@ -36,32 +36,33 @@
 
     (let [org-history (rh/pull-flat-history conn [:m/id "id"])]
       ; Original history looks like this:
-      (is (= org-history
-             [[1 :tx/txInstant #inst "1972" 1 true]
-              [4 :m/id "id" 1 true]
-              [4 :m/info "original-data" 1 true]
-              [2 :tx/txInstant #inst "1973" 2 true]
-              [4 :m/info "original-data" 2 false]
-              [4 :m/info "bad-data" 2 true]
-              [3 :tx/txInstant #inst "1974" 3 true]
-              [4 :m/info "bad-data" 3 false]
-              [4 :m/info "good-data" 3 true]]))
+      (is (= [[-1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" -1 true]
+              [1 :m/id "id" -1 true]
+              [1 :m/info "original-data" -1 true]
+              [-2 :tx/txInstant #inst "1973-01-01T00:00:00.000-00:00" -2 true]
+              [1 :m/info "original-data" -2 false]
+              [1 :m/info "bad-data" -2 true]
+              [-3 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" -3 true]
+              [1 :m/info "bad-data" -3 false]
+              [1 :m/info "good-data" -3 true]]
+             org-history))
+
 
       (rh/schedule-replacement! conn [:m/id "id"] "bad-data" "corrected-data")
       (replay/process-until-state conn [:m/id "id"] :done)
 
       (is (= #{"original-data" "corrected-data" "good-data"} (db-values-set conn)))
 
-      (is (= (rh/pull-flat-history conn [:m/id "id"])
-             [[1 :tx/txInstant #inst "1972" 1 true]
-              [4 :m/id "id" 1 true]
-              [4 :m/info "original-data" 1 true]
-              [2 :tx/txInstant #inst "1973" 2 true]
-              [4 :m/info "original-data" 2 false]
-              [4 :m/info "corrected-data" 2 true]
-              [3 :tx/txInstant #inst "1974" 3 true]
-              [4 :m/info "corrected-data" 3 false]
-              [4 :m/info "good-data" 3 true]]))
+      (is (= [[-1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" -1 true]
+              [1 :m/id "id" -1 true]
+              [1 :m/info "original-data" -1 true]
+              [-2 :tx/txInstant #inst "1973-01-01T00:00:00.000-00:00" -2 true]
+              [1 :m/info "original-data" -2 false]
+              [1 :m/info "corrected-data" -2 true]
+              [-3 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" -3 true]
+              [1 :m/info "corrected-data" -3 false]
+              [1 :m/info "good-data" -3 true]]
+             (rh/pull-flat-history conn [:m/id "id"])))
 
       (is (pos-int? (count (rh/pull-flat-history conn [:rh/lookup-ref (pr-str [:m/id "id"])]))))
 
