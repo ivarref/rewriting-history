@@ -31,17 +31,16 @@
       @(d/transact conn1 [{:m/id "id" :m/info "good-data"}])
 
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
-        (is (= org-history
-               [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
-                [4 :m/id "id" 1 true]
-                [4 :m/info "original-data" 1 true]
-                [2 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 2 true]
-                [4 :m/info "original-data" 2 false]
-                [4 :m/info "bad-data" 2 true]
-                [3 :tx/txInstant #inst "1976-01-01T00:00:00.000-00:00" 3 true]
-                [4 :m/info "bad-data" 3 false]
-                [4 :m/info "good-data" 3 true]]))
-
+        (is (= [[-1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" -1 true]
+                [1 :m/id "id" -1 true]
+                [1 :m/info "original-data" -1 true]
+                [-2 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" -2 true]
+                [1 :m/info "original-data" -2 false]
+                [1 :m/info "bad-data" -2 true]
+                [-3 :tx/txInstant #inst "1976-01-01T00:00:00.000-00:00" -3 true]
+                [1 :m/info "bad-data" -3 false]
+                [1 :m/info "good-data" -3 true]]
+               org-history))
         (replay/add-rewrite-job! conn1 [:m/id "id"] org-history org-history)
         (replay/add-rewrite-job! conn2 [:m/id "id"] org-history org-history)
 
@@ -71,16 +70,16 @@
       @(d/transact conn1 [{:m/id "id" :m/info "good-data"}])
 
       (let [org-history (rh/pull-flat-history conn1 [:m/id "id"])]
-        (is (= org-history
-               [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
-                [4 :m/id "id" 1 true]
-                [4 :m/info "original-data" 1 true]
-                [2 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" 2 true]
-                [4 :m/info "original-data" 2 false]
-                [4 :m/info "bad-data" 2 true]
-                [3 :tx/txInstant #inst "1976-01-01T00:00:00.000-00:00" 3 true]
-                [4 :m/info "bad-data" 3 false]
-                [4 :m/info "good-data" 3 true]]))
+        (is (= [[-1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" -1 true]
+                [1 :m/id "id" -1 true]
+                [1 :m/info "original-data" -1 true]
+                [-2 :tx/txInstant #inst "1975-01-01T00:00:00.000-00:00" -2 true]
+                [1 :m/info "original-data" -2 false]
+                [1 :m/info "bad-data" -2 true]
+                [-3 :tx/txInstant #inst "1976-01-01T00:00:00.000-00:00" -3 true]
+                [1 :m/info "bad-data" -3 false]
+                [1 :m/info "good-data" -3 true]]
+               org-history))
 
         ; Add job
         (replay/add-rewrite-job! conn2 [:m/id "id"] org-history org-history)
@@ -91,10 +90,10 @@
         (binding [rewrite/*loop* false]
           (replay/process-job-step! conn2 [:m/id "id"]))
 
-        (is (= (rh/pull-flat-history conn2 [:m/id "id"])
-               [[1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" 1 true]
-                [2 :m/id "id" 1 true]
-                [2 :m/info "original-data" 1 true]]))
+        (is (= [[-1 :tx/txInstant #inst "1974-01-01T00:00:00.000-00:00" -1 true]
+                [1 :m/id "id" -1 true]
+                [1 :m/info "original-data" -1 true]]
+               (rh/pull-flat-history conn2 [:m/id "id"])))
 
         @(d/transact conn2 [{:m/id   "id"
                              :m/info "oh no somebody wrote data in the middle of a re-write!"}])
