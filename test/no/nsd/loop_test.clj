@@ -17,10 +17,10 @@
 
       @(d/transact conn #d/schema[[:tx/txInstant :one :instant]])
 
-      (is (= (rh/pull-flat-history conn [:m/id "id"])
-             [[1 :tx/txInstant #inst "1972" 1 true]
-              [2 :m/id "id" 1 true]
-              [2 :m/ref 2 1 true]]))))
+      (is (= [[-1 :tx/txInstant #inst "1972" -1 true]
+              [1 :m/id "id" -1 true]
+              [1 :m/ref 1 -1 true]]
+             (rh/pull-flat-history conn [:m/id "id"])))))
 
   (testing "Verify that a nested loop reference works"
     (let [conn (u/empty-conn)]
@@ -37,9 +37,10 @@
 
       @(d/transact conn #d/schema[[:tx/txInstant :one :instant]])
 
-      (is (= (rh/pull-flat-history conn [:m/id "id"])
-             [[1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" 1 true]
-              [2 :m/comp 3 1 true]
-              [2 :m/id "id" 1 true]
-              [3 :m/info "asdf" 1 true]
-              [3 :m/ref 2 1 true]])))))
+      (is (= [[-1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" -1 true]
+              [1 :m/comp 2 -1 true]
+              [1 :m/id "id" -1 true]
+              [2 :m/info "asdf" -1 true]
+              [2 :m/ref 1 -1 true]]
+             (rh/pull-flat-history conn [:m/id "id"]))))))
+
