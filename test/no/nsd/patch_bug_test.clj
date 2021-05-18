@@ -27,42 +27,40 @@
                        (rh/assoc-lookup-ref [:fil/id fil-uuid]
                                             :fil/id #uuid"00000000-0000-0000-0000-000000000000"
                                             :fil/name "deleted.txt"))]
-      (is (= [[3 :m/files 4 1 true]
-              [3 :m/id "id" 1 true]
-              [4 :fil/id #uuid "00000000-0000-0000-0000-000000000002" 1 true]
-              [4 :fil/name "secret.txt" 1 true]
-              [4 :fil/id #uuid "00000000-0000-0000-0000-000000000002" 2 false]
-              [4 :fil/id #uuid "00000000-0000-0000-1111-000000000000" 2 true]
-              [4 :fil/name "secret.txt" 2 false]
-              [4 :fil/name "new.txt" 2 true]]
+      (is (= [[1 :m/files 2 -1 true]
+              [1 :m/id "id" -1 true]
+              [2 :fil/id #uuid "00000000-0000-0000-0000-000000000002" -1 true]
+              [2 :fil/name "secret.txt" -1 true]
+              [2 :fil/id #uuid "00000000-0000-0000-0000-000000000002" -2 false]
+              [2 :fil/id #uuid "00000000-0000-0000-1111-000000000000" -2 true]
+              [2 :fil/name "secret.txt" -2 false]
+              [2 :fil/name "new.txt" -2 true]]
              (u/ignore-txInstant hist)))
-      (is (= [[3 :m/files 4 1 true]
-              [3 :m/id "id" 1 true]
-              [4 :fil/id #uuid "00000000-0000-0000-0000-000000000000" 1 true]
-              [4 :fil/name "deleted.txt" 1 true]
-              [4 :fil/id #uuid "00000000-0000-0000-0000-000000000000" 2 false]
-              [4 :fil/id #uuid "00000000-0000-0000-1111-000000000000" 2 true]
-              [4 :fil/name "deleted.txt" 2 false]
-              [4 :fil/name "new.txt" 2 true]]
+      (is (= [[1 :m/files 2 -1 true]
+              [1 :m/id "id" -1 true]
+              [2 :fil/id #uuid "00000000-0000-0000-0000-000000000000" -1 true]
+              [2 :fil/name "deleted.txt" -1 true]
+              [2 :fil/id #uuid "00000000-0000-0000-0000-000000000000" -2 false]
+              [2 :fil/id #uuid "00000000-0000-0000-1111-000000000000" -2 true]
+              [2 :fil/name "deleted.txt" -2 false]
+              [2 :fil/name "new.txt" -2 true]]
              (u/ignore-txInstant new-hist)))
       (is (= {:add
-                      [{:e "4", :a ":fil/id", :v "uid:0", :t "1", :o "true", :ref "[:m/id id]"}
-                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "1", :o "true", :ref "[:m/id id]"}
-                       {:e "4", :a ":fil/id", :v "uid:0", :t "2", :o "false", :ref "[:m/id id]"}
-                       {:e "4", :a ":fil/name", :v "deleted.txt", :t "2", :o "false", :ref "[:m/id id]"}],
+                      [{:e "2", :a ":fil/id", :v "uid:0", :t "-1", :o "true", :ref "[:m/id id]"}
+                       {:e "2", :a ":fil/name", :v "deleted.txt", :t "-1", :o "true", :ref "[:m/id id]"}
+                       {:e "2", :a ":fil/id", :v "uid:0", :t "-2", :o "false", :ref "[:m/id id]"}
+                       {:e "2", :a ":fil/name", :v "deleted.txt", :t "-2", :o "false", :ref "[:m/id id]"}],
               :remove
-                      [{:e "4", :a ":fil/id", :v "uid:2", :t "1", :o "true", :ref "[:m/id id]"}
-                       {:e "4", :a ":fil/name", :v "secret.txt", :t "1", :o "true", :ref "[:m/id id]"}
-                       {:e "4", :a ":fil/id", :v "uid:2", :t "2", :o "false", :ref "[:m/id id]"}
-                       {:e "4", :a ":fil/name", :v "secret.txt", :t "2", :o "false", :ref "[:m/id id]"}],
+                      [{:e "2", :a ":fil/id", :v "uid:2", :t "-1", :o "true", :ref "[:m/id id]"}
+                       {:e "2", :a ":fil/name", :v "secret.txt", :t "-1", :o "true", :ref "[:m/id id]"}
+                       {:e "2", :a ":fil/id", :v "uid:2", :t "-2", :o "false", :ref "[:m/id id]"}
+                       {:e "2", :a ":fil/name", :v "secret.txt", :t "-2", :o "false", :ref "[:m/id id]"}],
               :status "Scheduled patch",
               :tags ["[:delete-file uid:2]"]}
              (u/abbr (rh/schedule-patch! conn [:m/id "id"] [:delete-file fil-uuid] hist new-hist))))
       @(d/transact conn [{:m/id "id"
                           :m/info "janei"}])
-      (u/pprint (u/ignore-txInstant (rh/pull-flat-history conn [:m/id "id"])))
       (rh/rewrite-scheduled! conn)
-      (u/pprint (rh/pull-flat-history conn [:m/id "id"]))
       #_(is (= {:add
                         [{:e "4", :a ":fil/id", :v "uid:0", :t "1", :o "true", :ref "[:m/id id]"}
                          {:e "4", :a ":fil/name", :v "deleted.txt", :t "1", :o "true", :ref "[:m/id id]"}
