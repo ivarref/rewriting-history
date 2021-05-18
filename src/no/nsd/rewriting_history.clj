@@ -109,7 +109,7 @@
                                        (first))
             old-eavtos (->> eavtos
                             (filter (fn [[e a _v t _o]]
-                                      (and (>= t start-tx)
+                                      (and (<= t start-tx)
                                            (= e eid)
                                            (contains? (into #{} (keys new-vals)) a))))
                             (group-by second)
