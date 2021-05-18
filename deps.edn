@@ -14,7 +14,8 @@
                                      io.rkn/conformity                       {:mvn/version "0.5.4"}
                                      vvvvalvalval/scope-capture              {:mvn/version "0.3.2"}
                                      com.cognitect/test-runner               {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                                              :sha     "209b64504cb3bd3b99ecfec7937b358a879f55c1"}
+                                                                              :sha     "9e35c979860c75555adaff7600070c60004a0f44"
+                                                                              :tag     "v0.2.1"}
                                      rewrite-clj/rewrite-clj                 {:mvn/version "0.6.1"}}
                        :jvm-opts    ["-DDISABLE_SPY=true"
                                      "-DTAOENSSO_TIMBRE_MIN_LEVEL_EDN=:warn"]
