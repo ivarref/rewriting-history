@@ -30,16 +30,16 @@
     (rh/schedule-replacement! conn [:m/id "id"] "a" "b")
     (replay/process-until-state conn [:m/id "id"] :done)
 
-    (is (= (rh/pull-flat-history conn [:m/id "id"])
-           [[1 :tx/txInstant #inst "1970" 1 true]
-            [4 :m/id "id" 1 true]
-            [4 :m/info "originbl-dbtb" 1 true]
-            [2 :tx/txInstant #inst "1971" 2 true]
-            [4 :m/info "originbl-dbtb" 2 false]
-            [4 :m/info "bbd-dbtb" 2 true]
-            [3 :tx/txInstant #inst "1972" 3 true]
-            [4 :m/info "bbd-dbtb" 3 false]
-            [4 :m/info "good-dbtb" 3 true]]))
+    (is (= [[-1 :tx/txInstant #inst "1970" -1 true]
+            [1 :m/id "id" -1 true]
+            [1 :m/info "originbl-dbtb" -1 true]
+            [-2 :tx/txInstant #inst "1971" -2 true]
+            [1 :m/info "originbl-dbtb" -2 false]
+            [1 :m/info "bbd-dbtb" -2 true]
+            [-3 :tx/txInstant #inst "1972" -3 true]
+            [1 :m/info "bbd-dbtb" -3 false]
+            [1 :m/info "good-dbtb" -3 true]]
+           (rh/pull-flat-history conn [:m/id "id"])))
 
     (is (= (rh/available-rollback-times conn [:m/id "id"])
            #{#inst "1973"}))
@@ -49,16 +49,16 @@
     ; rollback the mistake:
     (rh/rollback! conn [:m/id "id"] #inst"1973")
     (replay/process-until-state conn [:m/id "id"] :done)
-    (is (= (rh/pull-flat-history conn [:m/id "id"])
-           [[1 :tx/txInstant #inst "1970" 1 true]
-            [4 :m/id "id" 1 true]
-            [4 :m/info "original-data" 1 true]
-            [2 :tx/txInstant #inst "1971" 2 true]
-            [4 :m/info "original-data" 2 false]
-            [4 :m/info "bad-data" 2 true]
-            [3 :tx/txInstant #inst "1972" 3 true]
-            [4 :m/info "bad-data" 3 false]
-            [4 :m/info "good-data" 3 true]]))
+    (is (= [[-1 :tx/txInstant #inst "1970" -1 true]
+            [1 :m/id "id" -1 true]
+            [1 :m/info "original-data" -1 true]
+            [-2 :tx/txInstant #inst "1971" -2 true]
+            [1 :m/info "original-data" -2 false]
+            [1 :m/info "bad-data" -2 true]
+            [-3 :tx/txInstant #inst "1972" -3 true]
+            [1 :m/info "bad-data" -3 false]
+            [1 :m/info "good-data" -3 true]]
+           (rh/pull-flat-history conn [:m/id "id"])))
 
     ; it is possible to rollback the rollback:
     (is (= (rh/available-rollback-times conn [:m/id "id"])
@@ -69,13 +69,13 @@
     ; rollback the rollback:
     (rh/rollback! conn [:m/id "id"] #inst"1974")
     (replay/process-until-state conn [:m/id "id"] :done)
-    (is (= (rh/pull-flat-history conn [:m/id "id"])
-           [[1 :tx/txInstant #inst "1970" 1 true]
-            [4 :m/id "id" 1 true]
-            [4 :m/info "originbl-dbtb" 1 true]
-            [2 :tx/txInstant #inst "1971" 2 true]
-            [4 :m/info "originbl-dbtb" 2 false]
-            [4 :m/info "bbd-dbtb" 2 true]
-            [3 :tx/txInstant #inst "1972" 3 true]
-            [4 :m/info "bbd-dbtb" 3 false]
-            [4 :m/info "good-dbtb" 3 true]]))))
+    (is (= [[-1 :tx/txInstant #inst "1970" -1 true]
+            [1 :m/id "id" -1 true]
+            [1 :m/info "originbl-dbtb" -1 true]
+            [-2 :tx/txInstant #inst "1971" -2 true]
+            [1 :m/info "originbl-dbtb" -2 false]
+            [1 :m/info "bbd-dbtb" -2 true]
+            [-3 :tx/txInstant #inst "1972" -3 true]
+            [1 :m/info "bbd-dbtb" -3 false]
+            [1 :m/info "good-dbtb" -3 true]]
+           (rh/pull-flat-history conn [:m/id "id"])))))
