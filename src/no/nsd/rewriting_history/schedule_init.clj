@@ -52,10 +52,16 @@
                           (mapv (partial zipmap [:eid :match :replacement])))
         patch-add (into [] (get-patch (d/db conn) lookup-ref true))
         patch-remove (into #{} (get-patch (d/db conn) lookup-ref false))
-        new-history (->> (impl/pull-flat-history-simple conn lookup-ref)
+        curr-history (impl/pull-flat-history-simple conn lookup-ref)
+        new-history (->> curr-history
                          (into patch-add)
                          (mapv (partial replace-eavto replacements))
                          (remove #(contains? patch-remove %))
                          (sort-by (fn [[e a v t o]] [t e a o v]))
                          (vec))]
+    (assert (= (count new-history)
+               (+ (count curr-history)
+                  (count patch-add)
+                  (* -1 (count patch-remove))))
+            "Expected all patch remove to be found in existing history")
     (add-job/add-job! conn lookup-ref #{:scheduled} :pending-init new-history)))
