@@ -17,25 +17,26 @@
                                  impl/schema]))
       @(d/transact conn [{:m/id   "id"
                           :m/info "hello world"}
-                         {:db/id        "datomic.tx"
-                          :tx/info      "meta"}])
+                         {:db/id   "datomic.tx"
+                          :tx/info "meta"}])
       (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
-        (is (= [[1 :tx/info "meta" 1 true]
-                [1 :tx/txInstant #inst "1972" 1 true]
-                [2 :m/id "id" 1 true]
-                [2 :m/info "hello world" 1 true]]
+        (is (= [[-1 :tx/info "meta" -1 true]
+                [-1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" -1 true]
+                [1 :m/id "id" -1 true]
+                [1 :m/info "hello world" -1 true]]
                fh))
         (let [[tx] (tx/generate-tx conn [:m/id "id"] fh)]
-          (is (= tx
-                 [[:db/add "datomic.tx" :tx/info "meta"]
+          (is (= [[:db/add "datomic.tx" :tx/info "meta"]
                   [:db/add "datomic.tx" :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00"]
-                  [:db/add "2" :m/id "id"]
-                  [:db/add "2" :m/info "hello world"]
+                  [:db/add "1" :m/id "id"]
+                  [:db/add "1" :m/info "hello world"]
                   [:set/union
                    [:rh/lookup-ref "[:m/id \"id\"]"]
                    :rh/tempids
-                   #{#:rh{:tempid-str "2", :tempid-ref "2"} #:rh{:tempid-str "1", :tempid-ref "datomic.tx"}}]
-                  [:db/cas [:rh/lookup-ref "[:m/id \"id\"]"] :rh/state :rewrite-history :verify]]))
+                   #{#:rh{:tempid-str "-1", :tempid-ref "datomic.tx"} #:rh{:tempid-str "1", :tempid-ref "1"}}]
+                  [:db/cas [:rh/lookup-ref "[:m/id \"id\"]"] :rh/state :rewrite-history :verify]]
+                 tx))
+
           (u/rewrite-noop! conn [:m/id "id"])
           (is (= fh (impl/pull-flat-history-simple conn [:m/id "id"]))))))))
 
@@ -52,28 +53,28 @@
       @(d/transact conn [{:m/id   "id"
                           :m/info "hello world"
                           :m/ref  "datomic.tx"}
-                         {:db/id        "datomic.tx"
-                          :tx/info      "meta"}])
+                         {:db/id   "datomic.tx"
+                          :tx/info "meta"}])
       @(d/transact conn [{:m/id "id2"}])
 
       (let [fh (impl/pull-flat-history-simple conn [:m/id "id"])]
-        (is (= [[1 :tx/info "meta" 1 true]
-                [1 :tx/txInstant #inst "1972" 1 true]
-                [2 :m/id "id" 1 true]
-                [2 :m/info "hello world" 1 true]
-                [2 :m/ref 1 1 true]]
+        (is (= [[-1 :tx/info "meta" -1 true]
+                [-1 :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00" -1 true]
+                [1 :m/id "id" -1 true]
+                [1 :m/info "hello world" -1 true]
+                [1 :m/ref -1 -1 true]]
                fh))
         (let [[tx] (tx/generate-tx conn [:m/id "id"] fh)]
-          (is (= tx
-                 [[:db/add "datomic.tx" :tx/info "meta"]
+          (is (= [[:db/add "datomic.tx" :tx/info "meta"]
                   [:db/add "datomic.tx" :tx/txInstant #inst "1972-01-01T00:00:00.000-00:00"]
-                  [:db/add "2" :m/id "id"]
-                  [:db/add "2" :m/info "hello world"]
-                  [:db/add "2" :m/ref "datomic.tx"]
+                  [:db/add "1" :m/id "id"]
+                  [:db/add "1" :m/info "hello world"]
+                  [:db/add "1" :m/ref "datomic.tx"]
                   [:set/union
                    [:rh/lookup-ref "[:m/id \"id\"]"]
                    :rh/tempids
-                   #{#:rh{:tempid-str "2", :tempid-ref "2"} #:rh{:tempid-str "1", :tempid-ref "datomic.tx"}}]
-                  [:db/cas [:rh/lookup-ref "[:m/id \"id\"]"] :rh/state :rewrite-history :verify]]))
+                   #{#:rh{:tempid-str "-1", :tempid-ref "datomic.tx"} #:rh{:tempid-str "1", :tempid-ref "1"}}]
+                  [:db/cas [:rh/lookup-ref "[:m/id \"id\"]"] :rh/state :rewrite-history :verify]]
+                 tx))
           (u/rewrite-noop! conn [:m/id "id"])
           (is (= fh (impl/pull-flat-history-simple conn [:m/id "id"]))))))))
