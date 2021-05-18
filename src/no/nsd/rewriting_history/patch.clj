@@ -27,7 +27,7 @@
 (defn get-res [conn lookup-ref]
   (let [get-attr (fn [patch-op]
                    (->> (schedule-init/get-patch (d/db conn) lookup-ref patch-op)
-                        (sort-by (fn [[e a v t o]] [t e a o v]))
+                        (sort-by impl/sort-eavto)
                         (map (partial mapv pr-str))
                         (map (partial zipmap [:e :a :v :t :o]))
                         (map #(assoc % :ref (pr-str lookup-ref)))

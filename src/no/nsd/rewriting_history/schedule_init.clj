@@ -57,7 +57,7 @@
                          (into patch-add)
                          (mapv (partial replace-eavto replacements))
                          (remove #(contains? patch-remove %))
-                         (sort-by (fn [[e a v t o]] [t e a o v]))
+                         (sort-by impl/sort-eavto)
                          (vec))]
     (assert (= (count new-history)
                (+ (count curr-history)

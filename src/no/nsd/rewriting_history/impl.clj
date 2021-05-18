@@ -108,6 +108,9 @@
             #{}
             txes)))
 
+(defn sort-eavto [[e a v t o]]
+  [t e a o v])
+
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (when-let [eid-long (resolve-lookup-ref db lookup-ref)]
     (let [seen (atom #{})
@@ -121,7 +124,7 @@
       (->> (set/union tx-meta-eavtos eavtos)
            (remove #(= :db/txInstant (get-a %)))
            (into [])
-           (sort-by (fn [[e a v t o]] [t e a o v]))
+           (sort-by sort-eavto)
            (vec)))))
 
 (defn is-regular-ref? [db a v]
@@ -215,7 +218,7 @@
                   attr)
              (vec)
              (mapv (partial mapv read-string))
-             (sort-by (fn [[e a v t o]] [t e a o v]))
+             (sort-by sort-eavto)
              (vec))))
 
 (defn get-new-history [conn lookup-ref]
