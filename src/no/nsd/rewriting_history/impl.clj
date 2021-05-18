@@ -108,9 +108,6 @@
             #{}
             txes)))
 
-(defn sort-eavto [[e a v t o]]
-  [t e a o v])
-
 (defn pull-flat-history [db [a v :as lookup-ref]]
   (when-let [eid-long (resolve-lookup-ref db lookup-ref)]
     (let [seen (atom #{})
@@ -124,7 +121,7 @@
       (->> (set/union tx-meta-eavtos eavtos)
            (remove #(= :db/txInstant (get-a %)))
            (into [])
-           (sort-by sort-eavto)
+           (sort-by (fn [[e a v t o]] [t e a o v]))
            (vec)))))
 
 (defn is-regular-ref? [db a v]
@@ -136,17 +133,16 @@
                             db a))
        (not (keyword? v))))
 
+(defn sort-eavto [[e a v t o]]
+  [(* -1 t) e a o v])
+
 (defn simplify-eavtos [db lookup-ref eavtos]
   (let [tx-eids (into #{} (distinct (map get-t eavtos)))
         reg-eids (set/difference (into #{} (map first eavtos))
                                  tx-eids)
-        eids (->> (reduce into
-                          []
-                          [(map first eavtos) (map get-t eavtos)])
-                  (sort)
-                  (distinct)
-                  (vec))
-        eid-map (zipmap eids (iterate inc 1))]
+        tx-eid-map (zipmap (sort tx-eids) (iterate dec -1))
+        regular-eid-map (zipmap (sort reg-eids) (iterate inc 1))
+        eid-map (merge tx-eid-map regular-eid-map)]
     (with-meta
       (->> eavtos
            (mapv (fn [[e a v t o]]
@@ -156,7 +152,9 @@
                       (get eid-map v)
                       v)
                     (get eid-map t)
-                    o])))
+                    o]))
+           (sort-by sort-eavto)
+           (vec))
       {:original-eids (vec (sort (vec reg-eids)))
        :lookup-ref    lookup-ref})))
 

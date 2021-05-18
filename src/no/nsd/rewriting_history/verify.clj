@@ -9,8 +9,7 @@
         current-history (some->>
                           (impl/pull-flat-history-simple (d/db conn) lookup-ref)
                           (take (count expected-history))
-                          (vec)
-                          (impl/simplify-eavtos conn lookup-ref))
+                          (vec))
         ok-replay? (= expected-history current-history)
         db-id [:rh/lookup-ref (pr-str lookup-ref)]
         new-state (if ok-replay? :done :error)

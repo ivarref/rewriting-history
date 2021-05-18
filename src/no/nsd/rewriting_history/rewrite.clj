@@ -38,13 +38,19 @@
   (->> history
        (mapv (fn [[e a v t o]] t))
        (distinct)
-       (sort)
+       (sort-by (fn [t] (* -1 t)))
        (take tx-index)
        (last)))
 
+(comment
+  (tx-max [[:e :a :v -1 true]
+           [:e :a :v -2 true]
+           [:e :a :v -3 true]]
+          3))
+
 (defn history-take-tx [history tmax]
   (->> history
-       (take-while (fn [[e a v t o]] (<= t tmax)))
+       (take-while (fn [[e a v t o]] (>= t tmax)))
        (vec)))
 
 (defn rewrite-history! [conn lookup-ref]
@@ -63,16 +69,15 @@
         tx-resolved (resolve-tempids tx (get-tempids conn lookup-ref))
         expected-history (some->>
                            (tx-max history tx-index)
-                           (history-take-tx history)
-                           (impl/simplify-eavtos conn lookup-ref))
+                           (history-take-tx history))
         actual-history (impl/pull-flat-history-simple conn lookup-ref)]
     (log/info "rewrite history tx" (inc tx-index) "of total" (count txes) "transactions ...")
     (if (= expected-history actual-history)
       @(d/transact conn tx-resolved)
       (do
-        (log/error "expected history differs from actual history so far:")
-        (log/error "expected history:\n" (with-out-str (pprint/pprint expected-history)))
-        (log/error "actual history:" (with-out-str (pprint/pprint actual-history)))
+        (log/error "expected history differs from actual history so far")
+        (log/debug "expected history:\n" (with-out-str (pprint/pprint expected-history)))
+        (log/debug "actual history:" (with-out-str (pprint/pprint actual-history)))
         @(d/transact conn [[:db/cas [:rh/lookup-ref (pr-str lookup-ref)] :rh/state :rewrite-history :error]
                            {:db/id [:rh/lookup-ref (pr-str lookup-ref)] :rh/error (Date.)}])
         (impl/log-state-change :error lookup-ref)
