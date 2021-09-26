@@ -9,10 +9,14 @@
                'base64 datomic.codec/base-64-literal}}
     s))
 
+
+(def fns [#'fns/set-disj
+          #'fns/set-reset
+          #'fns/set-union
+          #'fns/some-retract
+          #'fns/cas-contains
+          #'fns/set-disj-if-empty-fn])
+
+
 (def schema
-  (mapv read-dbfn [fns/set-disj
-                   fns/set-reset
-                   fns/set-union
-                   fns/some-retract
-                   fns/cas-contains
-                   fns/set-disj-if-empty-fn]))
+  (mapv (comp read-dbfn deref) fns))

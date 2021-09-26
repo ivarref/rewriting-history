@@ -5,9 +5,9 @@
             [no.nsd.rewriting-history.patch :as patch]
             [no.nsd.rewriting-history.wipe :as wipe]
             [no.nsd.rewriting-history.rollback :as rollback]
+            [no.nsd.rewriting-history.dbfns.schema :as fns]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
-            [clojure.set :as set]
             [datomic.api :as d]
             [clojure.pprint :as pprint])
   (:import (java.util Date)))
@@ -18,6 +18,23 @@
 
 (declare pull-flat-history)
 (declare pending-replacements)
+
+
+(defn init! [conn]
+  @(d/transact conn schema)
+  (doseq [f fns/fns]
+    (let [db-fn (fns/read-dbfn @f)
+          db-ident (:db/ident db-fn)]
+        (when-let [e (d/q '[:find ?e .
+                            :in $ ?db-ident
+                            :where
+                            [?e :db/ident ?db-ident]
+                            [?e :db/fn ?f]]
+                          (d/db conn)
+                          db-ident)]
+          @(d/transact conn [[:db/retractEntity e]])
+          @(d/transact conn [db-fn])))))
+
 
 (defn schedule-replacement!
   "Schedule a replacement of ^String match with ^String replacement

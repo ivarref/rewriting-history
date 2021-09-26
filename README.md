@@ -24,7 +24,7 @@ That is to say: no other entities is dependent on its existence.
             (d/connect uri)))
 
 ; Init rewriting-history schema
-@(d/transact conn rh/schema)
+@(rh/init! conn)
 
 ; Init demo schema
 @(d/transact conn [#:db{:ident       :m/id   

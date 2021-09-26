@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>no.nsd</groupId>
   <artifactId>rewriting-history</artifactId>
-  <version>0.9.443</version>
+  <version>0.10.443</version>
   <name>rewriting-history</name>
   <dependencies>
     <dependency>
