@@ -12,7 +12,8 @@
             [no.nsd.rewriting-history.replay-impl :as replay]))
 
 (deftest rollback-test
-  (let [conn (ft/empty-stage-conn)]
+  (is (= 1 1))
+  (when-let [conn (ft/empty-stage-conn)]
     @(d/transact conn impl/schema)
     @(d/transact conn #d/schema[[:m/id :one :string :id]
                                 [:m/info :one :string]])
