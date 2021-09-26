@@ -1,6 +1,5 @@
 (ns no.nsd.rewriting-history.dbfns.cas-contains
   (:require [clojure.walk :as walk]
-            [clojure.tools.logging :as log]
             [datomic.api :as d])
   (:import (java.util HashSet List)
            (datomic Database)))

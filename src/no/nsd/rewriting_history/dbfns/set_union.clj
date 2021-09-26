@@ -1,6 +1,5 @@
 (ns no.nsd.rewriting-history.dbfns.set-union
   (:require [clojure.walk :as walk]
-            [clojure.tools.logging :as log]
             [datomic.api :as d]
             [clojure.set :as set])
   (:import (java.util UUID HashSet List)
