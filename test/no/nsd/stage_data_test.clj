@@ -10,15 +10,15 @@
             [no.nsd.rewriting-history.add-rewrite-job :as add-job]
             [no.nsd.rewriting-history.impl :as impl]))
 
-(deftest stage-data-test
-  (let [conn (u/empty-conn-days-txtime)]
-    @(d/transact conn rh/schema)
-    @(d/transact conn schema/schema)
-    (let [new-hist sd/data
-          mref [:Meldeskjema/ref "be0bc167-8015-4104-af21-0727ffb3d95d"]]
-      (add-job/add-job! conn mref #{nil} :testing new-hist)
-      (replay/process-job-step! conn mref)
-      (replay/process-until-state conn mref :done)
-      (is (= new-hist
-             (impl/pull-flat-history-simple conn mref))))))
+#_(deftest stage-data-test
+    (let [conn (u/empty-conn-days-txtime)]
+      @(d/transact conn rh/schema)
+      @(d/transact conn schema/schema)
+      (let [new-hist sd/data
+            mref [:Meldeskjema/ref "be0bc167-8015-4104-af21-0727ffb3d95d"]]
+        (add-job/add-job! conn mref #{nil} :testing new-hist)
+        (replay/process-job-step! conn mref)
+        (replay/process-until-state conn mref :done)
+        (is (= new-hist
+               (impl/pull-flat-history-simple conn mref))))))
 

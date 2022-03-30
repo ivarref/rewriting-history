@@ -276,6 +276,8 @@ TODO document assert strategy.
 
 The public API can be found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rewriting_history.clj).
 
+## Change log
+
 ## License
 
 Copyright © 2021 Ivar Refsdal

@@ -27,10 +27,10 @@
         s (get-user-schema (d/db conn))]
     (spit "stage-schema.edn" (pr-str s))))
 
-(def schema (edn/read-string {:readers {'db/id  datomic.db/id-literal
-                                        'db/fn  datomic.function/construct
-                                        'base64 datomic.codec/base-64-literal}}
-                             (slurp "stage-schema.edn")))
+#_(def schema (edn/read-string {:readers {'db/id  datomic.db/id-literal
+                                          'db/fn  datomic.function/construct
+                                          'base64 datomic.codec/base-64-literal}}
+                               (slurp "stage-schema.edn")))
 
 (comment
   (let [conn (u/empty-conn)]

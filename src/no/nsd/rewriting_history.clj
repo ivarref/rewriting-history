@@ -173,3 +173,17 @@
               db)
          (map (fn [[state _]] {state 1}))
          (reduce (partial merge-with +) (sorted-map)))))
+
+(defn healthy? [db]
+  (if-let [cnt (d/q '[:find (count ?e) .
+                      :in $
+                      :where
+                      [?e :rh/state :error]]
+                    db)]
+    (if (pos-int? cnt)
+      false
+      true)
+    true))
+
+(defn unhealthy? [db]
+  (false? (healthy? db)))
