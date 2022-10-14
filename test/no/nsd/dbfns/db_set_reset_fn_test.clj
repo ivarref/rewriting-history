@@ -1,13 +1,12 @@
 (ns no.nsd.dbfns.db-set-reset-fn-test
-  (:require [clojure.test :refer :all]
-            [no.nsd.log-init]
-            [no.nsd.shorter-stacktrace]
+  (:require [clojure.test :refer [deftest is testing]]
             [datomic-schema.core]
             [datomic.api :as d]
-            [no.nsd.utils :as u]
-            [clojure.tools.logging :as log]
             [no.nsd.dbfns.datomic-generate-fn :as genfn]
-            [no.nsd.rewriting-history.dbfns.set-reset :as s])
+            [no.nsd.log-init]
+            [no.nsd.rewriting-history.dbfns.set-reset :as s]
+            [no.nsd.shorter-stacktrace]
+            [no.nsd.utils :as u])
   (:import (java.util.concurrent ExecutionException)))
 
 (defn db-fn
@@ -103,6 +102,26 @@
       (is (= #{"b" "c"} (get-curr-set conn)))
 
       @(d/transact conn [[:set/reset [:m/id "id"] :m/set #{}]])
+      (is (= #{} (get-curr-set conn))))))
+
+(deftest verify-can-use-vector
+  (with-redefs [s/rand-id (fn [] "randid")]
+    (let [schema (reduce into []
+                         [[(db-fn)]
+                          #d/schema[[:m/id :one :string :id]
+                                    [:m/set :many :string]]])
+          conn (empty-conn)]
+      @(d/transact conn schema)
+
+      (is (= (s/set-reset conn [:m/id "id"] :m/set ["a" "b"])
+             [{:m/id "id", :db/id "randid"}
+              [:db/add "randid" :m/set "a"]
+              [:db/add "randid" :m/set "b"]]))
+
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set ["a" "b"]]])
+      (is (= #{"a" "b"} (get-curr-set conn)))
+
+      @(d/transact conn [[:set/reset [:m/id "id"] :m/set []]])
       (is (= #{} (get-curr-set conn))))))
 
 (deftest verify-component-refs-work

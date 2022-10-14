@@ -278,6 +278,12 @@ The public API can be found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rew
 
 ## Change log
 
+Note: This library has never been publicly announced. Use at your own risk!
+
+#### 2022-10-14 v0.10.447
+
+`:set/reset` handles vector input values.
+
 ## License
 
 Copyright © 2021 Ivar Refsdal

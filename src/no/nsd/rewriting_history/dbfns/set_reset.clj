@@ -1,9 +1,9 @@
 (ns no.nsd.rewriting-history.dbfns.set-reset
-  (:require [datomic.api :as d]
-            [clojure.set :as set]
-            [clojure.walk :as walk])
-  (:import (java.util UUID HashSet List)
-           (datomic Database)))
+  (:require [clojure.set :as set]
+            [clojure.walk :as walk]
+            [datomic.api :as d])
+  (:import (datomic Database)
+           (java.util HashSet List UUID)))
 
 (defn to-clojure-types [m]
   (walk/prewalk
@@ -21,7 +21,10 @@
   (str "id-" (UUID/randomUUID)))
 
 (defn set-reset [db lookup-ref attr values]
-  (let [values (to-clojure-types values)
+  (let [values (let [values (to-clojure-types values)]
+                 (if (vector? values)
+                   (into #{} values)
+                   values))
         lookup-ref (to-clojure-types lookup-ref)
         _ (assert (vector? lookup-ref))
         _ (assert (set? values))

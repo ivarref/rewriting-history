@@ -11,3 +11,4 @@ stage-schema.edn
 *.pom.asc
 rewriting-history*.pom
 temp/
+.clj-kondo/
