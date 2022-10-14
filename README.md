@@ -280,6 +280,10 @@ The public API can be found in [src/no/nsd/rewriting_history.clj](src/no/nsd/rew
 
 Note: This library has never been publicly announced. Use at your own risk!
 
+#### 2022-10-14 v0.10.448
+
+`:set/reset` handles `:db.unique/value` for primitives.
+
 #### 2022-10-14 v0.10.447
 
 `:set/reset` handles vector input values.

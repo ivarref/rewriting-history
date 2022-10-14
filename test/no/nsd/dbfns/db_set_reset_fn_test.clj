@@ -124,6 +124,23 @@
       @(d/transact conn [[:set/reset [:m/id "id"] :m/set []]])
       (is (= #{} (get-curr-set conn))))))
 
+
+(deftest verify-can-use-unique-id-values
+  (let [schema (reduce into []
+                       [[(db-fn)]
+                        #d/schema[[:m/id :one :string :unique]
+                                  [:m/set :many :string]]])
+        conn (empty-conn)]
+    @(d/transact conn schema)
+
+    @(d/transact conn [{:m/id "id"}])
+
+    @(d/transact conn [[:set/reset [:m/id "id"] :m/set ["a" "b"]]])
+    (is (= #{"a" "b"} (get-curr-set conn)))
+
+    @(d/transact conn [[:set/reset [:m/id "id"] :m/set []]])
+    (is (= #{} (get-curr-set conn)))))
+
 (deftest verify-component-refs-work
   (with-redefs [s/rand-id (let [c (atom 0)]
                             (fn [] (str "randid-" (swap! c inc))))]

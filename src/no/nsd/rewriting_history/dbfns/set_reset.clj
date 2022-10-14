@@ -43,6 +43,13 @@
                                        [?attr :db/valueType ?t]
                                        [?t :db/ident ?type]]
                                      db attr))
+        unique-type (d/q '[:find ?t .
+                           :in $ ?attr
+                           :where
+                           [?e :db/ident ?attr]
+                           [?e :db/unique ?type]
+                           [?type :db/ident ?t]]
+                         db (first lookup-ref))
         is-component? (and is-ref?
                            (true? (d/q '[:find ?comp .
                                          :in $ ?attr
@@ -98,8 +105,13 @@
                                       db e attr)))
             to-remove (set/difference curr-set values)
             to-add (set/difference values (set/intersection curr-set values))
-            tx (vec (concat
-                      [{id-a id-v :db/id dbid}]
-                      (vec (sort (mapv (fn [rm] [:db/retract dbid attr rm]) to-remove)))
-                      (vec (sort (mapv (fn [add] [:db/add dbid attr add]) to-add)))))]
+            the-ref (if (and e (= :db.unique/value unique-type))
+                      e
+                      dbid)
+            tx (filterv some?
+                        (concat
+                          (when (not= e the-ref)
+                            [{id-a id-v :db/id dbid}])
+                          (vec (sort (mapv (fn [rm] [:db/retract the-ref attr rm]) to-remove)))
+                          (vec (sort (mapv (fn [add] [:db/add the-ref attr add]) to-add)))))]
         tx))))
