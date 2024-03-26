@@ -1,22 +1,21 @@
 {:deps      {org.clojure/tools.logging {:mvn/version "1.1.0"}
-             org.clojure/clojure       {:mvn/version "1.10.3"}}
+             org.clojure/clojure       {:mvn/version "1.11.0"}}
 
  :paths     ["src"]
 
  :aliases   {:test    {:extra-paths ["test"]
-                       :extra-deps  {ivarref/datomic-schema                  {:mvn/version "0.2.0"}
-                                     com.taoensso/timbre                     {:mvn/version "5.1.2"}
-                                     com.fzakaria/slf4j-timbre               {:mvn/version "0.3.21"}
-                                     clojure-term-colors/clojure-term-colors {:mvn/version "0.1.0"}
-                                     com.datomic/datomic-pro                 {:mvn/version "1.0.6242" :exclusions [org.slf4j/slf4j-nop]}
-                                     org.mariadb.jdbc/mariadb-java-client    {:mvn/version "2.4.3"}
-                                     org.postgresql/postgresql               {:mvn/version "9.3-1102-jdbc41"}
-                                     io.rkn/conformity                       {:mvn/version "0.5.4"}
-                                     vvvvalvalval/scope-capture              {:mvn/version "0.3.2"}
-                                     com.cognitect/test-runner               {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                                              :sha     "9e35c979860c75555adaff7600070c60004a0f44"
-                                                                              :tag     "v0.2.1"}
-                                     rewrite-clj/rewrite-clj                 {:mvn/version "0.6.1"}}
+                       :extra-deps  {ivarref/datomic-schema                    {:mvn/version "0.2.0"}
+                                     com.taoensso/timbre                       {:mvn/version "5.1.2"}
+                                     com.fzakaria/slf4j-timbre                 {:mvn/version "0.3.21"}
+                                     clojure-term-colors/clojure-term-colors   {:mvn/version "0.1.0"}
+                                     com.datomic/peer                          {:mvn/version "1.0.7075"}
+                                     com.github.sikt-no/datomic-testcontainers {:mvn/version "1.0.7075.14"}
+                                     io.rkn/conformity                         {:mvn/version "0.5.4"}
+                                     vvvvalvalval/scope-capture                {:mvn/version "0.3.2"}
+                                     com.cognitect/test-runner                 {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                                                :sha     "9e35c979860c75555adaff7600070c60004a0f44"
+                                                                                :tag     "v0.2.1"}
+                                     rewrite-clj/rewrite-clj                   {:mvn/version "0.6.1"}}
                        :jvm-opts    ["-DDISABLE_SPY=true"
                                      "-DTAOENSSO_TIMBRE_MIN_LEVEL_EDN=:warn"]
                        :main-opts   ["--report" "stderr" "-m" "cognitect.test-runner"]}
@@ -31,6 +30,4 @@
                        :exec-fn    deps-deploy.deps-deploy/deploy
                        :exec-args  {:installer      :remote
                                     :sign-releases? false
-                                    :artifact       "target/out.jar"}}}
-
- :mvn/repos {"my.datomic.com" {:url "https://my.datomic.com/repo"}}}
+                                    :artifact       "target/out.jar"}}}}
